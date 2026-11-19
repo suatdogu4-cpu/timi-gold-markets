@@ -373,6 +373,16 @@ async def gold_style_asset():
 async def gold_app_asset():
     return FileResponse(ROOT / 'gold_app.js', media_type='application/javascript')
 
+
+# QUANT HUB v3: public front-end resources (no auth data exposed).
+@app.get('/gold_quant_hub.css',include_in_schema=False)
+async def quant_hub_css():
+    return FileResponse(ROOT / 'gold_quant_hub.css', media_type='text/css')
+
+@app.get('/gold_quant_hub.js',include_in_schema=False)
+async def quant_hub_js():
+    return FileResponse(ROOT / 'gold_quant_hub.js', media_type='application/javascript')
+
 @app.get('/api/health')
 async def health():
     s=M.snapshot();return {'app':'GOLD SCALP PRO','version':'1.0.0','status':'online',
@@ -686,3 +696,54 @@ async def gold_v21_backtest(symbol:str='XAUUSDT',tf:str='5m',strategy:str='ema_t
         return {'version':'2.1.0','symbol':symbol,'tf':tf,'legacy':old,'filtered':new,
                 'comparability_note':'Eski test ve filtreli test aynı mumları kullanır. Yeni filtrede ek spread varsayımı vardır; ayrıca maliyetler eşitlenmeden doğrudan PnL farkını getiri artışı sayma.'}
     except Exception as ex:raise HTTPException(503,err_text(ex))
+
+
+# QUANT HUB v3: seven independently isolated, read-only analysis adaptations.
+# NO trade endpoints, NO original ML/library imports, NO mutation of v1/v2 decisions.
+from fastapi import Body
+
+@app.get('/api/quant-hub/catalog')
+async def quant_hub_catalog():
+    from gold_quant_hub import catalog
+    return catalog()
+
+@app.get('/api/quant-hub/health')
+async def quant_hub_health():
+    from gold_quant_hub import VERSION
+    return {'version':VERSION,'mode':'SHADOW_ONLY','orders_enabled':False,
+            'modules':7,'consensus':True,'legacy_unchanged':True}
+
+@app.post('/api/quant-hub/analyze')
+async def quant_hub_analyze(payload:dict=Body(default={})):
+    from gold_quant_hub import analyze, config_for
+    symbol=valid_symbol(str(payload.get('symbol','XAUUSDT')))
+    tf=valid_tf(str(payload.get('tf','5m')))
+    if tf not in ('1m','3m','5m','15m'):
+        raise HTTPException(400,'Quant Hub: 1m, 3m, 5m veya 15m seçiniz')
+    config=config_for(payload.get('config'))
+    req={'5m':tf,'1H':'1H','1D':'1D'}
+    result={};errors={}
+    async def pull(slot,tf_name):
+        try:
+            bars=await M.get_candles(symbol,tf_name,600 if tf_name!='1D' else 350)
+            result[slot]=closed_bars(bars,tf_name)
+        except Exception as exc:
+            errors[slot]=err_text(exc)
+            result[slot]=[]
+    await asyncio.gather(*(pull(k,v) for k,v in req.items()))
+    snap=M.snapshot()
+    valid=snap.get('valid') or {}
+    if symbol=='XAUUSDT':
+        price_fresh=bool(valid.get('ticker'))
+    else:
+        price_fresh=bool(snap.get('spot')) and (snap.get('spot_age_s') is not None and snap['spot_age_s']<25)
+    key=('XAUUSDT' if symbol=='XAUUSDT' else 'XAUUSD',tf)
+    timestamp=M.candle_updated.get(key)
+    quality={'symbol':symbol,'ticker_fresh':price_fresh,'spot_configured':bool(OANDA_TOKEN and OANDA_ACCOUNT),
+             'source':'Bitget public market OHLC' if symbol=='XAUUSDT' else 'OANDA authenticated spot OHLC',
+             'candle_cache_age_seconds':age(timestamp),'base_tf_seconds':TF_MIN[tf]*60,'errors':errors,'no_real_orders':True}
+    # The expensive numerical calculations run off-event-loop.
+    out=await asyncio.to_thread(analyze,result,symbol,config,quality)
+    out['analysis_tf']=tf
+    out['requested_at_ms']=nowms()
+    return out

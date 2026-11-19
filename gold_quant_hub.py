@@ -14,7 +14,7 @@ from typing import Any
 
 from quant import indicators
 
-VERSION = "3.0.0"
+VERSION = "3.1.0"
 SOURCES = {
     'soloshun': ('Soloshun', 'https://github.com/soloshun/Quantitative-XAUUSD-Strategy', 'Seans hipotezi uyarlaması', 'DIRECTION'),
     'quantalytics': ('Quantalytics-26', 'https://github.com/abhishukla0204/Quantalytics-26', 'Hibrit momentum / dönüş uyarlaması', 'DIRECTION'),
@@ -77,7 +77,7 @@ def base_result(key,status='unavailable',reasons=None):
     return {'id':key,'name':name,'url':url,'kind':kind,'implementation':desc,
             'execution':'ORIGINAL ADAPTATION, not upstream library',
             'status':status,'direction':'BEKLE','strength':None,'eligible':False,
-            'metrics':{},'reasons':reasons or [],'warnings':[], 'gate':'UNKNOWN'}
+            'metrics':{},'reasons':reasons or [],'warnings':[], 'checks':[], 'gate':'UNKNOWN'}
 
 def good_bars(bars,minimum=55):
     if not isinstance(bars,list) or len(bars)<minimum:return False
@@ -190,37 +190,63 @@ def _fit_logit(data,labels):
     return pred
 
 def joshua_engine(bars,cfg):
-    out=base_result('joshua',reasons=['En az 240 kapalı mum gerekli'])
-    if not good_bars(bars,240):return out
+    required=240
+    out=base_result('joshua',reasons=[f'Gold Prediction için en az {required} kapanmış mum gerekli; mevcut: {len(bars)}'])
+    out['metrics']={'closed_bars':len(bars),'required_bars':required,'model':'Yerel L2 lojistik sınıflandırıcı (orijinal RF/XGBoost/LightGBM değil)',
+                    'minimum_forward_samples':45,'requested_horizon_bars':cfg['horizon']}
+    if not good_bars(bars,required):return out
     rows=_features(bars);h=cfg['horizon'];max_label=len(bars)-h
     train_limit=int(max_label*.7)
     train=[(i,x) for i,x in rows if i+h<train_limit]
     test=[(i,x) for i,x in rows if train_limit<=i and i+h<len(bars)]
-    if len(train)<100 or len(test)<45:return out
+    out['metrics'].update(train_samples=len(train),forward_samples=len(test))
+    if len(train)<100 or len(test)<45:
+        out['status']='research'
+        out['reasons']=[f'Kronolojik bölme sonrası eğitim={len(train)} (asgari 100), ileri test={len(test)} (asgari 45). Yeterli veri yok; yön oyu kapalı.']
+        return out
     y=[int(bars[i+h]['c']>bars[i]['c']) for i,x in train]
-    if len(set(y))<2:return out
+    if len(set(y))<2:
+        out['status']='research';out['reasons']=['Eğitim etiketleri tek sınıfa düştü: model eğitimine uygun değil'];return out
     model=_fit_logit(train,y)
     yh=[int(bars[i+h]['c']>bars[i]['c']) for i,x in test]
     pred=[model(x) for i,x in test]
     acc=sum(int((p>=.5)==bool(v)) for p,v in zip(pred,yh))/len(yh)
     majority=max(sum(yh)/len(yh),1-sum(yh)/len(yh))
-    recent_prob=model(rows[-1][1])
-    metrics={'forward_samples':len(test),'forward_accuracy_pct':round_or_none(acc*100,1),
-            'majority_baseline_pct':round_or_none(majority*100,1),
-            'raw_class_score_pct':round_or_none(recent_prob*100,1),'horizon_bars':h,
+    recent_prob=model(rows[-1][1]);conf=max(recent_prob,1-recent_prob)
+    needed=majority+cfg['min_test_lift']
+    metrics={'train_samples':len(train),'forward_samples':len(test),
+            'forward_accuracy_pct':round_or_none(acc*100,2),
+            'majority_baseline_pct':round_or_none(majority*100,2),
+            'minimum_required_accuracy_pct':round_or_none(needed*100,2),
+            'validation_lift_pp':round_or_none((acc-majority)*100,2),
+            'minimum_validation_lift_pp':round_or_none(cfg['min_test_lift']*100,2),
+            'raw_class_score_pct':round_or_none(recent_prob*100,2),
+            'raw_direction_confidence_pct':round_or_none(conf*100,2),
+            'required_raw_confidence_pct':round_or_none(cfg['signal_threshold']*100,2),
+            'horizon_bars':h,'closed_bars':len(bars),
             'model':'Yerel L2 lojistik sınıflandırıcı; orijinal Joshua RF/XGBoost/LightGBM değildir'}
     out['metrics']=metrics
-    if acc<majority+cfg['min_test_lift']:
-        out['status']='research';out['reasons']=['İleri örnek isabeti çoğunluk taban çizgisini yeterince aşmadı; oy dışı'];return out
-    if max(recent_prob,1-recent_prob)<cfg['signal_threshold']:
-        out['status']='research';out['reasons']=['Ham sınıflandırma çıktısı eşik altında, oy dışı'];return out
+    if acc<needed:
+        out['status']='research';out['reasons']=[
+            f'İleri test isabeti %{acc*100:.1f}; çoğunluk referansı %{majority*100:.1f} ve gereken ek fark {cfg["min_test_lift"]*100:.1f} yüzde puan. Gereken ≥%{needed*100:.1f}.',
+            'İleri dönem kriteri geçmediği için oy dışı. Eğitim/veri üzerinde parametre uydurulmaz.']
+        return out
+    if conf<cfg['signal_threshold']:
+        out['status']='research';out['reasons']=[
+            f'Modelin ham yön puanı %{conf*100:.1f}; gerekli ≥%{cfg["signal_threshold"]*100:.1f}.',
+            'Ham sınıflandırma çıktısı kalibre edilmiş kazanma olasılığı değildir; yön oyu kapalı.']
+        return out
     return signal_out('joshua','LONG' if recent_prob>=.5 else 'SHORT',clamp(50+abs(recent_prob-.5)*75,0,85),
-                     ['Kronolojik %70 eğitim / %30 test; ileri etiketler eğitime sızdırılmadı',
-                      'Ham çıktı kalibre edilmiş kazanma olasılığı değildir'],metrics,warnings=['Yalnız temel model; upstream eğitilmiş modeller yüklü değil'])
+        ['Kronolojik eğitim/ileri test eşiği geçildi; sonuç hâlâ araştırma niteliğindedir',
+         'Ham çıktı gerçek işlem kazanma olasılığı değildir'],metrics,
+        warnings=['Orijinal eğitilmiş ML modelleri veya canlı inference hizmeti kullanılmadı'])
 
 def mcm_engine(bars,cfg):
-    out=base_result('mcm',reasons=['En az 100 günlük kapanmış mum gerekli'])
-    if not good_bars(bars,100):return out
+    required=max(100,cfg['momentum_days']+1)
+    out=base_result('mcm',reasons=[f'Günlük veri yetersiz: {len(bars)}/{required} kapanmış 1D mum. Aynı sembol ve kaynaktan gerçek geçmiş gereklidir.'])
+    out['metrics']={'available_daily_candles':len(bars),'required_daily_candles':required,
+                    'missing_daily_candles':max(0,required-len(bars))}
+    if not good_bars(bars,required):return out
     days=cfg['momentum_days'];close=[b['c'] for b in bars]
     momentum=(close[-1]/close[-days-1]-1)*100
     rets=pct_returns(bars);risk=tail_stats(rets)
@@ -230,7 +256,8 @@ def mcm_engine(bars,cfg):
                strength=round_or_none(clamp(abs(momentum)*12+25,0,75),1),
                metrics={'daily_momentum_pct':round_or_none(momentum,3),
                'illustrative_cash_pct':round(100-suggested,1),'illustrative_gold_pct':round(suggested,1),
-               'daily_var_pct':risk['var_pct'],'daily_es_pct':risk['es_pct']},
+               'daily_var_pct':risk['var_pct'],'daily_es_pct':risk['es_pct'],
+               'available_daily_candles':len(bars),'required_daily_candles':required},
                reasons=['MCM günlük altın+Bitcoin modelinden yalnız altın/nakit araştırma uyarlaması',
                         'XAUUSDT vadeli pozisyon ile altın/nakit portföy aynı ürün değildir'],
                warnings=['Scalping yön oylamasında kullanılmaz'])
@@ -249,9 +276,13 @@ def gs_engine(bars,cfg):
     return out
 
 def naut_engine(bars,cfg):
-    out=base_result('nautilus',reasons=['Olay tabanlı simülasyon için en az 260 kapalı mum gerekli'])
-    if not good_bars(bars,260):return out
-    raw=indicators(bars)['_raw'];c=bars;trades=[];fee=cfg['fee_bps'];slip=(cfg['slippage_bps']+cfg['spread_bps']/2)/10000
+    required=260
+    out=base_result('nautilus',reasons=[f'Olay sıralı test için {required} mum gerekli; mevcut {len(bars)}'])
+    if not good_bars(bars,required):
+        out['metrics']={'available_candles':len(bars),'required_candles':required}
+        return out
+    raw=indicators(bars)['_raw'];c=bars;trades=[]
+    fee=cfg['fee_bps'];slip=(cfg['slippage_bps']+cfg['spread_bps']/2)/10000
     costbps=2*(fee+cfg['slippage_bps'])+cfg['spread_bps'];maxhold=cfg['max_hold_bars'];i=205
     while i<len(c)-2:
         p=raw['ema20'][i];q=raw['ema50'][i];pp=raw['ema20'][i-1];qq=raw['ema50'][i-1];atr=raw['atr14'][i]
@@ -277,30 +308,53 @@ def naut_engine(bars,cfg):
         pnl=side*(exitfill-entry)-(abs(entry)+abs(exitfill))*fee/10000
         trades.append((i,pnl))
         i=j+1
-    # Forward performance is a diagnostic, not a fitted signal or backtest promise.
-    split=int(len(c)*.7);forward=[v for ix,v in trades if ix>=split]
+    split=int(len(c)*.7)
+    forward=[v for ix,v in trades if ix>=split]
     wins=sum(v for ix,v in trades if v>0);loss=-sum(v for ix,v in trades if v<0)
-    pf=wins/loss if loss>0 else (None if not wins else None)
+    pf=wins/loss if loss>0 else None
     latest_atr=raw['atr14'][-1];last=c[-1]['c']
     cost_atr=(last*costbps/10000/latest_atr) if latest_atr else math.inf
-    gate=cost_atr<=.8
-    # Only block from sample if there is a nontrivial independent forward sample.
-    if len(forward)>=cfg['min_sample_trades'] and statistics.mean(forward)<0:gate=False
-    out.update(status='ready',gate='PASS' if gate else 'BLOCK',metrics={
-       'trades':len(trades),'forward_trades':len(forward),'profit_factor':round_or_none(pf,3),
-       'pnl_ref':round_or_none(sum(v for i,v in trades),3), 'roundtrip_cost_bps':costbps,
-       'cost_to_atr_ratio':round_or_none(cost_atr,3),'forward_avg_pnl_ref':round_or_none(statistics.mean(forward),4) if forward else None},
-       reasons=['Kapalı mum → sonraki açılış; stop öncelikli mum simülasyonu',
-                'NautilusTrader Rust motoru ve gerçek borsa dolumları kullanılmadı'],
-       warnings=['Mum içi sıra bilinmez; canlı emir, komisyon hesabı ve order book replay yok'])
+    sample_ok=len(forward)>=cfg['min_sample_trades']
+    cost_ok=bool(math.isfinite(cost_atr) and cost_atr<=.8)
+    fwd_mean=statistics.mean(forward) if forward else None
+    expectancy_ok=bool(sample_ok and fwd_mean is not None and fwd_mean>=0)
+    checks=[
+       {'id':'cost','label':'Gidiş-dönüş maliyeti / ATR','value':round_or_none(cost_atr,3),
+        'limit':0.8,'unit':'ATR','status':'PASS' if cost_ok else 'BLOCK'},
+       {'id':'forward_sample','label':'İleri dönem bağımsız işlem sayısı','value':len(forward),
+        'limit':cfg['min_sample_trades'],'unit':'işlem','status':'PASS' if sample_ok else 'UNKNOWN'},
+       {'id':'expectancy','label':'İleri dönem net ortalama referans PnL','value':round_or_none(fwd_mean,4),
+        'limit':0,'unit':'ref','status':('PASS' if expectancy_ok else 'BLOCK') if sample_ok else 'UNKNOWN'}]
+    reasons=[]
+    if not cost_ok:reasons.append(f'Maliyet/ATR = {cost_atr:.3f}, azami 0.800. İşlem maliyeti görece yüksek.')
+    if not sample_ok:reasons.append(f'İleri dönem yalnız {len(forward)} işlem; güvenilirlik için en az {cfg["min_sample_trades"]} gerekli. Kapı doğrulanamadı.')
+    elif not expectancy_ok:reasons.append(f'İleri dönem net ortalama PnL = {fwd_mean:.4f} ref; 0 altı. Zarar beklentisi vetosu.')
+    if cost_ok and sample_ok and expectancy_ok:reasons.append('Maliyet ve ileri örnek kontrolü geçti; bu gerçek emir onayı değildir.')
+    reasons.append('Kapalı mum → sonraki açılış; stop öncelikli mum simülasyonu. NautilusTrader Rust motoru kullanılmadı.')
+    gate='BLOCK' if (not cost_ok or (sample_ok and not expectancy_ok)) else 'UNKNOWN' if not sample_ok else 'PASS'
+    out.update(status='ready' if sample_ok else 'research',gate=gate,metrics={
+        'available_candles':len(c),'trades':len(trades),'forward_trades':len(forward),
+        'minimum_forward_trades':cfg['min_sample_trades'],
+        'profit_factor':round_or_none(pf,3),'pnl_ref':round_or_none(sum(v for i,v in trades),3),
+        'roundtrip_cost_bps':costbps,'fee_bps_per_side':fee,
+        'slippage_bps_per_side':cfg['slippage_bps'],'spread_bps_roundtrip':cfg['spread_bps'],
+        'cost_to_atr_ratio':round_or_none(cost_atr,3),'max_cost_to_atr':0.8,
+        'forward_avg_pnl_ref':round_or_none(fwd_mean,4),
+        'forward_net_pnl_ref':round_or_none(sum(forward),4),'forward_sample_ok':sample_ok,
+        'cost_gate_ok':cost_ok,'forward_gate_ok':expectancy_ok},
+        checks=checks,reasons=reasons,
+        warnings=['Gerçek borsa dolumu, tam derinlik replay veya doğrulanmış komisyon hesabı yok; 1 fiyat-referans birimi'])
     return out
 
 def riskfolio_engine(bars,cfg):
-    out=base_result('riskfolio',reasons=['Altın/nakit optimizasyonu için en az 80 günlük kapanmış mum gerekli'])
-    if not good_bars(bars,80):return out
+    required=80
+    out=base_result('riskfolio',reasons=[f'Altın/nakit optimizasyonu için {required} günlük mum gerekir; mevcut {len(bars)}. Günlük geçmiş yeterli değil.'])
+    out['metrics']={'available_daily_candles':len(bars),'required_daily_candles':required,
+                    'missing_daily_candles':max(0,required-len(bars))}
+    if not good_bars(bars,required):return out
     ret=pct_returns(bars);risk=tail_stats(ret,cfg['tail_pct'])
     if not risk:return out
-    mu=statistics.mean(ret)*.25  # shrink noisy expected return toward zero
+    mu=statistics.mean(ret)*.25
     options=[]
     for i in range(0,21):
         w=min(cfg['gold_cap_pct']/100,i/20)
@@ -311,7 +365,7 @@ def riskfolio_engine(bars,cfg):
     _,w,es=max(options,key=lambda x:x[0])
     out.update(status='research',metrics={'illustrative_gold_pct':round(w*100,1),'cash_pct':round((1-w)*100,1),
                  'optimized_tail_loss_pct':round_or_none(es*100,4),'expected_daily_pct_shrunk':round_or_none(mu*100,4),
-                 'daily_samples':len(ret)},
+                 'daily_samples':len(ret),'available_daily_candles':len(bars),'required_daily_candles':required},
                  reasons=['Nakit + altın için küçük ayrık CVaR taraması; Riskfolio-Lib/CVXPY çözücüsü kullanılmadı',
                           'Tahsis önerisi vadeli XAUUSDT emir büyüklüğü değildir'],
                  warnings=['Portföy alokasyonu LONG/SHORT yön oyu olarak sayılmaz'])
@@ -323,34 +377,58 @@ def consensus(modules,cfg,data_quality=None):
         m=modules[key]
         if m['eligible'] and m['strength'] is not None:
             options.append((key,m['direction'],m['strength'],wt))
-        else: missing.append(key)
+        else:missing.append(key)
     total=sum(wt for _,_,_,wt in options)
     points_long=sum(strength*wt for _,d,strength,wt in options if d=='LONG')/total if total else 0
     points_short=sum(strength*wt for _,d,strength,wt in options if d=='SHORT')/total if total else 0
     active_weight=total/sum(DIRECTIONAL.values()) if DIRECTIONAL else 0
     votes_l=sum(d=='LONG' for _,d,s,w in options);votes_s=sum(d=='SHORT' for _,d,s,w in options)
     agreement=100*max(votes_l,votes_s)/len(options) if options else 0
-    quality=data_quality or {}
-    blocks=[]
-    if len(options)<cfg['min_directional']:blocks.append('Yeterli bağımsız yön tahmini yok')
-    if agreement<cfg['min_agreement_pct']:blocks.append('Yön motorları yeterince uzlaşmıyor')
-    if abs(points_long-points_short)<cfg['min_margin_pts']:blocks.append('Yönsel fark eşiği altında')
-    if modules['gsquant']['gate']!='PASS':blocks.append('GS-tipi risk denetimi belirsiz veya veto')
-    if modules['nautilus']['gate']!='PASS':blocks.append('İşlem maliyeti / olay testi vetosu')
-    if not quality.get('candles_ok'):blocks.append('Güncel kapalı mum örneklemi yetersiz')
-    if not quality.get('ticker_fresh'):blocks.append('Canlı Bitget fiyat kaynağı doğrulanmadı')
-    if quality.get('symbol')=='XAUUSD' and not quality.get('spot_configured'):blocks.append('Spot fiyat veri kaynağı yapılandırılmadı')
+    quality=data_quality or {};detail=[]
+    def veto(code,label,observed,required,section='karar'):
+        detail.append({'code':code,'label':label,'observed':observed,'required':required,'category':section})
+    if len(options)<cfg['min_directional']:
+        veto('DIRECTIONAL_COUNT','Yeterli bağımsız yön motoru yok',len(options),cfg['min_directional'],'yön')
+    if agreement<cfg['min_agreement_pct']:
+        veto('AGREEMENT','Yön motorları yeterince uzlaşmıyor',round(agreement,1),cfg['min_agreement_pct'],'yön')
+    margin=abs(points_long-points_short)
+    if margin<cfg['min_margin_pts']:
+        veto('MARGIN','Yönsel güç farkı yetersiz',round(margin,1),cfg['min_margin_pts'],'yön')
+    if modules['gsquant']['gate']!='PASS':
+        veto('GS_RISK','GS tipi risk filtresi geçmedi',modules['gsquant']['gate'],'PASS','risk')
+    if modules['nautilus']['gate']!='PASS':
+        veto('NAUTILUS','Maliyet/ileri test denetimi geçmedi',modules['nautilus']['gate'],'PASS','uygulanabilirlik')
+    if not quality.get('candles_ok'):
+        veto('CANDLES','Güncel kapalı mum kalitesi yeterli değil',quality.get('candles_ok',False),True,'veri')
+    if not quality.get('ticker_fresh'):
+        veto('PRICE','Canlı fiyat kaynağı doğrulanmadı',quality.get('ticker_fresh',False),True,'veri')
+    if quality.get('symbol')=='XAUUSD' and not quality.get('spot_configured'):
+        veto('SPOT','Spot fiyat veri kaynağı yapılandırılmadı',False,True,'veri')
     proposed='LONG' if points_long>points_short else 'SHORT' if points_short>points_long else 'BEKLE'
-    decision=proposed if not blocks else 'BEKLE'
-    return {'decision':decision,'proposed_direction':proposed,'mode':'SHADOW_ONLY',
+    if proposed=='BEKLE' and not detail:veto('NEUTRAL','Güçler eşit veya yön belirlenemiyor',0,'pozitif skor farkı','yön')
+    excluded=[]
+    for key in missing:
+        m=modules[key]
+        excluded.append({'id':key,'status':m['status'],'reason':(m.get('reasons') or ['Yön tahmini doğrulanmadı'])[0]})
+    alerts=[]
+    for key in ('mcm','riskfolio'):
+        m=modules[key]
+        if m['status']=='unavailable':alerts.append({'id':key,'message':(m.get('reasons') or ['Günlük veri eksik'])[0]})
+    daily=quality.get('daily') or {}
+    if daily.get('history_error'):alerts.append({'id':'daily_history','message':daily['history_error']})
+    return {'decision':proposed if not detail else 'BEKLE','proposed_direction':proposed,'mode':'SHADOW_ONLY',
             'long_strength':round_or_none(points_long,1),'short_strength':round_or_none(points_short,1),
             'agreement_pct':round_or_none(agreement,1),'active_directional_engines':len(options),
             'configured_directional_engines':len(DIRECTIONAL),'coverage_pct':round_or_none(active_weight*100,1),
-            'used_votes':[{'id':key,'direction':d,'strength':round_or_none(s,1),'weight':wt} for key,d,s,wt in options],
-            'excluded':missing,'veto':list(dict.fromkeys(blocks)),
+            'direction_margin_pts':round_or_none(margin,1),
+            'thresholds':{'min_directional':cfg['min_directional'],'min_agreement_pct':cfg['min_agreement_pct'],
+                          'min_margin_pts':cfg['min_margin_pts']},
+            'used_votes':[{'id':key,'direction':d,'strength':round_or_none(s,1),'weight':wt} for key,d,s,w in options],
+            'excluded':missing,'excluded_details':excluded,'veto':[v['label'] for v in detail],
+            'veto_details':detail,'context_alerts':alerts,
             'risk_status':{key:modules[key]['gate'] for key in ('gsquant','nautilus')},
             'context':{'mcm_daily':modules['mcm']['direction'],'riskfolio_gold_pct':modules['riskfolio']['metrics'].get('illustrative_gold_pct')},
-            'explanation':'Yönsel güç puanları ağırlıklı gösterimdir, gerçek işlem başarı olasılığı değildir. Nakit tahsisi ve risk motorları yön oyu değildir.',
+            'explanation':'Skorlar doğrulanmış kazanma olasılığı değildir; risk ve günlük portföy tahsisi yön oyu sayılmaz.',
             'orders_enabled':False}
 
 def analyze(closed_by_tf:dict,source:str,cfg_input=None,quality=None):
@@ -372,6 +450,24 @@ def analyze(closed_by_tf:dict,source:str,cfg_input=None,quality=None):
        'riskfolio':guard('riskfolio',riskfolio_engine,d1),
     }
     quality=quality or {}
+    daily_meta=dict(quality.get('daily') or {})
+    if d1:
+        daily_meta.update({'available_closed_days':len(d1),'first_utc':datetime.fromtimestamp(d1[0]['t'],timezone.utc).date().isoformat(),
+                           'last_utc':datetime.fromtimestamp(d1[-1]['t'],timezone.utc).date().isoformat()})
+    else:daily_meta['available_closed_days']=0
+    daily_meta.update({'mcm_minimum_days':max(100,cfg['mcm']['momentum_days']+1),'riskfolio_minimum_days':80})
+    # A provider may return a long but stale series. Do not show it as current research.
+    age_days=round_or_none((__import__('time').time()-(d1[-1]['t']+86400))/86400,2) if d1 else None
+    daily_meta['last_candle_age_days']=age_days
+    daily_meta['stale']=bool(d1 and (age_days is None or age_days>5 or age_days < -1))
+    if daily_meta['stale']:
+        daily_meta['notice']='Son kapanmış günlük mum 5 günden eski (veya tarih gelecekte): portföy bağlamı durduruldu.'
+        for key in ('mcm','riskfolio'):
+            prev=out[key]
+            stale=base_result(key,reasons=[f'Günlük seri bayat: son kapanış yaşı {age_days} gün; izin verilen azami 5 gün.'])
+            stale['metrics']={**prev.get('metrics',{}),'last_candle_age_days':age_days}
+            out[key]=stale
+    quality={**quality,'daily':daily_meta}
     # Validate timestamp regularity and recency on the selected base timeframe.
     tf_seconds=int(quality.get('base_tf_seconds') or 300)
     recent=base[-60:]

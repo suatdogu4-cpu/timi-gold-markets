@@ -57,3 +57,36 @@ body[data-ux-page="chart"] .toolbar #tfbar{display:none!important}body[data-ux-p
 @media(min-width:761px){.mobile-dock{display:none!important}.ux-sheet{border-radius:18px;bottom:5vh;max-height:86vh}.ux-pricewrap{height:470px}.ux-chart-surface{max-width:1300px;margin:auto}}
 @media(prefers-reduced-motion:reduce){.ux-sheet,.ux-toast{transition:none}}
 
+
+/* GOLD v2.2.4 — percentage-based visual contrast; data and decisions are not changed */
+.heat-surface{position:relative;isolation:isolate;overflow:hidden;background:linear-gradient(135deg,rgba(var(--heat-rgb,69,137,199),var(--heat-opacity,.025)),rgba(var(--heat-rgb,69,137,199),.026) 85%),#111d33!important;border-color:rgba(var(--heat-rgb,69,137,199),.37)!important;transition:background .2s ease,border-color .2s ease}
+.heat-surface::after{content:"";height:3px;position:absolute;left:0;bottom:0;background:rgb(var(--heat-rgb,69,137,199));width:var(--heat-fill,0%);max-width:100%;border-radius:0 3px 3px 0;pointer-events:none}
+.heat-head{display:flex;align-items:start;justify-content:space-between;gap:6px;flex-wrap:wrap}
+.heat-head small{min-width:0;flex:1;color:#b3cbe0}
+.heat-badge,.heat-table-badge{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;font-size:10px;font-weight:750;color:#e4f5ff!important;background:rgba(var(--heat-rgb,69,137,199),.20);border:1px solid rgba(var(--heat-rgb,69,137,199),.40);border-radius:6px;padding:3px 6px;letter-spacing:0;font-variant-numeric:tabular-nums}
+.heat-badge em{font-size:9px;font-style:normal;font-weight:500;margin-left:2px;color:#b5cadb}
+.heat-card-tag{position:absolute;top:7px;right:8px;z-index:2;font-size:10px}
+.signal.heat-surface{padding-top:25px}
+.metric.heat-surface b{white-space:normal;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.heat-hint{font-size:10px!important;color:#adc6d9!important;line-height:1.3}
+.heat-row td{background:rgba(var(--heat-rgb,69,137,199),var(--heat-opacity,.02));transition:background .2s ease}
+.heat-row:hover td{background:rgba(var(--heat-rgb,69,137,199),.30)}
+.heat-table-badge{margin:4px 0 0;display:table;font-size:10px;line-height:1.4}
+.heat-stat-row{border-radius:7px;padding:8px 9px!important;margin:5px 0!important;background:rgba(var(--heat-rgb,69,137,199),var(--heat-opacity,.03));border-left:3px solid rgb(var(--heat-rgb,69,137,199));flex-wrap:wrap;gap:7px}
+.heat-stat-row .note{flex:1}
+.heat-stat-row small{color:#c0d5e5;font-size:10px}
+.heat-family{padding:11px;border-radius:10px;margin-bottom:11px!important}
+.heat-reason{border-left-width:4px!important;box-shadow:inset 0 0 0 1px #ffffff06}
+.heat-reason-up{background:linear-gradient(90deg,#17453b9e,#11243b);border-color:#26bb99!important}
+.heat-reason-down{background:linear-gradient(90deg,#6030408c,#11243b);border-color:#ef748d!important}
+.heat-reason-neutral{background:linear-gradient(90deg,#1b405b,#11243b);border-color:#4b91ba!important}
+.heat-legend{font-size:10px;color:#a9c0d3;line-height:1.6;display:flex;flex-wrap:wrap;align-items:center;gap:5px;padding:6px 11px 9px}
+.heat-legend small{width:100%;font-size:10px;color:#9db4c7}
+.heat-dot{display:inline-block;width:9px;height:9px;border-radius:3px;margin-left:8px}
+.heat-dot:first-child{margin-left:0}.heat-dot.up{background:#24ba94}.heat-dot.down{background:#e25970}.heat-dot.caution{background:#dca94e}.heat-dot.neutral{background:#5496c9}
+.heat-setting{margin:12px 0;padding:13px;border:1px solid #345571;border-radius:12px;background:#102238;display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px}
+.heat-setting label{font-size:13px;font-weight:750}.heat-setting input{height:23px;width:23px;accent-color:#4cc7e0}.heat-setting p{grid-column:1/-1;font-size:11px;color:#abc2d8;margin:0}
+html.heat-off .heat-surface,html.heat-off .heat-family,html.heat-off .heat-row td,html.heat-off .heat-stat-row{background:#111d33!important;border-color:#273c55!important}
+html.heat-off .heat-surface::after,html.heat-off .heat-badge,html.heat-off .heat-table-badge,html.heat-off .heat-legend{display:none!important}
+html.heat-off .heat-reason{background:#11243b!important;border-color:#39789a!important}
+@media(max-width:760px){.heat-badge{font-size:9px;padding:3px 5px}.heat-badge em{font-size:8px}.heat-head{gap:4px}.heat-stat-row{padding:7px!important}.heat-card-tag{top:6px;right:6px}.metric.heat-surface{padding:10px}}

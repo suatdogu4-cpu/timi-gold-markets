@@ -363,6 +363,16 @@ app=FastAPI(title='GOLD SCALP PRO',version='1.0.0',lifespan=lifespan)
 @app.get('/')
 async def index():return FileResponse(ROOT/'index.html')
 
+# V2.2.3: Serve the existing modular front-end assets directly.
+# The legacy API, WebSocket and analysis paths are unchanged.
+@app.get('/gold_style.css', include_in_schema=False)
+async def gold_style_asset():
+    return FileResponse(ROOT / 'gold_style.css', media_type='text/css')
+
+@app.get('/gold_app.js', include_in_schema=False)
+async def gold_app_asset():
+    return FileResponse(ROOT / 'gold_app.js', media_type='application/javascript')
+
 @app.get('/api/health')
 async def health():
     s=M.snapshot();return {'app':'GOLD SCALP PRO','version':'1.0.0','status':'online',

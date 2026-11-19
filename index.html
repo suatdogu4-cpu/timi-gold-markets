@@ -10,7 +10,8 @@
  window.addEventListener('load',function(){setTimeout(function(){if(!window.__GOLD_APP_READY__)warn('Başlangıç kodu eksik ya da çalışmadı')},3500)});
 })();</script>
 
-<link rel="stylesheet" href="gold_style.css?v=2222">
+<link rel="stylesheet" href="gold_style.css?v=2240">
+<link rel="stylesheet" href="gold_quant_hub.css?v=3000">
 </head><body>
 <div class="wrap">
 <header class="topbar">
@@ -156,6 +157,20 @@
 
 <section class="view" id="v-health"><div class="sectiontop"><h2>Veri Sağlığı / Kaynak Denetimi</h2><button class="btn" id="healthReload">Tekrar sorgula</button></div><div class="healthgrid" id="healthCards"></div><div class="card" style="margin-top:11px"><div class="cardhead"><h3>Gateway hata / açıklama detayları</h3></div><div class="body"><pre style="white-space:pre-wrap;word-break:break-word;color:#96abc8" id="healthRaw">—</pre></div></div></section>
 
+
+<section class="view" id="v-quanthub">
+ <div class="sectiontop"><h2>GOLD QUANT HUB · 7 Araştırma Motoru</h2><span class="chip">GÖLGE MOD · EMİR YOK</span></div>
+ <div class="hint">Her projeye ait bağımsız analiz sekmesi, ayarlanabilir parametreler ve ortak Konsensüs kararı. <strong>Motorlar açık kaynak yaklaşımlarına dayanan özgün uygulamalardır; orijinal ML modelleri ve ağır kütüphaneler doğrudan kurulmuş değildir.</strong></div>
+ <div class="qh-shell" id="qh-root">
+  <div class="qh-bar"><label>Altın enstrümanı <select id="qh-symbol"><option value="XAUUSDT">XAUUSDT · Bitget</option><option value="XAUUSD">XAUUSD · OANDA</option></select></label>
+   <label>Analiz mumu <select id="qh-tf"><option value="1m">1 dakika</option><option value="3m">3 dakika</option><option selected value="5m">5 dakika</option><option value="15m">15 dakika</option></select></label>
+   <button type="button" class="qh-primary" id="qh-run">↻ 7 Motoru Analiz Et</button></div>
+  <p id="qh-status" class="qh-status" role="status" aria-live="polite">Analizi başlat.</p>
+  <div class="qh-tabs" id="qh-tabs" role="tablist" aria-label="Yedi Quant motoru ve Konsensüs"></div>
+  <div class="qh-content" id="qh-content" aria-live="polite"></div>
+ </div>
+</section>
+
 <section class="view" id="v-settings"><div class="sectiontop"><h2>Kaynaklar, Ayarlar, Açık Proje</h2></div><div class="twocol"><div class="card"><div class="cardhead"><h3>Bağlantı ve mod</h3></div><div class="body"><p>Geliştirici: <strong>Suat DOĞU</strong></p><p>Bitget: UTA v3, public WS + REST, API anahtarı gerekmez.</p><p>XAUUSD spot: OANDA v20 practice hesabı/erişimi gerekir; token sadece Render ortam değişkenidir.</p><p><span class="badge-locked">GERÇEK EMİR GÖNDERİMİ YOK</span></p><p>Grafik ayarları bu telefonda saklanır; API anahtarı tarayıcıya kaydedilmez.</p><p><button class="btn" id="resetPrefs">Grafik tercihlerini sıfırla</button></p></div></div><div class="card"><div class="cardhead"><h3>Açık kaynak araştırma / atıf</h3></div><div class="body source-list" id="repoList"></div></div></div><div class="hint">Bu paket, araştırılan projelerin tüm kodlarını doğrudan içinde barındırmaz. Bu çalışma özgün yeniden uygulamadır; her proje yalnız kendi lisansı ve doğrulanan kabiliyeti doğrultusunda entegre edilebilir. Kullanılan grafik kütüphanesinin TradingView atfı korunur.</div></section>
 <nav class="mobile-dock" id="uxMobileNav" aria-label="Mobil ana menü">
   <button class="ux-dock-btn active" data-uxnav="dashboard"><span aria-hidden="true">⌂</span>Özet</button>
@@ -170,11 +185,12 @@
   <div class="ux-sheet-top"><h2 id="uxSheetTitle">Grafik ayarları</h2><button id="uxCloseSheet" aria-label="Menüyü kapat">×</button></div>
   <div class="ux-sheet-body" id="uxSheetBody"></div><div class="ux-sheet-footer" id="uxSheetFooter"></div>
 </aside><div class="ux-toast" id="uxToast" role="status" aria-live="polite"></div>
-<footer class="credits">GOLD SCALP PRO v2.2.1 FIX · ALTIN QUANT SHADOW · Developer Suat DOĞU · Yalnız XAUUSD/XAUUSDT · Veri bulunmadığında gösterim yapılmaz · Charting by TradingView Lightweight Charts™</footer>
+<footer class="credits">GOLD SCALP PRO v3 · 7 QUANT HUB · ALTIN QUANT SHADOW · Developer Suat DOĞU · Yalnız XAUUSD/XAUUSDT · Veri bulunmadığında gösterim yapılmaz · Charting by TradingView Lightweight Charts™</footer>
 </div>
 
 <script async src="https://cdn.jsdelivr.net/npm/lightweight-charts@5.1.0/dist/lightweight-charts.standalone.production.js" onload="window.dispatchEvent(new Event('gold-chart-library-ready'))"></script>
-<script defer src="gold_app.js?v=2222"></script>
+<script defer src="gold_app.js?v=2240"></script>
+<script defer src="gold_quant_hub.js?v=3000"></script>
 <script>
 (function(){
  document.addEventListener('click',function(e){

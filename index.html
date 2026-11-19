@@ -521,7 +521,7 @@ function uxDefault(){
 }
 function uxLoad(){const p=uxDefault();try{const v=JSON.parse(localStorage.getItem('gold-ux-v22')||'{}');if(v&&typeof v==='object'){
  for(const key of UX_KEYS){const cfg=v.indicators?.[key];if(!cfg)continue;const cur=p.indicators[key];cur.enabled=!!cfg.enabled;
- cur.periods=(Array.isArray(cfg.periods)?cfg.periods:cur.periods).slice(0,5).map(x=>Math.max(1,Math.min(400,parseInt(x)||14)));
+ cur.periods=(Array.isArray(cfg.periods)?cfg.periods:cur.periods).slice(0,7).map(x=>Math.max(1,Math.min(400,parseInt(x)||14)));
  cur.colors=(Array.isArray(cfg.colors)?cfg.colors:cur.colors).slice(0,7).map((c,i)=>/^#[a-fA-F0-9]{6}$/.test(c)?c:UX_PALETTE[i]);
  cur.lineEnabled=Array.isArray(cfg.lineEnabled)?cfg.lineEnabled.slice(0,7).map(Boolean):cur.lineEnabled;
  cur.width=Math.max(1,Math.min(4,Number(cfg.width)||2));cur.height=Math.max(100,Math.min(500,Number(cfg.height)||148));

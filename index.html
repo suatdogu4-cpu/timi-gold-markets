@@ -70,6 +70,48 @@ button,select,input{font:inherit}button{cursor:pointer}a{color:#92d6ff}a:hover{c
 
 <section class="view" id="v-quant"><div class="sectiontop"><h2>Quant · Matematiksel piyasa ölçümleri</h2><span class="chip">Şeffaf varsayımlar</span></div><div class="metricgrid" id="quantMetrics"></div><div class="card" style="margin-top:10px"><div class="cardhead"><h3>İstatistiksel analiz / risk notları</h3></div><div class="body"><p>Log getiri: <code>rₜ = ln(Pₜ/Pₜ₋₁)</code>. Gerçekleşmiş volatilite: <code>σ = std(r) × √(yıldaki bar)</code>. %95 parametrik VaR: <code>−(μ−1.645σ)</code>.</p><p>İstatistiksel modeller varsayım içerir; VaR maksimum zarar değildir. Platformda işlem kâr olasılığı sayı uydurularak sunulmaz.</p><div id="quantExtra" class="note"></div></div></div></section>
 
+
+<section class="view" id="v-altinquant">
+ <div class="sectiontop"><h2>ALTIN QUANT · GOLD SCALP PRO v2</h2><button class="btn" id="aqRefresh">↻ Yeniden analiz et</button></div>
+ <div class="hint"><b>GÖLGE ANALİZ MODU:</b> Yeni motor, eski karar motorunu değiştirmez. Gerçek emir yoktur. Eksik veri puana dönüştürülmez; skorlar kazanma olasılığı değildir.</div>
+ <div class="card important"><div class="cardhead"><h3>Eski / Yeni Motor Karşılaştırması</h3><span class="chip" id="aqStamp">—</span></div>
+  <div class="body"><div class="signals">
+   <div class="signal"><span>ESKİ v1 MOTOR</span><b id="aqLegacy">—</b><p class="note" id="aqLegacyVeto">—</p></div>
+   <div class="signal"><span>ALTIN QUANT v2 (SHADOW)</span><b id="aqNew">—</b><p class="note" id="aqCompare">—</p></div>
+   <div class="signal"><span>REJİM / ANA YÖN</span><b style="font-size:17px" id="aqRegime">—</b><p class="note" id="aqContext">—</p></div>
+  </div></div></div>
+ <div class="threecol" style="margin:10px 0">
+  <div class="card"><div class="cardhead"><h3>LONG / SHORT</h3></div><div class="body"><div class="signals"><div class="signal"><span>LONG</span><b id="aqLong" class="green">—</b></div><div class="signal"><span>SHORT</span><b id="aqShort" class="red">—</b></div></div><p id="aqCoverage" class="note">—</p></div></div>
+  <div class="card"><div class="cardhead"><h3>Oynaklık & Kuyruk</h3></div><div class="body" id="aqStats">—</div></div>
+  <div class="card"><div class="cardhead"><h3>Örnek Risk/Stop</h3></div><div class="body" id="aqSetup">—</div></div>
+ </div>
+ <div class="twocol">
+  <div class="card"><div class="cardhead"><h3>8 Aileli Puan Ayrıştırması</h3></div><div class="body" id="aqFamilies">—</div></div>
+  <div class="card"><div class="cardhead"><h3>Risk Veto ve Belirsizlik</h3></div><div class="body"><div id="aqVeto">—</div><div class="separator"></div><div id="aqMissing" class="note">—</div></div></div>
+ </div>
+ <div class="threecol" style="margin-top:10px">
+  <div class="card"><div class="cardhead"><h3>4H → 1m MTF</h3></div><div class="body" id="aqMTF">—</div></div>
+  <div class="card"><div class="cardhead"><h3>Order Flow 15–300 sn</h3></div><div class="body" id="aqFlow">—</div></div>
+  <div class="card"><div class="cardhead"><h3>SMC · Türev · Makro</h3></div><div class="body" id="aqContextDetails">—</div></div>
+ </div>
+ <div class="twocol" style="margin-top:10px">
+  <div class="card"><div class="cardhead"><h3>6 Gelişmiş Strateji · Ön Koşul Tarayıcısı</h3><span class="chip">İşlem emri değildir</span></div><div class="body" id="aqStrategies">—</div></div>
+  <div class="card"><div class="cardhead"><h3>Sermaye Koruma · Manuel Senaryo</h3><span class="chip">0.25% / 1% / 3%</span></div><div class="body">
+    <div class="hint">Aşağıdaki değerler örnek kullanıcı girdileridir, borsa hesabından çekilmez. Gerçek pozisyon miktarı, sözleşme çarpanı doğrulanmadıkça hesaplanmaz.</div>
+    <div class="metricgrid" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+      <label class="metric"><small>Örnek sermaye (USD)</small><input class="field" id="aqEquity" type="number" value="1000" min="1" max="10000000" step="10" style="width:100%"></label>
+      <label class="metric"><small>Bugünkü zarar (USD)</small><input class="field" id="aqDailyLoss" type="number" value="0" min="0" step="1" style="width:100%"></label>
+      <label class="metric"><small>Haftalık zarar (USD)</small><input class="field" id="aqWeeklyLoss" type="number" value="0" min="0" step="1" style="width:100%"></label>
+      <label class="metric"><small>Ardışık zarar</small><input class="field" id="aqLossStreak" type="number" value="0" min="0" step="1" style="width:100%"></label>
+      <label class="metric"><small>Tepe-sermaye düşüşü (%)</small><input class="field" id="aqDrawdown" type="number" value="0" min="0" max="100" step=".1" style="width:100%"></label>
+    </div>
+    <button class="btn primary" id="aqRiskBtn" style="margin:10px 0">Risk politikasını hesapla</button>
+    <div id="aqRiskResult" class="note">İşlem miktarı hesaplanmadı.</div>
+  </div></div>
+ </div>
+ <div class="hint warn">Yeni motorun veri kaynağı mevcut Gateway önbelleğidir; ayrı WS/API sorgu döngüsü açmaz. Makro haber takvimi, gerçek fonlama/kontrat boyutu ve kalıcı sinyal günlüğü henüz bulunmuyor. V1 karar ekranını kullanmaya devam edebilirsin.</div>
+</section>
+
 <section class="view" id="v-strategies"><div class="sectiontop"><h2>Strateji Laboratuvarı / Backtest</h2><span class="chip">8 test · forward leak koruması</span></div><div class="card"><div class="body"><div class="toolbar"><select class="select" id="strategy"></select><label>Komisyon (bps/yön) <input class="field" type="number" id="fee" min="0" max="30" step=".5" value="4" style="width:76px"></label><label>Kayma (bps/yön) <input class="field" type="number" id="slip" min="0" max="30" step=".5" value="1" style="width:76px"></label><button class="btn primary" id="runTest">Backtest çalıştır</button></div><p class="note">Sinyal kapanmış mumda, giriş sonraki mum açılışındadır. Aynı mumda hem stop hem hedef görülürse ihtiyatlı olarak stop kabul edilir. Funding ve kontrat çarpanı dahil değildir.</p></div></div><div class="metricgrid" style="margin:10px 0" id="btMetrics"></div><div class="card"><div class="cardhead"><h3>Özkaynak eğrisi (referans, USD)</h3></div><div class="body"><canvas id="equity" class="eqcanvas"></canvas><div id="btInfo" class="note">Test başlatılmadı</div></div></div><div class="card" style="margin-top:10px"><div class="cardhead"><h3>Gerçekleşen simülasyon işlemleri</h3></div><div class="table-scroll"><table><thead><tr><th>Giriş zamanı</th><th>Yön</th><th>Giriş</th><th>Çıkış</th><th>Net PnL*</th></tr></thead><tbody id="btTrades"></tbody></table></div><div class="minihelp">* 1 fiyat-referans birimi, gerçek sözleşme kâr/zararı değildir.</div></div></section>
 
 <section class="view" id="v-decision"><div class="sectiontop"><h2>GOLD QUANT DECISION ENGINE</h2><span class="chip">Hata / bayat veri veto sistemi</span></div><div class="card important"><div class="body"><div class="row" style="flex-wrap:wrap"><div><div class="smallline">SENKRONİZE KARAR · <span id="decisionTF">1m</span></div><div class="decision" id="bigDecision">BEKLE</div></div><div class="chip" id="decisionData">Veri kontrolü bekleniyor</div></div><div class="signals" style="margin:12px 0"><div class="signal"><span>LONG SKORU</span><b class="green" id="longScore">—</b></div><div class="signal"><span>SHORT SKORU</span><b class="red" id="shortScore">—</b></div><div class="signal"><span>NET YÖN</span><b class="cyan" id="netScore">—</b></div></div><div class="metricgrid" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="metric"><small>Analitik stop (1.5 ATR)</small><b id="stop">—</b></div><div class="metric"><small>Analitik hedef (2.25 ATR)</small><b id="target">—</b></div></div><h3>Karar gerekçeleri</h3><div id="reasonList">—</div><h3>Veto / Risk kontrolleri</h3><div id="vetoList">—</div></div></div><div class="hint warn">LONG ve SHORT skorları kazanma ihtimali değildir. Veriler gecikirse veya likidite koşulları yetersizse sistem BEKLE üretir. Yatırım tavsiyesi veya emir sistemi değildir.</div></section>
@@ -79,13 +121,13 @@ button,select,input{font:inherit}button{cursor:pointer}a{color:#92d6ff}a:hover{c
 <section class="view" id="v-health"><div class="sectiontop"><h2>Veri Sağlığı / Kaynak Denetimi</h2><button class="btn" id="healthReload">Tekrar sorgula</button></div><div class="healthgrid" id="healthCards"></div><div class="card" style="margin-top:11px"><div class="cardhead"><h3>Gateway hata / açıklama detayları</h3></div><div class="body"><pre style="white-space:pre-wrap;word-break:break-word;color:#96abc8" id="healthRaw">—</pre></div></div></section>
 
 <section class="view" id="v-settings"><div class="sectiontop"><h2>Kaynaklar, Ayarlar, Açık Proje</h2></div><div class="twocol"><div class="card"><div class="cardhead"><h3>Bağlantı ve mod</h3></div><div class="body"><p>Geliştirici: <strong>Suat DOĞU</strong></p><p>Bitget: UTA v3, public WS + REST, API anahtarı gerekmez.</p><p>XAUUSD spot: OANDA v20 practice hesabı/erişimi gerekir; token sadece Render ortam değişkenidir.</p><p><span class="badge-locked">GERÇEK EMİR GÖNDERİMİ YOK</span></p><p>Grafik ayarları bu telefonda saklanır; API anahtarı tarayıcıya kaydedilmez.</p><p><button class="btn" id="resetPrefs">Grafik tercihlerini sıfırla</button></p></div></div><div class="card"><div class="cardhead"><h3>Açık kaynak araştırma / atıf</h3></div><div class="body source-list" id="repoList"></div></div></div><div class="hint">Bu paket, araştırılan projelerin tüm kodlarını doğrudan içinde barındırmaz. Bu çalışma özgün yeniden uygulamadır; her proje yalnız kendi lisansı ve doğrulanan kabiliyeti doğrultusunda entegre edilebilir. Kullanılan grafik kütüphanesinin TradingView atfı korunur.</div></section>
-<footer class="credits">GOLD SCALP PRO v1.0 · Developer Suat DOĞU · Yalnız XAUUSD/XAUUSDT · Veri bulunmadığında gösterim yapılmaz · Charting by TradingView Lightweight Charts™</footer>
+<footer class="credits">GOLD SCALP PRO v2.0 · ALTIN QUANT SHADOW · Developer Suat DOĞU · Yalnız XAUUSD/XAUUSDT · Veri bulunmadığında gösterim yapılmaz · Charting by TradingView Lightweight Charts™</footer>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@5.1.0/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const navs=[['dashboard','◈ Kokpit'],['chart','▤ Grafik'],['technical','▧ Teknik'],['smc','◇ SMC / ICT'],['flow','⇄ Order Flow'],['depth','▥ DOM'],['derivatives','◉ Vadeli'],['macro','◎ Makro & Haber'],['quant','∑ Quant'],['strategies','▣ Stratejiler'],['decision','✦ Karar Motoru'],['performance','▱ Performans'],['health','● Veri Sağlığı'],['settings','⚙ Ayarlar']];
+const navs=[['dashboard','◈ Kokpit'],['chart','▤ Grafik'],['technical','▧ Teknik'],['smc','◇ SMC / ICT'],['flow','⇄ Order Flow'],['depth','▥ DOM'],['derivatives','◉ Vadeli'],['macro','◎ Makro & Haber'],['quant','∑ Quant'],['altinquant','✦ ALTIN QUANT v2'],['strategies','▣ Stratejiler'],['decision','✦ Karar Motoru'],['performance','▱ Performans'],['health','● Veri Sağlığı'],['settings','⚙ Ayarlar']];
 const tfs=['1m','3m','5m','15m','30m','1H','4H','1D'];
 const repoLinks=[['order-flow-platform','https://github.com/justaksi7/order-flow-platform'],['Gold-Dashboard','https://github.com/Econ-G/Gold-Dashboard'],['gold-sweep-backtester','https://github.com/baturdenada/gold-sweep-backtester'],['smc-backtester','https://github.com/Yousuf6273/smc-backtester'],['GoldBot','https://github.com/shrijeet-lokhande/GoldBot'],['aurum-intelligence','https://github.com/Pestador/aurum-intelligence'],['PickleChart','https://github.com/ikarisz/PickleChart'],['dukascopy-tools','https://github.com/Tradelyy/dukascopy-tools'],['lightweight-charts','https://github.com/tradingview/lightweight-charts'],['TA-Lib','https://github.com/TA-Lib/ta-lib'],['vectorbt','https://github.com/polakowo/vectorbt'],['quantstats','https://github.com/ranaroussi/quantstats']];
 let symbol='XAUUSDT',tf='1m',page='dashboard',snap=null,ana=null,candleData=[],plots={},osc={},clientWs=null,retryMs=1200,lastBT=null,inflight=0,firstLoad=true,lastRollRefresh=0;
@@ -111,12 +153,12 @@ $('repoList').innerHTML=repoLinks.map(([name,u])=>`<a href="${u}" target="_blank
 $('resetPrefs').onclick=()=>{for(let k in opts)localStorage.removeItem('gold-'+k);location.reload()};
 $('healthReload').onclick=loadHealth;$('macroReload').onclick=loadMacro;
 $('mtfReload').onclick=loadMTF;
-$('runTest').onclick=runBacktest;
+$('runTest').onclick=runBacktest; $('aqRefresh').onclick=loadAltinQuant; $('aqRiskBtn').onclick=aqRiskCalc;
 $('strategy').innerHTML=Object.entries({'ema_trend':'EMA Trend + RSI','rsi_revert':'RSI Reversal','donchian':'Donchian Breakout','vwap_revert':'VWAP Return','smc_sweep':'Liquidity Sweep','bb_break':'Bollinger Break','momentum':'Price Momentum','macd_cross':'MACD Cross'}).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
 }
 function go(k){page=k;document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id==='v-'+k));$('nav').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x.dataset.page===k));
  if(['dashboard','chart'].includes(k)){setTimeout(()=>{ensureCharts();renderPlots()},70)}
- if(k==='health')loadHealth();if(k==='macro')loadMacro();if(k==='technical')loadMTF();if(k==='strategies'&&lastBT)renderBT(lastBT);
+ if(k==='health')loadHealth();if(k==='macro')loadMacro();if(k==='altinquant')loadAltinQuant();if(k==='technical')loadMTF();if(k==='strategies'&&lastBT)renderBT(lastBT);
  window.scrollTo({top:0,behavior:'instant'});
 }
 function chartOptions(){return {autoSize:true,layout:{background:{type:'solid',color:'#0d172b'},textColor:'#92aacb',fontFamily:'system-ui',fontSize:11,attributionLogo:false},
@@ -198,7 +240,7 @@ async function reloadAll(force=false){let seq=++inflight;showError('');$('chartT
  try{let [c,a]=await Promise.all([getJSON(`/api/candles?symbol=${symbol}&tf=${tf}&limit=550&refresh=${force}`),getJSON(`/api/analysis?symbol=${symbol}&tf=${tf}&refresh=${force}`)]);if(seq!==inflight)return;
  candleData=c.bars||[];ana=a;updateAnalysis(a);firstLoad=false;
  }catch(e){if(seq!==inflight)return;showError(symbol+': '+e.message);if(symbol==='XAUUSD')showError('XAUUSD spot için OANDA erişimi gerekiyor: '+e.message);candleData=[];ana=null;for(let e of ['empty-home','empty-detail']){$(e).style.display='grid';$(e).textContent='Doğrulanmış mum verisi yok'}
- }if(page==='technical')loadMTF();}
+ }if(page==='technical')loadMTF(); if(page==='altinquant')loadAltinQuant();}
 async function loadMTF(){try{let j=await getJSON('/api/mtf?symbol='+symbol);$('mtfCards').innerHTML=j.rows.map(x=>`<div class="metric row" style="margin:5px 0"><b style="font-size:12px">${x.tf}</b><span class="${clsDecision(x.direction)}">${x.direction}</span><small>RSI ${fmt(x.rsi,1)}</small></div>`).join('')}catch(e){$('mtfCards').textContent=e.message}}
 async function loadHealth(){try{let h=await getJSON('/api/health');$('healthCards').innerHTML=[['Gateway',h.status],['Bitget WS',h.bitget_ws?'BAĞLI':'BAĞLI DEĞİL'],['Fiyat',h.feed_valid?.ticker?'GÜNCEL':'GECİKMELİ'],['Emir defteri',h.feed_valid?.book?'GÜNCEL':'GECİKMELİ'],['İşlemler',h.feed_valid?.trades?'GÜNCEL':'GECİKMELİ'],['OANDA',h.spot_configured?'YAPILANDIRILDI':'KAPALI'],['WS son fiyat',age(h.feed_age_seconds?.ticker)],['Son olay',h.time_utc]].map(([n,v])=>`<div class="metric"><small>${n}</small><b style="font-size:15px">${escaped(v)}</b></div>`).join('');$('healthRaw').textContent=JSON.stringify(h,null,2)}catch(e){$('healthRaw').textContent=e.message}}
 async function loadMacro(){let macro=$('macroGrid'),news=$('newsList');macro.innerHTML='<div class="hint">FRED sorgulanıyor...</div>';news.textContent='GDELT sorgulanıyor...';
@@ -226,6 +268,67 @@ function startSocket(){if(clientWs)try{clientWs.close()}catch{};let url=(locatio
  ws.onopen=()=>{retryMs=1200};ws.onmessage=e=>{try{let j=JSON.parse(e.data);if(j.type==='snapshot')updateSnap(j.payload)}catch(err){console.warn('stream',err)}};
  ws.onclose=()=>{if(clientWs!==ws)return;$('conn').textContent='BAĞLANTI KOPTU';$('led').className='dot bad';setTimeout(startSocket,retryMs);retryMs=Math.min(30000,retryMs*1.7)};
  ws.onerror=()=>{ws.close()};}
+
+let aqInFlight=0;
+const aqFamiliesLabels={regime:'Piyasa rejimi',structure:'SMC / Yapı',mtf:'MTF hiyerarşi',flow:'Order Flow',derivatives:'Vadeli / OI',macro:'Makro',statistics:'İstatistik',setup:'Giriş / Maliyet'};
+async function loadAltinQuant(){
+ const seq=++aqInFlight;
+ $('aqStamp').textContent='Veri kontrol ediliyor…';
+ try {
+   const d=await getJSON('/api/altin-quant/analysis?symbol='+encodeURIComponent(symbol)+'&tf='+encodeURIComponent(tf));
+   if(seq!==aqInFlight||page!=='altinquant')return;
+   const score=d.score||{},r=d.regime||{},s=d.statistics||{},flow=d.orderflow||{},set=d.setup||{},old=d.legacy||{};
+   $('aqStamp').textContent=(d.mode||'')+' · '+new Date(d.sample_time_ms).toLocaleTimeString('tr-TR');
+   $('aqLegacy').textContent=old.decision||'—';setClass('aqLegacy',clsDecision(old.decision));
+   $('aqLegacyVeto').textContent=(old.veto?.length||0)+' eski veto';
+   $('aqNew').textContent=score.final||'—';$('aqCompare').textContent='Teorik: '+(score.theoretical||'—')+' · '+(d.comparison||'—');
+   $('aqRegime').textContent=r.label||'VERİ EKSİK';$('aqContext').textContent='Ana MTF: '+(d.mtf?.context||'—');
+   $('aqLong').textContent=fmt(score.long_points,1);$('aqShort').textContent=fmt(score.short_points,1);
+   $('aqCoverage').textContent='Ölçülebilir aile kapsamı '+(score.coverage_points??0)+'/100 · Puanlar gerçek başarı yüzdesi değil.';
+   $('aqStats').innerHTML=s.status==='ready'?
+     [['Örneklem',s.samples,''],['Tarihsel VaR %95',s.historical_var95_pct,'%'],['Expected Shortfall %95',s.historical_es95_pct,'%'],['Skewness',s.skewness,''],['Excess kurtosis',s.excess_kurtosis,''],['Lag-1 oto-korelasyon',s.lag1_autocorrelation,'']]
+     .map(([n,v,u])=>`<div class="row" style="margin:6px 0"><span class="note">${escaped(n)}</span><b>${fmt(v,3)}${u}</b></div>`).join('')+
+     `<p class="note">Bootstrap ort. %95 GA: ${fmt(s.block_bootstrap_mean_ci95_pct?.[0],5)} … ${fmt(s.block_bootstrap_mean_ci95_pct?.[1],5)}</p>`:
+     `<p class="note">${escaped(s.reason||'İstatistik verisi yetersiz')}</p>`;
+   $('aqSetup').innerHTML=`<div class="metric"><small>Referans fiyat</small><b>${fmt(set.entry_ref)}</b></div>`+
+    [['Örnek stop',set.stop],['Örnek hedef',set.take_profit],['Net R/R yaklaşımı',set.net_rr_est],['Spread (bps)',set.spread_bps],['Örnek toplam maliyet (bps)',set.roundtrip_est_bps]]
+    .map(([n,v])=>`<div class="row" style="margin:7px 0"><span class="note">${escaped(n)}</span><b>${fmt(v,3)}</b></div>`).join('')+
+    `<p class="note">${escaped(set.note||'')}</p>`;
+   $('aqFamilies').innerHTML=Object.entries(aqFamiliesLabels).map(([k,n])=>{
+     let x=score.families?.[k]||{},available=x.long!==null&&x.long!==undefined;
+     let l=available?Math.min(100,100*x.long/x.max):0,sh=available?Math.min(100,100*x.short/x.max):0;
+     return `<div style="margin-bottom:14px"><div class="row"><b style="font-size:12px">${escaped(n)}</b><span class="note">${available?fmt(x.long,1)+' L / '+fmt(x.short,1)+' S':'ÖLÇÜLEMİYOR'} · ${x.max??'—'} p.</span></div>
+     <div class="bar" style="margin-top:6px"><div style="width:${l}%;background:linear-gradient(90deg,#146c5f,#27d8ac)"></div></div>
+     <div class="bar" style="margin-top:3px"><div style="width:${sh}%;background:linear-gradient(90deg,#723048,#ff7089)"></div></div>
+     <p class="note" style="margin:5px 0 0">${escaped(x.detail||'')}</p></div>`}).join('');
+   $('aqVeto').innerHTML=(score.veto||[]).map(x=>`<div class="reason negative">${escaped(x)}</div>`).join('')||'<span class="chip green">Açık veto yok (gözlem modu)</span>';
+   let errors=Object.entries(d.data_errors||{}).map(([k,v])=>k+': '+v);
+   $('aqMissing').textContent=[...(d.warnings||[]),...errors].join(' · ')||'Ek uyarı yok';
+   $('aqMTF').innerHTML=(d.mtf?.rows||[]).map(x=>`<div class="row" style="margin:8px 0"><b>${escaped(x.tf)}</b><span class="${clsDecision(x.direction)}">${escaped(x.direction)}</span><small class="note">${x.bars} mum</small></div>`).join('');
+   $('aqFlow').innerHTML=flow.valid?Object.entries(flow.windows||{}).map(([k,w])=>`<div class="row" style="margin:8px 0"><b>${k} sn</b><span class="${w.delta_usdt>=0?'green':'red'}">${fmt(w.delta_usdt,1)} USDT</span><small class="note">${w.count} işlem</small></div>`).join('')+
+       `<p class="note">DOM20 imbalance: ${fmt(flow.depth?.['20']?.imbalance,3)} · Spread: ${fmt(flow.spread_bps,2)} bps</p>`:
+       '<p class="hint warn">Doğrulanmış canlı XAUUSDT trade ve derinlik verisi eksik.</p>';
+   $('aqContextDetails').innerHTML=`<div><b>Son SMC adayları</b><p class="note">${(d.smc?.events||[]).slice(-3).map(x=>escaped(x.type)).join(', ')||'Yok'}</p></div><div class="separator"></div>`+
+      `<div><b>Vadeli</b><p class="note">${escaped(d.derivatives?.note||d.derivatives?.reason||'Eksik')}</p></div><div class="separator"></div>`+
+      `<div><b>Makro</b><p class="note">${escaped(d.macro_events?.reason||'Doğrulanmadı')}</p></div>`;
+   $('aqStrategies').innerHTML=(d.strategies||[]).map(x=>`<div class="event"><b>${escaped(x.id)} · ${escaped(x.name)}</b><span class="chip ${x.status==='İZLE'?'green':''}">${escaped(x.status)}</span><p class="note">${escaped(x.reason)}</p></div>`).join('');
+ }catch(e){if(seq!==aqInFlight)return;$('aqStamp').textContent='HATA: '+e.message;$('aqNew').textContent='VERİ YOK';$('aqVeto').textContent=e.message}
+}
+
+async function aqRiskCalc(){
+ const q=new URLSearchParams({equity:$('aqEquity').value,daily_loss:$('aqDailyLoss').value,
+  weekly_loss:$('aqWeeklyLoss').value,consecutive_losses:$('aqLossStreak').value,
+  drawdown_pct:$('aqDrawdown').value});
+ $('aqRiskResult').textContent='Risk bütçesi hesaplanıyor…';
+ try{const j=await getJSON('/api/altin-quant/risk-plan?'+q.toString());
+   $('aqRiskResult').innerHTML=`<div class="metricgrid" style="grid-template-columns:repeat(2,minmax(0,1fr))">`+
+      [['Tek işlem bütçesi',j.risk_budget_usd],['Kalan günlük bütçe',j.daily_remaining_usd],['Kalan haftalık bütçe',j.weekly_remaining_usd]]
+       .map(([k,v])=>`<div class="metric"><small>${escaped(k)}</small><b>${fmt(v)} USD</b></div>`).join('')+
+      `</div>`+(j.veto||[]).map(x=>`<div class="reason negative">${escaped(x)}</div>`).join('')+
+      `<p class="note">Bu hesap senaryo amaçlıdır. Günlük açık risk, gerçek hesap bakiyesi ve borsa sözleşme özellikleri doğrulanmıyor; otomatik emir imkânı yok.</p>`;
+ }catch(e){$('aqRiskResult').textContent='Risk hesabı yapılamadı: '+e.message}
+}
+
 initNav();setInterval(()=>{$('clock').textContent=new Date().toLocaleTimeString('tr-TR',{hour12:false})},1000);
 ensureCharts();startSocket();reloadAll();
 setInterval(()=>{if(document.visibilityState==='visible')reloadAll()},45000);

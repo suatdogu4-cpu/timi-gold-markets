@@ -30,6 +30,7 @@ $('runTest').onclick=runBacktest; $('aqRefresh').onclick=loadAltinQuant; $('aqRi
 $('strategy').innerHTML=Object.entries({'ema_trend':'EMA Trend + RSI','rsi_revert':'RSI Reversal','donchian':'Donchian Breakout','vwap_revert':'VWAP Return','smc_sweep':'Liquidity Sweep','bb_break':'Bollinger Break','momentum':'Price Momentum','macd_cross':'MACD Cross'}).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
 }
 function go(k){page=k;document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id==='v-'+k));$('nav').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x.dataset.page===k));
+ g32Highlight(k);
  if(['dashboard','chart'].includes(k)){setTimeout(()=>{ensureCharts();renderPlots()},70)}
  if(k==='health')loadHealth();if(k==='macro')loadMacro();if(k==='altinquant')loadAltinQuant();if(k==='technical')loadMTF();if(k==='strategies'&&lastBT)renderBT(lastBT); if(k==='quanthub')window.dispatchEvent(new Event('gold-quant-hub-open'));
  window.scrollTo({top:0,behavior:'instant'});
@@ -149,7 +150,7 @@ function updateSnap(s){snap=s;let valid=s.valid||{},price=s.price,spot=s.spot,fl
  $('donutTxt').textContent=fl?fmt(percent,0)+'%':'—';$('flowBuy').textContent=fl?short(buy):'—';$('flowSell').textContent=fl?short(sell):'—';$('flowDelta').textContent=fl?short(fl.delta60):'—';
  $('basis').textContent=(price&&spot)?fmt(price.last-spot.last,3):'—';$('basisNote').textContent=(price&&spot)?'XAUUSDT − XAUUSD, anlık kaynak farkı':'OANDA spot bağlantısı yok';
  $('overviewHealth').innerHTML=`<p>${valid.ticker?'🟢':'🔴'} Fiyat: ${age(s.age_s.ticker)}</p><p>${valid.book?'🟢':'🔴'} Derinlik: ${age(s.age_s.book)}</p><p>${valid.trades?'🟢':'🔴'} İşlemler: ${age(s.age_s.trades)}</p>`;
- updateOrderBook(s);updateTrades(s);updateDerivatives(s);updateFlow(s);$('chartUpdated').textContent=valid.ticker?'Fiyat güncel · '+age(s.age_s.ticker):'Fiyat gecikmeli';
+ updateOrderBook(s);updateTrades(s);updateDerivatives(s);updateFlow(s);g32FlowUpdate(s);$('chartUpdated').textContent=valid.ticker?'Fiyat güncel · '+age(s.age_s.ticker):'Fiyat gecikmeli';
  if(price&&valid.ticker&&symbol==='XAUUSDT')tickPlot(price.last,s.server_time);
  if(symbol==='XAUUSD'&&!spot&&ana)$('k-decision').textContent='BEKLE';
 }
@@ -202,12 +203,13 @@ function updateAnalysis(a){ana=a;let ind=a.indicators?.latest||{},q=a.quant||{},
  const info={'close':['Son kapanmış mum'], 'ema9':['Hızlı üssel ort.'], 'ema20':['Kısa trend'], 'ema50':['Orta trend'],'ema200':['Büyük trend'],'rsi14':['Momentum 0–100'],'rsi7':['Hızlı momentum'],'atr14':['Gerçek aralık'],'macd':['12−26 EMA'],'macd_signal':['9 EMA sinyal'],'macd_hist':['MACD−sinyal'],'bb_mid':['Bollinger 20'],'bb_up':['Bollinger +2σ'],'bb_low':['Bollinger −2σ'],'bb_width_pct':['Bant genişlik %'],'stoch_k':['Stoch K'],'stoch_d':['Stoch D'],'adx14':['Trend kuvveti'],'plus_di':['Pozitif yön'],'minus_di':['Negatif yön'],'cci20':['Commodity Channel Index'],'roc12':['12 mum hız %'],'williams14':['Williams %R'],'obv':['On-balance volume'],'cmf20':['Chaikin Money Flow'],'mfi14':['Money Flow Index'],'vwap50':['50 mum VWAP yaklaşımı'],'supertrend':['ATR tabanlı trend'],'supertrend_dir':['Yön +1/−1'],'donchian_high':['20 mum maksimum'],'donchian_low':['20 mum minimum'],'realized_vol_ann_pct':['Yıllıklaştırılmış vol %'],'zscore20':['20 bar z-skor'],'atr_pct':['ATR / fiyat %'],'volume_sma20':['20 bar hacim ort.'],'last_volume':['Son hacim']};
  $('techTable').innerHTML=Object.entries(ind).map(([k,v])=>{
    const h=heatTechnical(k,v,ind),pct=h&&h.pct!==null&&h.pct!==undefined?`<span class="heat-table-badge">${heatP(h.pct)}% görsel</span>`:'';
-   return `<tr${heatRowAttrs(h)}><td>${escaped(k)}</td><td>${fmt(v,k==='supertrend_dir'?0:4)}</td><td class="muted">${escaped((info[k]||['—'])[0])}${h?.note?' · '+escaped(h.note):''}${pct}</td></tr>`;
+   const note=escaped((info[k]||['—'])[0])+(h?.note?' · '+escaped(h.note):'');
+   return `<tr${heatRowAttrs(h)} data-g32-key="${escaped(k)}"><td>${escaped(k)}<small class="g32-mobile-note">${note}</small></td><td>${fmt(v,k==='supertrend_dir'?0:4)}<span class="g32-mobile-heat">${pct}</span></td><td class="muted">${note}${pct}</td></tr>`;
  }).join('');$('techCount').textContent=Object.keys(ind).length+' gösterge/metrik';
  $('macdValue').textContent=fmt(ind.macd_hist,4);$('rsiValue').textContent=fmt(ind.rsi14,2);$('stochValue').textContent=fmt(ind.stoch_k,2);
  $('quantMetrics').innerHTML=[['Log getiri (bar)',q.mean_return_pct,'%'],['Yıllıklandırılmış vol.',q.vol_annualized_pct,'%'],['%95 VaR (1 bar)',q.var95_1bar_pct,'%'],['Max fiyat düşüşü',q.max_price_drawdown_pct,'%'],['20 bar momentum',q.momentum20_pct,'%'],['Z-Score 20',ind.zscore20,''],['ADX',ind.adx14,''],['ATR %',ind.atr_pct,'%']].map(([k,v,u])=>{
    const h=heatQuant(k,v);return heatCard(k,heatN(v)===null?'—':fmt(v,3)+u,{...(h||{}),note:h?.note||'Veri ölçülemedi'});
- }).join('');$('quantExtra').textContent=q.note||'';
+ }).join('');$('quantExtra').textContent=q.note||'';g32AnalysisUpdate(a);
  $('decisionTF').textContent=tf;$('bigDecision').textContent=d.decision||'BEKLE';setClass('bigDecision',clsDecision(d.decision));
  $('k-decision').textContent=d.decision||'BEKLE';setClass('k-decision',clsDecision(d.decision));
  $('k-risk').textContent=(d.veto||[]).length?'VETO: '+d.veto.length:'Koşullar gözden geçirildi';$('decisionData').textContent=a.data?.candles_valid?'Mum güncel · '+a.data.closed_bars+' kapalı':'Kapanmış mum gecikmeli';
@@ -493,7 +495,12 @@ function uxRenderSheet(name,arg=''){
  }
  if(name==='analysis-menu'||name==='more-menu'){
   const menus=name==='analysis-menu'?[['technical','▧','Teknik Göstergeler'],['smc','◇','SMC / ICT'],['flow','⇄','Order Flow'],['depth','▥','Emir Defteri DOM'],['quant','Σ','Quant İstatistik'],['altinquant','✦','ALTIN QUANT v2'],['quanthub','◈','7 Quant + Konsensüs'],['decision','◎','Karar Motoru']]:[['derivatives','◉','Vadeli / OI / Funding'],['macro','☼','Makro ve Haber'],['performance','▤','Performans'],['health','●','Veri Sağlığı'],['settings','⚙','Ayarlar']];
-  uxSheetRender(name==='analysis-menu'?'Analiz Modülleri':'Diğer Bölümler',`<p class="ux-sheet-sub">Mevcut 15 bölüm korunmuştur. Her modüle buradan ulaşabilirsin.</p><div class="ux-tile-grid">${menus.map(([k,icon,name])=>`<button class="ux-tile" data-go="${k}">${icon} ${name}</button>`).join('')}</div>`);return;
+  if(name==='analysis-menu'){
+   const groups=[['Hızlı analiz',['technical','flow','smc']],['Matematik & Quant',['quant','altinquant','quanthub']],['Doğrulama ve derinlik',['decision','depth']]];
+   uxSheetRender('Analiz merkezi',`<p class="ux-sheet-sub">Aynı kategoriye ait bilgiler aynı bölümde. Günlük karar için Özet, ayrıntı için ilgili analiz ekranını aç.</p>`+
+    groups.map(([title,ids])=>`<div class="g32-menu-group"><h3>${title}</h3><div class="ux-tile-grid">${ids.map(id=>{const m=menus.find(x=>x[0]===id);return `<button class="ux-tile" data-go="${id}">${m[1]} ${m[2]}</button>`}).join('')}</div></div>`).join(''));return;
+  }
+  uxSheetRender('Diğer Bölümler',`<p class="ux-sheet-sub">Vadeli, haberler, performans ve sistem ayarları.</p><div class="ux-tile-grid">${menus.map(([k,icon,label])=>`<button class="ux-tile" data-go="${k}">${icon} ${label}</button>`).join('')}</div>`);return;
  }
 }
 function uxUpdateDock(k){document.body.dataset.uxPage=k;const group=k==='dashboard'?'dashboard':k==='chart'?'chart':k==='strategies'?'strategies':['technical','smc','flow','depth','quant','altinquant','quanthub','decision'].includes(k)?'analysis':'more';document.querySelectorAll('[data-uxnav]').forEach(x=>{let active=x.dataset.uxnav===group;x.classList.toggle('active',active);if(active)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});}
@@ -670,6 +677,137 @@ function uxInit(){
  window.addEventListener('resize',()=>{if(page==='chart')setTimeout(uxRedrawDrawings,100)});
 }
 
+/* GOLD v3.2 — Display-only, explainable scoring and navigation.
+   Never mutates ana, snap, backtest, risk veto, or underlying signals. */
+const G32_WEIGHTS = Object.freeze([
+  ['Fiyat/EMA20',1.3,'ema20'],['Fiyat/EMA50',1.1,'ema50'],
+  ['EMA20/EMA50',1.1,'ema_pair'],['RSI14',1,'rsi14'],
+  ['MACD histogram',1.1,'macd_hist'],['+DI/−DI',0.9,'di'],
+  ['ROC12',0.7,'roc12'],['Stochastic K/D',0.6,'stoch'],
+  ['Supertrend yönü',1,'supertrend_dir']
+]);
+const G32_TOP_IND = new Set(['close','ema9','ema20','ema50','ema200','rsi14','rsi7','macd_hist','adx14','plus_di','minus_di','atr14','bb_width_pct','zscore20','supertrend_dir']);
+const G32_GROUPS={
+ trend:new Set(['close','ema9','ema20','ema50','ema200','plus_di','minus_di','adx14','supertrend','supertrend_dir','vwap50','donchian_high','donchian_low','bb_mid']),
+ momentum:new Set(['rsi14','rsi7','stoch_k','stoch_d','macd','macd_signal','macd_hist','roc12','williams14','cci20','mfi14','zscore20']),
+ risk:new Set(['atr14','atr_pct','bb_up','bb_low','bb_width_pct','realized_vol_ann_pct']),
+ volume:new Set(['obv','cmf20','volume_sma20','last_volume'])
+};
+let g32TechFilter='featured';
+const g32Val=x=>x!==null&&x!==undefined&&x!==''&&Number.isFinite(Number(x))?Number(x):null;
+const g32Clamp=(x,lo,hi)=>Math.max(lo,Math.min(hi,x));
+const g32Pct=x=>Number.isFinite(x)?Math.round(g32Clamp(x,0,100)):null;
+const g32Signed=x=>g32Clamp(x,-1,1);
+function g32Entry(title,value,tone='neutral',sub=''){
+ const n=g32Pct(value);const rgb=HEAT_TONES[tone]||HEAT_TONES.neutral;
+ const alpha=n===null?0.04:(.06+.34*n/100).toFixed(3);
+ return `<div class="g32-stat" style="--g32-rgb:${rgb};--g32-alpha:${alpha};--g32-w:${n??0}%" aria-label="${escaped(title)}: ${n===null?'Veri yok':n+' yüzde yoğunluk'}"><div class="g32-stat-top"><span>${escaped(title)}</span></div><strong>${n===null?'—':n+'%'}</strong><div class="g32-meter"><i></i></div><small>${escaped(sub)}</small></div>`;
+}
+function g32RenderSummary(id,title,tiles,details,valid=true){
+ const el=$(id);if(!el)return;
+ el.innerHTML=`<div class="g32-summary-head"><h3>${escaped(title)}</h3><span class="g32-summary-state ${valid?'is-ok':'is-warn'}">${valid?'HESAPLANDI':'VERİ / KAPSAM KONTROLÜ'}</span></div><div class="g32-cards">${tiles.join('')}</div><p class="g32-score-explain">${escaped(details)} <b>Skorlar işlem kazanma ihtimali değildir.</b></p>`;
+}
+function g32TechnicalScore(ind,quality){
+ const c=g32Val(ind.close),atr=g32Val(ind.atr14),e20=g32Val(ind.ema20),e50=g32Val(ind.ema50);
+ const centered=(x,denom)=>x!==null&&denom>0?g32Signed(x/denom):null;
+ const dif=(a,b,denom)=>a!==null&&b!==null?centered(a-b,denom):null;
+ const signal={
+  ema20:dif(c,e20,atr>0?2*atr:0), ema50:dif(c,e50,atr>0?2*atr:0),
+  ema_pair:dif(e20,e50,atr>0?2*atr:0),
+  rsi14:g32Val(ind.rsi14)!==null?centered(g32Val(ind.rsi14)-50,25):null,
+  macd_hist:centered(g32Val(ind.macd_hist),atr>0?atr:0),
+  di:dif(g32Val(ind.plus_di),g32Val(ind.minus_di),25),
+  roc12:centered(g32Val(ind.roc12),1),
+  stoch:dif(g32Val(ind.stoch_k),g32Val(ind.stoch_d),25),
+  supertrend_dir:[-1,1].includes(g32Val(ind.supertrend_dir))?g32Val(ind.supertrend_dir):null
+ };
+ let got=0,sum=0,total=0,count=0;
+ for(const [,w,id] of G32_WEIGHTS){total+=w;const v=signal[id];if(v===null)continue;got+=w;sum+=w*v;count++}
+ const coverage=total?100*got/total:0;
+ const available=Boolean(quality?.candles_valid)&&got>0&&coverage>=55;
+ const long=available?g32Pct(50+50*sum/got):null;
+ const short=long===null?null:100-long;
+ return {long,short,coverage:g32Pct(coverage),count,total:G32_WEIGHTS.length,valid:available};
+}
+function g32Cat(key){return Object.entries(G32_GROUPS).find(([,set])=>set.has(key))?.[0]||'other'}
+function g32ApplyTechFilter(){
+ const body=$('techTable');if(!body)return;
+ const rows=[...body.querySelectorAll('tr')];let shown=0;
+ rows.forEach(row=>{const key=row.dataset.g32Key||'';let visible=g32TechFilter==='all'||g32TechFilter==='featured'&&G32_TOP_IND.has(key)||g32TechFilter===g32Cat(key);
+ row.hidden=!visible;if(visible)shown++});
+ $('g32-tech-showing').textContent=`${shown} / ${rows.length} gösterge · ${g32TechFilter==='featured'?'Öne çıkanlar':{trend:'Trend',momentum:'Momentum',risk:'Volatilite',volume:'Hacim',all:'Tümü'}[g32TechFilter]}`;
+ $('g32-tech-filters')?.querySelectorAll('[data-g32-filter]').forEach(b=>{const on=b.dataset.g32Filter===g32TechFilter;b.setAttribute('aria-pressed',String(on));b.classList.toggle('active',on)});
+}
+function g32AnalysisUpdate(a){
+ const ind=a?.indicators?.latest||{};const q=a?.quant||{};
+ const tech=g32TechnicalScore(ind,a?.data||{});
+ const title=tech.valid&&tech.long!==null?(Math.abs(tech.long-tech.short)<12?'KARIŞIK':tech.long>tech.short?'YUKARI AĞIRLIKLI':'AŞAĞI AĞIRLIKLI'):'DOĞRULAMA BEKLENİYOR';
+ g32RenderSummary('g32-tech-summary','TEKNİK · YÖN YOĞUNLUĞU',[
+  g32Entry('Yükseliş göstergeleri',tech.long,'up','Ağırlıklı yönsel normalizasyon'),
+  g32Entry('Düşüş göstergeleri',tech.short,'down','Karşı yöndeki yoğunluk'),
+  g32Entry('Göstergelerin kapsamı',tech.coverage,'neutral',`${tech.count}/${tech.total} yönsel bileşen`),
+  `<div class="g32-context"><span>Teknik görünüm</span><strong>${escaped(title)}</strong><small>Kapanmış mum • ${escaped(tf)} • mevcut karar motorunu değiştirmez</small></div>`
+ ],'EMA/ATR uzaklığı, RSI, MACD, DI, ROC, Stochastic ve Supertrend ayrı ağırlıklarla ölçeklenir. ATR, hacim ve volatilite tek başına LONG/SHORT oyu sayılmaz.',tech.valid);
+ const rows=$('techTable')?.querySelectorAll('tr')||[];
+ Object.keys(ind).forEach((k,i)=>{if(rows[i])rows[i].dataset.g32Key=k});
+ g32ApplyTechFilter();
+
+ const riskParts=[
+  ['1 mum VaR %95',g32Val(q.var95_1bar_pct),0.30],
+  ['ATR / fiyat %',g32Val(ind.atr_pct),1.00],
+  ['Yıllık volatilite %',g32Val(q.vol_annualized_pct),60],
+  ['En büyük fiyat düşüşü %',g32Val(q.max_price_drawdown_pct),3]
+ ];
+ const riskAvailable=riskParts.filter(([,v])=>v!==null);
+ const isCurrent=Boolean(a?.data?.candles_valid);
+ const riskScore=isCurrent&&riskAvailable.length>=2?g32Pct(riskAvailable.reduce((s,[,v,ref])=>s+g32Clamp(Math.abs(v)/ref*100,0,100),0)/riskAvailable.length):null;
+ const momentum=g32Val(q.momentum20_pct),z=g32Val(ind.zscore20);
+ const momentumScore=isCurrent&&momentum!==null?g32Pct(Math.abs(momentum)/1*100):null;
+ const zScore=isCurrent&&z!==null?g32Pct(Math.abs(z)/3*100):null;
+ const momentumTone=momentum===null?'neutral':momentum>=0?'up':'down',zTone=z===null?'neutral':z>=0?'up':'down';
+ g32RenderSummary('g32-quant-summary','QUANT · RİSK VE SAPMA SKORLARI',[
+  g32Entry('Risk yoğunluğu',riskScore,'caution','Yüksek yüzde = daha yüksek gözlenen risk'),
+  g32Entry('20 mum momentum',momentumScore,momentumTone,momentum===null?'Veri yok':`${momentum>=0?'Pozitif':'Negatif'} · |getiri| / %1`),
+  g32Entry('Z-skor sapması',zScore,zTone,z===null?'Veri yok':`${z>=0?'Ort. üstünde':'Ort. altında'} · |Z| / 3`),
+  g32Entry('Risk veri kapsamı',g32Pct(riskAvailable.length/riskParts.length*100),'neutral',`${riskAvailable.length}/${riskParts.length} risk bileşeni`)
+ ],'VaR için %0,30; ATR için %1; yıllık volatilite için %60; düşüş için %3 görsel referans kullanılır. Risk, yön skoru veya işlem olasılığı değildir.',riskScore!==null);
+}
+let g32FlowLast=0;
+function g32FlowUpdate(s){
+ const now=Date.now();if(now-g32FlowLast<800)return;g32FlowLast=now;
+ const f=s?.flow||{};const v=s?.valid||{};
+ const buy=g32Val(f.buy_notional60),sell=g32Val(f.sell_notional60),bid=g32Val(f.bid_notional20),ask=g32Val(f.ask_notional20);
+ const haveTrades=Boolean(v.trades)&&buy!==null&&sell!==null&&buy+sell>0;
+ const haveBook=Boolean(v.book)&&bid!==null&&ask!==null&&bid+ask>0;
+ const tradeBuy=haveTrades?buy/(buy+sell)*100:null;
+ const bookBuy=haveBook?bid/(bid+ask)*100:null;
+ const w=(haveTrades?.7:0)+(haveBook?.3:0);
+ const long=w>0?( (tradeBuy??0)*(haveTrades?.7:0)+(bookBuy??0)*(haveBook?.3:0) )/w:null;
+ const directionOk=haveTrades&&haveBook; // if one independent source fails, withhold the combined score
+ const up=directionOk?g32Pct(long):null;
+ const down=up===null?null:100-up;
+ const sample=g32Val(f.trades60);const spread=g32Val(f.spread_pct);
+ const sampleQ=haveTrades&&sample!==null?g32Pct(sample/120*100):null;
+ const spreadQ=spread!==null?g32Pct(100-g32Clamp(spread/0.12*100,0,100)):null;
+ const qualityInputs=[haveTrades?100:0,haveBook?100:0,sampleQ,spreadQ].filter(x=>x!==null);
+ const quality=directionOk&&qualityInputs.length===4?g32Pct(qualityInputs[0]*.35+qualityInputs[1]*.3+qualityInputs[2]*.2+qualityInputs[3]*.15):null;
+ const title=directionOk?(up>56?'ALIŞ AĞIRLIKLI':down>56?'SATIŞ AĞIRLIKLI':'KARŞILIKLI / NÖTR'):'VERİ EKSİK / GECİKMELİ';
+ g32RenderSummary('g32-flow-summary','ORDER FLOW · İŞLEM & EMİR DENGESİ',[
+  g32Entry('Alış baskısı',up,'up','%70 taker + %30 DOM20'),
+  g32Entry('Satış baskısı',down,'down','Aynı kaynakların karşı yönü'),
+  g32Entry('Veri kalite endeksi',quality,'neutral','Tazelik, işlem sayısı, spread'),
+  `<div class="g32-context"><span>Akış görünümü</span><strong>${title}</strong><small>60 sn işlemler: ${haveTrades?'güncel':'eksik'} · DOM20: ${haveBook?'güncel':'eksik'}</small></div>`
+ ],'İşlem alış/satış payı %70, emir defteri alış/satış payı %30. Kaynakların biri bayatsa ortak skor gösterilmez. Emir defteri bekleyen emirlerdir; gerçekleşmiş hacim değildir.',directionOk);
+}
+function g32Highlight(k){
+ document.querySelectorAll('.g32-subnav button').forEach(b=>{const selected=b.dataset.go===k;b.classList.toggle('active',selected);b.setAttribute('aria-current',selected?'page':'false')});
+}
+function g32InitFilters(){
+ const filterBar=$('g32-tech-filters');if(filterBar){filterBar.addEventListener('click',e=>{const b=e.target.closest('[data-g32-filter]');if(!b)return;g32TechFilter=b.dataset.g32Filter;g32ApplyTechFilter()})}
+ g32Highlight(page);
+}
+
+
 // GOLD v2.2.2: isolated startup; never let optional chart or UX stop live feed.
 const __bootStatus={};
 function __goldStartPart(name,fn){
@@ -681,8 +819,9 @@ function __goldStartPart(name,fn){
 __goldStartPart('Gezinti',initNav);
 __goldStartPart('Mobil arayüz',uxInit);
 __goldStartPart('Yüzdelik renk gösterimi',heatSetupToggle);
+__goldStartPart('Skor filtreleri',g32InitFilters);
 // The boot watchdog confirms that the complete application script executed.
-window.__GOLD_APP_READY__=true;window.__GOLD_BUILD__='2.2.4';
+window.__GOLD_APP_READY__=true;window.__GOLD_BUILD__='3.2.0';
 __goldStartPart('Grafik',ensureCharts);
 __goldStartPart('Canlı bağlantı',startSocket);
 __goldStartPart('İlk veri yükleme',reloadAll);

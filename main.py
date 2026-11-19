@@ -527,3 +527,67 @@ async def news():
                           'time':x.get('seendate'),'source':'GDELT'})
         return {'items':items,'source':'GDELT DOC 2.0','note':'Haber akışı gecikebilir; duygu puanı veya fiyat tahmini içermez.'}
     except Exception as ex:return {'items':[],'error':err_text(ex),'source':'GDELT DOC 2.0'}
+
+# ============================================================
+# ALTIN QUANT v2 SHADOW INTEGRATION
+# Read-only sidecar. Legacy endpoints and their responses are unchanged.
+# Set ALTIN_QUANT_ENABLED=0 in Render Environment for immediate rollback.
+# ============================================================
+from altin_quant import build_quant_report, WEIGHTS
+from altin_risk import calculate_risk, POLICY
+
+ALTIN_QUANT_ENABLED=os.getenv('ALTIN_QUANT_ENABLED','1').strip().lower() not in ('0','false','off')
+
+@app.get('/api/altin-quant/health')
+async def altin_quant_health():
+    return {'version':'2.0.0','enabled':ALTIN_QUANT_ENABLED,'mode':'SHADOW_ONLY',
+            'orders_enabled':False,'existing_v1_endpoints_unchanged':True,
+            'weighted_families':WEIGHTS,'data_source':'Existing GOLD SCALP PRO Market cache'}
+
+@app.get('/api/altin-quant/analysis')
+async def altin_quant_analysis(symbol:str='XAUUSDT',tf:str='5m'):
+    if not ALTIN_QUANT_ENABLED:
+        raise HTTPException(503,'ALTIN QUANT kapalı. v1 API çalışmaya devam eder.')
+    symbol=valid_symbol(symbol)
+    tf=valid_tf(tf)
+    # Legacy endpoint is used as-is; shadow extension never overwrites its decision.
+    try:
+        old=await analysis(symbol=symbol,tf=tf,refresh=False)
+        old_decision=old.get('decision',{})
+    except HTTPException:
+        old_decision={'decision':'BEKLE','veto':['Mevcut analiz verisi alınamadı']}
+    except Exception as ex:
+        old_decision={'decision':'BEKLE','veto':[err_text(ex)]}
+
+    errors={}
+    async def one(f):
+        try:
+            b=await M.get_candles(symbol,f,450)
+            return f,closed_bars(b,f)
+        except Exception as ex:
+            errors[f]=err_text(ex)
+            return f,[]
+    collected=dict(await asyncio.gather(*(one(f) for f in ('4H','1H','15m','5m','1m'))))
+    s=M.snapshot()
+    # Raw trades are internal only; never expose user credentials or gateway state.
+    s['raw_trades']=[dict(t) for t in M.trades]
+    result=await asyncio.to_thread(build_quant_report,symbol,collected,s,old_decision,nowms())
+    result['data_errors']=errors
+    result['data']={'bars_by_tf':{k:len(v) for k,v in collected.items()},
+                    'feed_valid':s['valid'],'last_candle_source':old.get('data',{}).get('source') if 'old' in locals() else None}
+    return result
+
+@app.get('/api/altin-quant/risk-plan')
+async def altin_quant_risk_plan(equity:float=Query(...,gt=0,le=10_000_000),
+        daily_loss:float=Query(default=0,ge=0,le=10_000_000),
+        weekly_loss:float=Query(default=0,ge=0,le=10_000_000),
+        consecutive_losses:int=Query(default=0,ge=0,le=100),
+        drawdown_pct:float=Query(default=0,ge=0,le=100),
+        entry:float|None=Query(default=None,gt=0),
+        stop:float|None=Query(default=None,gt=0),
+        multiplier:float|None=Query(default=None,gt=0)):
+    if not ALTIN_QUANT_ENABLED:raise HTTPException(503,'ALTIN QUANT kapalı')
+    try:
+        return calculate_risk(equity,daily_loss,weekly_loss,consecutive_losses,
+                              drawdown_pct,entry,stop,multiplier)
+    except ValueError as ex:raise HTTPException(400,str(ex))

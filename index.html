@@ -10,7 +10,7 @@
  window.addEventListener('load',function(){setTimeout(function(){if(!window.__GOLD_APP_READY__)warn('Başlangıç kodu eksik ya da çalışmadı')},3500)});
 })();</script>
 
-<link rel="stylesheet" href="gold_style.css?v=2240">
+<link rel="stylesheet" href="gold_style.css?v=3200">
 <link rel="stylesheet" href="gold_quant_hub.css?v=3100">
 </head><body>
 <div class="wrap">
@@ -46,6 +46,12 @@
       <div class="card"><div class="cardhead"><h3>Stochastic (14,3)</h3><small id="stochValue">—</small></div><div class="oscpanel"><div class="oscplot" id="osc-stoch"></div></div></div>
     </div>
   </div>
+  <div class="g32-quick-links" aria-label="İlgili analizlere git">
+    <button type="button" data-go="technical">▧ Teknik skorlar</button>
+    <button type="button" data-go="flow">⇄ Order Flow</button>
+    <button type="button" data-go="quant">∑ Quant risk</button>
+  </div>
+  <details class="g32-home-advanced"><summary>Diğer kokpit ayrıntıları <span>SMC, akış, volatilite, footprint, kaynak</span></summary>
   <div class="below">
     <div class="card mini"><div class="cardhead"><h3>Canlı Order Flow</h3><small>Son 60 saniye</small></div><div class="stream"><div id="donut" class="donut"><strong id="donutTxt">—</strong></div><div><p class="green">ALIŞ <b id="flowBuy">—</b></p><p class="red">SATIŞ <b id="flowSell">—</b></p><p>Delta <b id="flowDelta">—</b></p><p class="note">Yalnız Bitget işlemleri</p></div></div></div>
     <div class="card mini"><div class="cardhead"><h3>Volatilite & Rejim</h3><small id="regimeName">—</small></div><div class="body metricgrid" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="metric"><small>ATR(14)</small><b id="overviewAtr">—</b></div><div class="metric"><small>BB genişliği</small><b id="overviewBB">—</b></div><div class="metric"><small>Z-score</small><b id="overviewZ">—</b></div><div class="metric"><small>1-mum VaR %95</small><b id="overviewVar">—</b></div></div></div>
@@ -54,6 +60,7 @@
     <div class="card mini"><div class="cardhead"><h3>XAUUSD/XAUUSDT farkı</h3><small>Spot + futures</small></div><div class="body"><div class="metric"><small>Fiyat farkı (futures − spot)</small><b id="basis">—</b><p id="basisNote">OANDA bağlanınca hesaplanır</p></div><p class="note">Farklı para birimi USD/USDT, veri gecikmesi ve piyasa yapısı dikkate alınmalıdır.</p></div></div>
     <div class="card mini"><div class="cardhead"><h3>Kaynak & Bağlantı Sağlığı</h3><small>Gecikme göstergeleri</small></div><div class="body"><div id="overviewHealth">Bekleniyor...</div><button class="btn" data-go="health">Ayrıntılı veri sağlığı</button></div></div>
   </div>
+  </details>
 </section>
 
 <section class="view" id="v-chart">
@@ -84,11 +91,33 @@
 </div>
 </section>
 
-<section class="view" id="v-technical"><div class="sectiontop"><h2>Teknik göstergeler · ayrıntılı analiz</h2><span class="chip" id="techCount">—</span></div><div class="twocol"><div class="card"><div class="cardhead"><h3>Hesaplanan göstergeler</h3><small>Yalnız kapanmış mumlar</small></div><div class="table-scroll"><table><thead><tr><th>Gösterge</th><th>Değer</th><th>Açıklama</th></tr></thead><tbody id="techTable"></tbody></table></div></div><div class="card"><div class="cardhead"><h3>Multi-Timeframe Yön Haritası</h3><button class="btn" id="mtfReload">Yenile</button></div><div class="body" id="mtfCards">MTF verisi yükleniyor...</div></div></div></section>
+<section class="view" id="v-technical"><nav class="g32-subnav" aria-label="Analiz kategorileri">
+  <button type="button" data-go="technical">Teknik</button>
+  <button type="button" data-go="flow">Order Flow</button>
+  <button type="button" data-go="quant">Quant</button>
+  <button type="button" data-go="smc">SMC</button>
+  <button type="button" data-go="quanthub">7 Quant</button>
+</nav><div class="sectiontop"><h2>Teknik göstergeler · ayrıntılı analiz</h2><span class="chip" id="techCount">—</span></div><section id="g32-tech-summary" class="g32-summary" aria-label="Teknik gösterge skorları" aria-live="polite"><p class="g32-loading">Kapanmış mumlara dayalı teknik skorlar bekleniyor…</p></section>
+<div class="twocol"><div class="card"><div class="cardhead"><h3>Hesaplanan göstergeler</h3><small>Yalnız kapanmış mumlar</small></div><div class="g32-filterbar" id="g32-tech-filters" aria-label="Gösterge kategorisi">
+  <button type="button" data-g32-filter="featured" aria-pressed="true">Öne çıkan</button>
+  <button type="button" data-g32-filter="trend">Trend</button>
+  <button type="button" data-g32-filter="momentum">Momentum</button>
+  <button type="button" data-g32-filter="risk">Volatilite</button>
+  <button type="button" data-g32-filter="volume">Hacim</button>
+  <button type="button" data-g32-filter="all">Tümü</button>
+</div><div class="g32-table-meta" id="g32-tech-showing">Öne çıkan göstergeler</div>
+<div class="table-scroll"><table><thead><tr><th>Gösterge</th><th>Değer</th><th>Açıklama / yoğunluk</th></tr></thead><tbody id="techTable"></tbody></table></div></div><div class="card"><div class="cardhead"><h3>Multi-Timeframe Yön Haritası</h3><button class="btn" id="mtfReload">Yenile</button></div><div class="body" id="mtfCards">MTF verisi yükleniyor...</div></div></div></section>
 
 <section class="view" id="v-smc"><div class="sectiontop"><h2>SMC / ICT · Piyasa Yapısı</h2><span class="chip">Swing 2+2 · yalnız kapanmış mum</span></div><div class="threecol"><div class="card"><div class="cardhead"><h3>Swing high</h3></div><div class="body"><div class="decision cyan" id="swingHi">—</div></div></div><div class="card"><div class="cardhead"><h3>Swing low</h3></div><div class="body"><div class="decision cyan" id="swingLo">—</div></div></div><div class="card"><div class="cardhead"><h3>Equilibrium</h3></div><div class="body"><div class="decision gold" id="swingMid">—</div></div></div></div><div class="card" style="margin-top:11px"><div class="cardhead"><h3>BOS / FVG / Likidite süpürmesi adayları</h3><small>Geçmiş 15 mum</small></div><div class="body" id="smcEvents">—</div></div><div class="hint">Tam CHoCH, order block, breaker ve OTE tespiti için ayrıca nesnel tanımlar ve örneklem dışı doğrulama gerekir. Bu ekranda hesaplanmayan bir olayı olmuş gibi göstermez.</div></section>
 
-<section class="view" id="v-flow"><div class="sectiontop"><h2>Time & Sales / Agresif emir analizi</h2><span class="chip">Bitget XAUUSDT canlı işlem akışı</span></div><div id="flowSpotWarning" class="hint">XAUUSD spotta merkezi emir/işlem akışı yoktur. Aşağıdaki bilgiler yalnızca Bitget XAUUSDT içindir.</div><div class="metricgrid" id="flowMetrics"></div><div class="twocol" style="margin-top:10px"><div class="card"><div class="cardhead"><h3>Son 60 saniye delta footprint</h3><small>0.5 USDT fiyat kovası · gözlenen işlemler</small></div><div class="body"><div class="footprint" id="fpTable"></div></div></div><div class="card"><div class="cardhead"><h3>Son İşlemler</h3><small>WS · tick örnekleri</small></div><div class="table-scroll"><table><thead><tr><th>Saat</th><th>Fiyat</th><th>Boyut</th><th>Taraf</th></tr></thead><tbody id="tradesTable"></tbody></table></div></div></div></section>
+<section class="view" id="v-flow"><nav class="g32-subnav" aria-label="Analiz kategorileri">
+  <button type="button" data-go="technical">Teknik</button>
+  <button type="button" data-go="flow">Order Flow</button>
+  <button type="button" data-go="quant">Quant</button>
+  <button type="button" data-go="smc">SMC</button>
+  <button type="button" data-go="quanthub">7 Quant</button>
+</nav><div class="sectiontop"><h2>Time & Sales / Agresif emir analizi</h2><span class="chip">Bitget XAUUSDT canlı işlem akışı</span></div><div id="flowSpotWarning" class="hint">XAUUSD spotta merkezi emir/işlem akışı yoktur. Aşağıdaki bilgiler yalnızca Bitget XAUUSDT içindir.</div><section id="g32-flow-summary" class="g32-summary" aria-label="Order Flow skorları" aria-live="polite"><p class="g32-loading">Canlı işlem ve emir defteri ölçümleri bekleniyor…</p></section>
+<div class="metricgrid" id="flowMetrics"></div><div class="twocol" style="margin-top:10px"><div class="card"><div class="cardhead"><h3>Son 60 saniye delta footprint</h3><small>0.5 USDT fiyat kovası · gözlenen işlemler</small></div><div class="body"><div class="footprint" id="fpTable"></div></div></div><div class="card"><div class="cardhead"><h3>Son İşlemler</h3><small>WS · tick örnekleri</small></div><div class="table-scroll"><table><thead><tr><th>Saat</th><th>Fiyat</th><th>Boyut</th><th>Taraf</th></tr></thead><tbody id="tradesTable"></tbody></table></div></div></div></section>
 
 <section class="view" id="v-depth"><div class="sectiontop"><h2>Bitget Futures · 50 kademe DOM</h2><span class="chip">books50 · pseq/seq kontrolü</span></div><div class="twocol"><div class="card"><div class="cardhead"><h3 class="green">BUY / Bid</h3><small id="bookBidTotal">—</small></div><div class="table-scroll"><table><thead><tr><th>Fiyat</th><th>Miktar</th><th>Notional</th></tr></thead><tbody id="bidsTable"></tbody></table></div></div><div class="card"><div class="cardhead"><h3 class="red">SELL / Ask</h3><small id="bookAskTotal">—</small></div><div class="table-scroll"><table><thead><tr><th>Fiyat</th><th>Miktar</th><th>Notional</th></tr></thead><tbody id="asksTable"></tbody></table></div></div></div><div class="hint">Emir defteri anlık bekleyen emirlerin fotoğrafıdır; gerçekleşmiş işlem hacmi veya manipülasyon kanıtı değildir. Bağlantı kopması / sıra boşluğunda veriler temizlenir.</div></section>
 
@@ -96,7 +125,14 @@
 
 <section class="view" id="v-macro"><div class="sectiontop"><h2>Altın Makro · ABD Faizleri & Dolar</h2><button class="btn" id="macroReload">FRED yenile</button></div><div class="metricgrid" id="macroGrid"><div class="hint">Makro veriler istek üzerine yüklenir.</div></div><div class="card" style="margin-top:10px"><div class="cardhead"><h3>Son altın haberleri</h3><small>GDELT 24s · kaynaklı bağlantılar</small></div><div class="body" id="newsList">Haberler yükleniyor...</div></div><div class="hint">DXY yerine FRED'in ticaret-ağırlıklı geniş dolar endeksi izlenir; aynı endeks değildir. FRED ve haber verileri gerçek zamanlı işlem fiyatı değildir.</div></section>
 
-<section class="view" id="v-quant"><div class="sectiontop"><h2>Quant · Matematiksel piyasa ölçümleri</h2><span class="chip">Şeffaf varsayımlar</span></div><div class="metricgrid" id="quantMetrics"></div><div class="card" style="margin-top:10px"><div class="cardhead"><h3>İstatistiksel analiz / risk notları</h3></div><div class="body"><p>Log getiri: <code>r(t) = ln[P(t) / P(t-1)]</code>. Gerçekleşmiş volatilite: <code>sigma = std(r) × sqrt(yıllık bar sayısı)</code>. %95 parametrik VaR: <code>-(ortalama - 1.645 × sigma)</code>.</p><p>İstatistiksel modeller varsayım içerir; VaR maksimum zarar değildir. Platformda işlem kâr olasılığı sayı uydurularak sunulmaz.</p><div id="quantExtra" class="note"></div></div></div></section>
+<section class="view" id="v-quant"><nav class="g32-subnav" aria-label="Analiz kategorileri">
+  <button type="button" data-go="technical">Teknik</button>
+  <button type="button" data-go="flow">Order Flow</button>
+  <button type="button" data-go="quant">Quant</button>
+  <button type="button" data-go="smc">SMC</button>
+  <button type="button" data-go="quanthub">7 Quant</button>
+</nav><div class="sectiontop"><h2>Quant · Matematiksel piyasa ölçümleri</h2><span class="chip">Şeffaf varsayımlar</span></div><section id="g32-quant-summary" class="g32-summary" aria-label="Quant istatistik ve risk skorları" aria-live="polite"><p class="g32-loading">Yeterli kapanmış mum bekleniyor…</p></section>
+<div class="metricgrid" id="quantMetrics"></div><details class="g32-research"><summary>Matematiksel yöntemler ve risk notları</summary><div class="card" style="margin-top:10px"><div class="cardhead"><h3>İstatistiksel analiz / risk notları</h3></div><div class="body"><p>Log getiri: <code>r(t) = ln[P(t) / P(t-1)]</code>. Gerçekleşmiş volatilite: <code>sigma = std(r) × sqrt(yıllık bar sayısı)</code>. %95 parametrik VaR: <code>-(ortalama - 1.645 × sigma)</code>.</p><p>İstatistiksel modeller varsayım içerir; VaR maksimum zarar değildir. Platformda işlem kâr olasılığı sayı uydurularak sunulmaz.</p><div id="quantExtra" class="note"></div></div></div></details></section>
 
 
 <section class="view" id="v-altinquant">
@@ -185,11 +221,11 @@
   <div class="ux-sheet-top"><h2 id="uxSheetTitle">Grafik ayarları</h2><button id="uxCloseSheet" aria-label="Menüyü kapat">×</button></div>
   <div class="ux-sheet-body" id="uxSheetBody"></div><div class="ux-sheet-footer" id="uxSheetFooter"></div>
 </aside><div class="ux-toast" id="uxToast" role="status" aria-live="polite"></div>
-<footer class="credits">GOLD SCALP PRO v3 · 7 QUANT HUB · ALTIN QUANT SHADOW · Developer Suat DOĞU · Yalnız XAUUSD/XAUUSDT · Veri bulunmadığında gösterim yapılmaz · Charting by TradingView Lightweight Charts™</footer>
+<footer class="credits">GOLD SCALP PRO v3.2 · SKOR ANALİZ · 7 QUANT HUB · ALTIN QUANT SHADOW · Developer Suat DOĞU · Yalnız XAUUSD/XAUUSDT · Veri bulunmadığında gösterim yapılmaz · Charting by TradingView Lightweight Charts™</footer>
 </div>
 
 <script async src="https://cdn.jsdelivr.net/npm/lightweight-charts@5.1.0/dist/lightweight-charts.standalone.production.js" onload="window.dispatchEvent(new Event('gold-chart-library-ready'))"></script>
-<script defer src="gold_app.js?v=2240"></script>
+<script defer src="gold_app.js?v=3200"></script>
 <script defer src="gold_quant_hub.js?v=3100"></script>
 <script>
 (function(){

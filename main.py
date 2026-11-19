@@ -591,3 +591,88 @@ async def altin_quant_risk_plan(equity:float=Query(...,gt=0,le=10_000_000),
         return calculate_risk(equity,daily_loss,weekly_loss,consecutive_losses,
                               drawdown_pct,entry,stop,multiplier)
     except ValueError as ex:raise HTTPException(400,str(ex))
+
+
+# ============================================================
+# GOLD v2.1 — OPTIONAL PUBLIC DATA AND STRATEGY RESEARCH
+# New endpoints ONLY. Existing v1/v2 endpoints and UI remain intact.
+# ============================================================
+from gold_data_v21 import GoldData
+from gold_strategy_v21 import improved_backtest
+
+GOLD_V21_DATA = GoldData()
+
+@app.get('/api/gold-v21/health')
+async def gold_v21_health():
+    return {'version':'2.1.0','mode':'SHADOW_ONLY','orders_enabled':False,
+            'legacy_endpoints_unchanged':True,
+            'modules':['contract_public','oi_history','funding_history','economic_calendar','risk_veto','journal','conservative_backtest'],
+            'note':'Canlı veri uç noktaları ancak /report çağrısı ve gerçek kaynaktan yanıt sonrası doğrulanır.'}
+
+@app.get('/api/gold-v21/report')
+async def gold_v21_report(symbol:str='XAUUSDT',tf:str='5m'):
+    if not ALTIN_QUANT_ENABLED:raise HTTPException(503,'ALTIN QUANT devre dışı')
+    symbol=valid_symbol(symbol);tf=valid_tf(tf)
+    if symbol!='XAUUSDT':
+        return {'mode':'SHADOW_ONLY','symbol':symbol,'status':'unavailable',
+                'reason':'Bitget sözleşme/OI/funding yalnız XAUUSDT içindir; XAUUSD spot verisinin yerine kullanılmaz'}
+    base=await altin_quant_analysis(symbol=symbol,tf=tf)
+    contract,deriv,calendar=await asyncio.gather(
+        GOLD_V21_DATA.contracts(M),GOLD_V21_DATA.derivatives(M),GOLD_V21_DATA.calendar(M))
+    veto=GOLD_V21_DATA.event_veto(calendar,nowms())
+    market=M.snapshot()
+    risk=GOLD_V21_DATA.risk_plan(base,contract,market,veto)
+    try:
+        closed5=closed_bars(await M.get_candles('XAUUSDT','5m',350),'5m')
+        from gold_data_v21 import _good_number
+        fees=contract.get('taker_fee_bps') if contract.get('status')=='ready' else None
+        book_spread=(base.get('orderflow') or {}).get('spread_bps')
+        scenarios=GOLD_V21_DATA.stop_take_scenarios(closed5,fees,book_spread)
+    except Exception as ex:
+        scenarios={'status':'unavailable','reason':err_text(ex)}
+    score=base.get('score') or {}
+    data_quality=base.get('timeframe_quality') or {}
+    problems=[]
+    if any(not market['valid'].get(k) for k in ('ticker','book','trades')):problems.append('Canlı fiyat/kitap/işlem eski')
+    for k in ('1m','5m','15m','1H'):
+        row=data_quality.get(k) or {}
+        if not row.get('fresh') or row.get('gap_count_last_50'):problems.append(k+' mum eski veya boşluk var')
+    if contract.get('status')!='ready':problems.append('Bitget sözleşme kuralları erişilemiyor')
+    if deriv.get('status')!='ready':problems.append('OI/funding verisi eksik veya erişilemiyor')
+    if not veto.get('allowed'):problems.append(veto['reason'])
+    if score.get('veto'):problems.extend(score['veto'])
+    # State is intentionally never a trading permission. No private account reads.
+    journal=await asyncio.to_thread(GOLD_V21_DATA.save_sample,base)
+    return {'version':'2.1.0','mode':'SHADOW_ONLY','orders_enabled':False,'symbol':symbol,
+            'status':'VALIDATED_RESEARCH' if not problems else 'RESEARCH_WITH_VETO',
+            'timestamp_ms':nowms(), 'baseline':{'legacy':base.get('legacy'),
+                 'shadow_decision':score.get('final'),'long':score.get('long_points'),
+                 'short':score.get('short_points'),'score_veto':score.get('veto')},
+            'regime':base.get('regime'),'mtf':base.get('mtf'),
+            'mtf_explanation':'Rejim 5m fiyat/volatilite sınıfıdır; ana MTF 4H/1H/15m yön onayıdır. Farklı sonuçlar çelişki değil farklı ufuktur.',
+            'feed_valid':market['valid'],'candle_quality':data_quality,
+            'instrument':contract,'derivatives':deriv,'calendar':calendar,
+            'calendar_veto':veto,'risk_plan':risk,'stop_take_scenarios':scenarios,'all_veto':list(dict.fromkeys(problems)),
+            'journal':journal,'data_note':'Eksik veri puana/sinyale dönüştürülmez; bu uç nokta eski kararı değiştirmez.'}
+
+@app.get('/api/gold-v21/journal')
+async def gold_v21_journal(limit:int=Query(default=100,ge=1,le=500)):
+    return await asyncio.to_thread(GOLD_V21_DATA.journal,limit)
+
+@app.get('/api/gold-v21/backtest')
+async def gold_v21_backtest(symbol:str='XAUUSDT',tf:str='5m',strategy:str='ema_trend',
+                     fee_bps:float=Query(default=4,ge=0,le=30),
+                     slippage_bps:float=Query(default=1,ge=0,le=30),
+                     spread_bps:float=Query(default=1,ge=0,le=30)):
+    symbol=valid_symbol(symbol);tf=valid_tf(tf)
+    if strategy not in STRATEGIES:raise HTTPException(400,'Bilinmeyen strateji')
+    try:
+        candles=closed_bars(await M.get_candles(symbol,tf,700),tf)
+        # Both models run on exactly the same closed-candle sample, no historical
+        # microstructure feed inferred from today's order book.
+        old,new=await asyncio.gather(
+            asyncio.to_thread(backtest,candles,strategy,fee_bps,slippage_bps),
+            asyncio.to_thread(improved_backtest,candles,strategy,fee_bps,slippage_bps,spread_bps))
+        return {'version':'2.1.0','symbol':symbol,'tf':tf,'legacy':old,'filtered':new,
+                'comparability_note':'Eski test ve filtreli test aynı mumları kullanır. Yeni filtrede ek spread varsayımı vardır; ayrıca maliyetler eşitlenmeden doğrudan PnL farkını getiri artışı sayma.'}
+    except Exception as ex:raise HTTPException(503,err_text(ex))

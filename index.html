@@ -68,7 +68,7 @@ button,select,input{font:inherit}button{cursor:pointer}a{color:#92d6ff}a:hover{c
 
 <section class="view" id="v-macro"><div class="sectiontop"><h2>Altın Makro · ABD Faizleri & Dolar</h2><button class="btn" id="macroReload">FRED yenile</button></div><div class="metricgrid" id="macroGrid"><div class="hint">Makro veriler istek üzerine yüklenir.</div></div><div class="card" style="margin-top:10px"><div class="cardhead"><h3>Son altın haberleri</h3><small>GDELT 24s · kaynaklı bağlantılar</small></div><div class="body" id="newsList">Haberler yükleniyor...</div></div><div class="hint">DXY yerine FRED'in ticaret-ağırlıklı geniş dolar endeksi izlenir; aynı endeks değildir. FRED ve haber verileri gerçek zamanlı işlem fiyatı değildir.</div></section>
 
-<section class="view" id="v-quant"><div class="sectiontop"><h2>Quant · Matematiksel piyasa ölçümleri</h2><span class="chip">Şeffaf varsayımlar</span></div><div class="metricgrid" id="quantMetrics"></div><div class="card" style="margin-top:10px"><div class="cardhead"><h3>İstatistiksel analiz / risk notları</h3></div><div class="body"><p>Log getiri: <code>rₜ = ln(Pₜ/Pₜ₋₁)</code>. Gerçekleşmiş volatilite: <code>σ = std(r) × √(yıldaki bar)</code>. %95 parametrik VaR: <code>−(μ−1.645σ)</code>.</p><p>İstatistiksel modeller varsayım içerir; VaR maksimum zarar değildir. Platformda işlem kâr olasılığı sayı uydurularak sunulmaz.</p><div id="quantExtra" class="note"></div></div></div></section>
+<section class="view" id="v-quant"><div class="sectiontop"><h2>Quant · Matematiksel piyasa ölçümleri</h2><span class="chip">Şeffaf varsayımlar</span></div><div class="metricgrid" id="quantMetrics"></div><div class="card" style="margin-top:10px"><div class="cardhead"><h3>İstatistiksel analiz / risk notları</h3></div><div class="body"><p>Log getiri: <code>r(t) = ln[P(t) / P(t-1)]</code>. Gerçekleşmiş volatilite: <code>sigma = std(r) × sqrt(yıllık bar sayısı)</code>. %95 parametrik VaR: <code>-(ortalama - 1.645 × sigma)</code>.</p><p>İstatistiksel modeller varsayım içerir; VaR maksimum zarar değildir. Platformda işlem kâr olasılığı sayı uydurularak sunulmaz.</p><div id="quantExtra" class="note"></div></div></div></section>
 
 
 <section class="view" id="v-altinquant">
@@ -109,10 +109,19 @@ button,select,input{font:inherit}button{cursor:pointer}a{color:#92d6ff}a:hover{c
     <div id="aqRiskResult" class="note">İşlem miktarı hesaplanmadı.</div>
   </div></div>
  </div>
- <div class="hint warn">Yeni motorun veri kaynağı mevcut Gateway önbelleğidir; ayrı WS/API sorgu döngüsü açmaz. Makro haber takvimi, gerçek fonlama/kontrat boyutu ve kalıcı sinyal günlüğü henüz bulunmuyor. V1 karar ekranını kullanmaya devam edebilirsin.</div>
+ <div class="card" style="margin-top:12px"><div class="cardhead"><h3>v2.1 · GERÇEK TÜREV / TAKVİM / İŞLEM PLANI KONTROLÜ</h3><span class="chip">GÖLGE · EMİR YOK</span></div><div class="body">
+<button class="btn primary" id="goldExtraRefresh">Ek güvenlik ve türev verilerini kontrol et</button>
+<div id="goldExtraStatus" class="hint">Verileri ayrıca sorgulamak için butona bas. Bağlanamayan hiçbir kaynak doğrulanmış kabul edilmez.</div>
+<div class="metricgrid" id="goldExtraMetrics"></div><div id="goldExtraVeto" class="note" style="margin-top:10px"></div>
+<p class="note">Bitget UTA v3 resmi halka açık OI, funding ve enstrüman bilgisi; <a href="https://xoomar.com/markets/api/calendar" target="_blank" rel="noopener noreferrer">XOOMAR ABD ekonomik takvimi</a> (BLS/BEA/Fed kaynaklarından). Takvim konsensüs beklenti sağlamaz. İşlem boyutu sadece açıklamalı örnektir.</p>
+</div></div><div class="hint warn">Yeni geliştirmeler eski fiyat/grafik/kararı değiştirmez. Kalıcı sinyal kaydı için Render diskine ihtiyaç vardır. Dış API erişilemezse işlem izni verilmez.</div>
 </section>
 
-<section class="view" id="v-strategies"><div class="sectiontop"><h2>Strateji Laboratuvarı / Backtest</h2><span class="chip">8 test · forward leak koruması</span></div><div class="card"><div class="body"><div class="toolbar"><select class="select" id="strategy"></select><label>Komisyon (bps/yön) <input class="field" type="number" id="fee" min="0" max="30" step=".5" value="4" style="width:76px"></label><label>Kayma (bps/yön) <input class="field" type="number" id="slip" min="0" max="30" step=".5" value="1" style="width:76px"></label><button class="btn primary" id="runTest">Backtest çalıştır</button></div><p class="note">Sinyal kapanmış mumda, giriş sonraki mum açılışındadır. Aynı mumda hem stop hem hedef görülürse ihtiyatlı olarak stop kabul edilir. Funding ve kontrat çarpanı dahil değildir.</p></div></div><div class="metricgrid" style="margin:10px 0" id="btMetrics"></div><div class="card"><div class="cardhead"><h3>Özkaynak eğrisi (referans, USD)</h3></div><div class="body"><canvas id="equity" class="eqcanvas"></canvas><div id="btInfo" class="note">Test başlatılmadı</div></div></div><div class="card" style="margin-top:10px"><div class="cardhead"><h3>Gerçekleşen simülasyon işlemleri</h3></div><div class="table-scroll"><table><thead><tr><th>Giriş zamanı</th><th>Yön</th><th>Giriş</th><th>Çıkış</th><th>Net PnL*</th></tr></thead><tbody id="btTrades"></tbody></table></div><div class="minihelp">* 1 fiyat-referans birimi, gerçek sözleşme kâr/zararı değildir.</div></div></section>
+<section class="view" id="v-strategies"><div class="sectiontop"><h2>Strateji Laboratuvarı / Backtest</h2><span class="chip">8 test · forward leak koruması</span></div><div class="card"><div class="body"><div class="toolbar"><select class="select" id="strategy"></select><label>Komisyon (bps/yön) <input class="field" type="number" id="fee" min="0" max="30" step=".5" value="4" style="width:76px"></label><label>Kayma (bps/yön) <input class="field" type="number" id="slip" min="0" max="30" step=".5" value="1" style="width:76px"></label><button class="btn primary" id="runTest">Backtest çalıştır</button></div><p class="note">Sinyal kapanmış mumda, giriş sonraki mum açılışındadır. Aynı mumda hem stop hem hedef görülürse ihtiyatlı olarak stop kabul edilir. Funding ve kontrat çarpanı dahil değildir.</p></div></div><div class="metricgrid" style="margin:10px 0" id="btMetrics"></div><div class="card"><div class="cardhead"><h3>Özkaynak eğrisi (referans, USD)</h3></div><div class="body"><canvas id="equity" class="eqcanvas"></canvas><div id="btInfo" class="note">Test başlatılmadı</div></div></div><div class="card" style="margin-top:10px"><div class="cardhead"><h3>Gerçekleşen simülasyon işlemleri</h3></div><div class="table-scroll"><table><thead><tr><th>Giriş zamanı</th><th>Yön</th><th>Giriş</th><th>Çıkış</th><th>Net PnL*</th></tr></thead><tbody id="btTrades"></tbody></table></div><div class="minihelp">* 1 fiyat-referans birimi, gerçek sözleşme kâr/zararı değildir.</div></div><div class="card" style="margin-top:12px"><div class="cardhead"><h3>v2.1 FİLTRELİ STRATEJİ / İLERİ DÖNEM TESTİ</h3><span class="chip">ESKİ BACKTEST KORUNDU</span></div><div class="body">
+  <p class="note">İşlem tekrarı engellenir, EMA200/ADX piyasa rejimi ve oynaklık/işlem maliyeti filtreleri uygulanır. Mumların ilk %70'i geliştirme, son %30'u ileri dönem olarak ayrılır. Parametreler bu veri için optimize edilmez. Sonuçlar pozitif olmak zorunda değildir.</p>
+  <div class="toolbar"><label>Varsayılan round-trip spread (bps) <input class="field" type="number" min="0" max="30" step=".5" value="1" id="advSpread" style="width:75px"></label><button class="btn primary" id="runAdvTest">Filtreli testi karşılaştır</button></div>
+  <div id="advTestResult" class="hint">Henüz çalıştırılmadı. Bu test gerçek emir işlemi değildir.</div>
+</div></div></section>
 
 <section class="view" id="v-decision"><div class="sectiontop"><h2>GOLD QUANT DECISION ENGINE</h2><span class="chip">Hata / bayat veri veto sistemi</span></div><div class="card important"><div class="body"><div class="row" style="flex-wrap:wrap"><div><div class="smallline">SENKRONİZE KARAR · <span id="decisionTF">1m</span></div><div class="decision" id="bigDecision">BEKLE</div></div><div class="chip" id="decisionData">Veri kontrolü bekleniyor</div></div><div class="signals" style="margin:12px 0"><div class="signal"><span>LONG SKORU</span><b class="green" id="longScore">—</b></div><div class="signal"><span>SHORT SKORU</span><b class="red" id="shortScore">—</b></div><div class="signal"><span>NET YÖN</span><b class="cyan" id="netScore">—</b></div></div><div class="metricgrid" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div class="metric"><small>Analitik stop (1.5 ATR)</small><b id="stop">—</b></div><div class="metric"><small>Analitik hedef (2.25 ATR)</small><b id="target">—</b></div></div><h3>Karar gerekçeleri</h3><div id="reasonList">—</div><h3>Veto / Risk kontrolleri</h3><div id="vetoList">—</div></div></div><div class="hint warn">LONG ve SHORT skorları kazanma ihtimali değildir. Veriler gecikirse veya likidite koşulları yetersizse sistem BEKLE üretir. Yatırım tavsiyesi veya emir sistemi değildir.</div></section>
 
@@ -121,7 +130,7 @@ button,select,input{font:inherit}button{cursor:pointer}a{color:#92d6ff}a:hover{c
 <section class="view" id="v-health"><div class="sectiontop"><h2>Veri Sağlığı / Kaynak Denetimi</h2><button class="btn" id="healthReload">Tekrar sorgula</button></div><div class="healthgrid" id="healthCards"></div><div class="card" style="margin-top:11px"><div class="cardhead"><h3>Gateway hata / açıklama detayları</h3></div><div class="body"><pre style="white-space:pre-wrap;word-break:break-word;color:#96abc8" id="healthRaw">—</pre></div></div></section>
 
 <section class="view" id="v-settings"><div class="sectiontop"><h2>Kaynaklar, Ayarlar, Açık Proje</h2></div><div class="twocol"><div class="card"><div class="cardhead"><h3>Bağlantı ve mod</h3></div><div class="body"><p>Geliştirici: <strong>Suat DOĞU</strong></p><p>Bitget: UTA v3, public WS + REST, API anahtarı gerekmez.</p><p>XAUUSD spot: OANDA v20 practice hesabı/erişimi gerekir; token sadece Render ortam değişkenidir.</p><p><span class="badge-locked">GERÇEK EMİR GÖNDERİMİ YOK</span></p><p>Grafik ayarları bu telefonda saklanır; API anahtarı tarayıcıya kaydedilmez.</p><p><button class="btn" id="resetPrefs">Grafik tercihlerini sıfırla</button></p></div></div><div class="card"><div class="cardhead"><h3>Açık kaynak araştırma / atıf</h3></div><div class="body source-list" id="repoList"></div></div></div><div class="hint">Bu paket, araştırılan projelerin tüm kodlarını doğrudan içinde barındırmaz. Bu çalışma özgün yeniden uygulamadır; her proje yalnız kendi lisansı ve doğrulanan kabiliyeti doğrultusunda entegre edilebilir. Kullanılan grafik kütüphanesinin TradingView atfı korunur.</div></section>
-<footer class="credits">GOLD SCALP PRO v2.0 · ALTIN QUANT SHADOW · Developer Suat DOĞU · Yalnız XAUUSD/XAUUSDT · Veri bulunmadığında gösterim yapılmaz · Charting by TradingView Lightweight Charts™</footer>
+<footer class="credits">GOLD SCALP PRO v2.1 · ALTIN QUANT SHADOW · Developer Suat DOĞU · Yalnız XAUUSD/XAUUSDT · Veri bulunmadığında gösterim yapılmaz · Charting by TradingView Lightweight Charts™</footer>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@5.1.0/dist/lightweight-charts.standalone.production.js"></script>
 <script>
@@ -328,6 +337,54 @@ async function aqRiskCalc(){
       `<p class="note">Bu hesap senaryo amaçlıdır. Günlük açık risk, gerçek hesap bakiyesi ve borsa sözleşme özellikleri doğrulanmıyor; otomatik emir imkânı yok.</p>`;
  }catch(e){$('aqRiskResult').textContent='Risk hesabı yapılamadı: '+e.message}
 }
+
+
+// GOLD v2.1 — Isolated optional UI. Legacy functions and chart controllers unchanged.
+async function runAdvancedGoldTest(){
+ const btn=$('runAdvTest'),dst=$('advTestResult');btn.disabled=true;dst.textContent='Bağımsız filtreli strateji testi çalışıyor…';
+ try{
+  const q=new URLSearchParams({symbol,tf,strategy:$('strategy').value,fee_bps:$('fee').value,
+   slippage_bps:$('slip').value,spread_bps:$('advSpread').value});
+  const result=await getJSON('/api/gold-v21/backtest?'+q.toString());
+  const x=result.filtered||{},f=x.forward||{},tr=x.all||{},old=result.legacy||{};
+  if(!x.ready){dst.textContent=x.error||'Veri yetersiz';return}
+  dst.innerHTML=`<p><b>Eski test:</b> ${fmt(old.net_pnl_usd_ref,2)} ref · ${old.trades_count??'—'} işlem · PF ${fmt(old.profit_factor,2)}</p>`+
+   `<p><b>Yeni filtreli tüm örneklem:</b> ${fmt(tr.net_pnl_ref,2)} ref · ${tr.trades_count??'—'} işlem · PF ${fmt(tr.profit_factor,2)}</p>`+
+   `<p><b>Son %30 ileri dönem:</b> ${fmt(f.net_pnl_ref,2)} ref · ${f.trades_count??'—'} işlem · PF ${fmt(f.profit_factor,2)}</p>`+
+   `<div class="${f.trades_count>=30&&f.net_pnl_ref>0?'reason':'reason negative'}">${f.trades_count<30?'İLERİ DÖNEM YETERSİZ: 30 işlem altı; pozitif sonuç bile kanıt değildir.':f.net_pnl_ref>0?'Pozitif ileri test gözlendi; tekrar doğrulama gerekir.':'İleri dönem negatif; stratejiyi canlı kullanım için önerme.'}</div>`+
+   `<p class="note">${escaped(x.note||'')}</p>`+
+   `<p class="note">Filtrelenen kurulumlar: ${escaped(JSON.stringify(x.rejected||{}))}</p>`;
+ }catch(err){dst.textContent='Filtreli test hatası: '+err.message}
+ finally{btn.disabled=false}
+}
+async function loadGoldExtra(){
+ const status=$('goldExtraStatus'),grid=$('goldExtraMetrics'),veto=$('goldExtraVeto');
+ status.textContent='Bitget türevleri, sözleşme ve ekonomik takvim kaynakları doğrulanıyor…';grid.innerHTML='';veto.innerHTML='';
+ try{
+  const data=await getJSON('/api/gold-v21/report?symbol='+encodeURIComponent(symbol)+'&tf='+encodeURIComponent(tf));
+  if(data.status==='unavailable'){status.textContent=data.reason;return}
+  const oi=data.derivatives||{},ins=data.instrument||{},cal=data.calendar||{},risk=data.risk_plan||{};
+  status.textContent='Durum: '+data.status+' · '+new Date(data.timestamp_ms).toLocaleTimeString('tr-TR')+' · Sadece analiz';
+  const pairs=[['OI son 5m değişimi',oi.oi_change_5m_pct==null?'—':fmt(oi.oi_change_5m_pct,4)+'%'],
+   ['Funding',oi.funding_rate_pct==null?'—':fmt(oi.funding_rate_pct,5)+'%'],
+   ['Taker komisyonu',ins.taker_fee_bps==null?'—':fmt(ins.taker_fee_bps,3)+' bps'],
+   ['Minimum miktar',ins.min_order_qty==null?'—':fmt(ins.min_order_qty,6)+' '+escaped(ins.base_coin||'base')],
+   ['Haber takvimi',cal.status==='ready'?'DOĞRULANDI':'ERİŞİLEMİYOR'],
+   ['Örnek işlem planı',risk.status||'BLOCKED']];
+  grid.innerHTML=pairs.map(([k,v])=>`<div class="metric"><small>${escaped(k)}</small><b style="font-size:14px">${escaped(v)}</b></div>`).join('');
+  const reasons=data.all_veto||[];
+  veto.innerHTML=reasons.length?reasons.map(x=>`<div class="reason negative">${escaped(x)}</div>`).join(''):'<div class="reason">Ek veri veto listesinde bir hata bildirilmedi; gerçek işlem yetkisi yoktur.</div>';
+  const plan=data.stop_take_scenarios||{};
+  if(plan.status==='illustrative'){
+    veto.innerHTML+=`<p><b>5m kapalı mumdan matematiksel SENARYOLAR (emir değil)</b></p>`+
+      (plan.scenarios||[]).map(x=>`<div class="metric" style="margin:5px 0"><b>${escaped(x.direction)}</b>`+
+      `<span class="note">Giriş ${fmt(x.entry_ref)} · Stop ${fmt(x.stop_ref)} · Hedef ${fmt(x.target_ref)} · Net R/R ${fmt(x.net_rr_estimate,2)}</span></div>`).join('');
+  }else veto.innerHTML+=`<p class="note">Stop/hedef senaryoları: ${escaped(plan.reason||'Ölçülemedi')}</p>`;
+  veto.innerHTML+=`<p class="note">${escaped(data.mtf_explanation||'')}</p>`;
+ }catch(err){status.textContent='Ek veri bağlantısı hatası: '+err.message}
+}
+$('runAdvTest').onclick=runAdvancedGoldTest;
+$('goldExtraRefresh').onclick=loadGoldExtra;
 
 initNav();setInterval(()=>{$('clock').textContent=new Date().toLocaleTimeString('tr-TR',{hour12:false})},1000);
 ensureCharts();startSocket();reloadAll();

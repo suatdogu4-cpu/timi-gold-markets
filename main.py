@@ -713,6 +713,69 @@ async def quant_hub_health():
     return {'version':VERSION,'mode':'SHADOW_ONLY','orders_enabled':False,
             'modules':7,'consensus':True,'legacy_unchanged':True}
 
+# Quant Hub only: small, cached Bitget DAILY OHLC history audit. Never merges
+# XAUUSD spot/OANDA candles into XAUUSDT Bitget futures history.
+_QUANT_DAILY_CACHE = {}
+_QUANT_DAILY_CACHE_SECONDS = 900
+_QUANT_DAILY_MS = 86400000
+
+async def quant_hub_daily_history(symbol):
+    cached=_QUANT_DAILY_CACHE.get(symbol)
+    if cached and time.time()-cached['at']<_QUANT_DAILY_CACHE_SECONDS:
+        return cached['bars'],dict(cached['info'])
+    recent=closed_bars(await M.get_candles(symbol,'1D',350),'1D')
+    recent=sorted({int(x['t']):x for x in recent}.values(),key=lambda x:x['t'])
+    info={'source':('Bitget USDT-FUTURES XAUUSDT 1D market OHLC' if symbol=='XAUUSDT'
+                    else 'OANDA XAUUSD 1D spot-mid OHLC'),
+          'recent_closed_days':len(recent),'history_attempted':False,
+          'history_pages':0,'history_added':0,'history_error':None}
+    if symbol=='XAUUSDT' and recent and len(recent)<105:
+        # Bitget /api/v3/market/history-candles: <=100 per page; <=90d range.
+        # At most two reads for modest free-tier impact; no synthetic backfill.
+        all_bars={int(b['t']):b for b in recent}
+        earliest=min(all_bars)
+        info['history_attempted']=True
+        for _ in range(2):
+            end_ms=int(earliest*1000)-1
+            start_ms=max(0,end_ms-89*_QUANT_DAILY_MS)
+            params={'category':'USDT-FUTURES','symbol':'XAUUSDT',
+                    'interval':'1D','type':'market','startTime':str(start_ms),
+                    'endTime':str(end_ms),'limit':100}
+            try:
+                rows=await M.bitget('/api/v3/market/history-candles',params)
+                info['history_pages']+=1
+                added=0
+                for d in rows if isinstance(rows,list) else []:
+                    try:
+                        t=int(d[0])//1000
+                        bar={'t':t,'o':num(d[1]),'h':num(d[2]),'l':num(d[3]),'c':num(d[4]),'v':num(d[5])}
+                        if (t>=earliest or t<start_ms//1000 or t>=(end_ms//1000)
+                            or bar['o']<=0 or bar['c']<=0 or bar['l']>bar['h']
+                            or not bar['l']<=bar['o']<=bar['h'] or not bar['l']<=bar['c']<=bar['h']):
+                            continue
+                        if t not in all_bars:all_bars[t]=bar;added+=1
+                    except (ValueError,TypeError,IndexError):continue
+                info['history_added']+=added
+                if added==0:break
+                earliest=min(all_bars)
+                if len(all_bars)>=105:break
+            except Exception as exc:
+                info['history_error']=err_text(exc)
+                break
+        recent=sorted(all_bars.values(),key=lambda x:x['t'])
+    if recent:
+        info['first_utc']=datetime.fromtimestamp(recent[0]['t'],timezone.utc).date().isoformat()
+        info['last_utc']=datetime.fromtimestamp(recent[-1]['t'],timezone.utc).date().isoformat()
+        info['last_candle_age_days']=round((time.time()-(recent[-1]['t']+86400))/86400,2)
+    info['available_closed_days']=len(recent)
+    # The UI must distinguish genuine missing exchange history from a bad query.
+    if symbol=='XAUUSDT' and len(recent)<100 and not info['history_error']:
+        info['notice']='Aynı Bitget sembolünden 100 tam günlük mum bulunamadı; uzun-vade motorları bu veriyle çalışmaz.'
+    if symbol=='XAUUSD' and len(recent)<100:
+        info['notice']='OANDA XAUUSD spot günlük geçmişi yeterli değil; Bitget XAUUSDT verisiyle karıştırılmadı.'
+    _QUANT_DAILY_CACHE[symbol]={'at':time.time(),'bars':recent,'info':dict(info)}
+    return recent,info
+
 @app.post('/api/quant-hub/analyze')
 async def quant_hub_analyze(payload:dict=Body(default={})):
     from gold_quant_hub import analyze, config_for
@@ -722,11 +785,16 @@ async def quant_hub_analyze(payload:dict=Body(default={})):
         raise HTTPException(400,'Quant Hub: 1m, 3m, 5m veya 15m seçiniz')
     config=config_for(payload.get('config'))
     req={'5m':tf,'1H':'1H','1D':'1D'}
-    result={};errors={}
+    result={};errors={};daily_info={}
     async def pull(slot,tf_name):
         try:
-            bars=await M.get_candles(symbol,tf_name,600 if tf_name!='1D' else 350)
-            result[slot]=closed_bars(bars,tf_name)
+            if tf_name=='1D':
+                bars,meta=await quant_hub_daily_history(symbol)
+                daily_info.update(meta)
+                result[slot]=bars
+            else:
+                bars=await M.get_candles(symbol,tf_name,600)
+                result[slot]=closed_bars(bars,tf_name)
         except Exception as exc:
             errors[slot]=err_text(exc)
             result[slot]=[]
@@ -741,7 +809,8 @@ async def quant_hub_analyze(payload:dict=Body(default={})):
     timestamp=M.candle_updated.get(key)
     quality={'symbol':symbol,'ticker_fresh':price_fresh,'spot_configured':bool(OANDA_TOKEN and OANDA_ACCOUNT),
              'source':'Bitget public market OHLC' if symbol=='XAUUSDT' else 'OANDA authenticated spot OHLC',
-             'candle_cache_age_seconds':age(timestamp),'base_tf_seconds':TF_MIN[tf]*60,'errors':errors,'no_real_orders':True}
+             'candle_cache_age_seconds':age(timestamp),'base_tf_seconds':TF_MIN[tf]*60,'errors':errors,
+             'daily':daily_info,'no_real_orders':True}
     # The expensive numerical calculations run off-event-loop.
     out=await asyncio.to_thread(analyze,result,symbol,config,quality)
     out['analysis_tf']=tf

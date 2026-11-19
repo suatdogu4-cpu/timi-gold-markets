@@ -1,6 +1,6 @@
 'use strict';
 const $=id=>document.getElementById(id);
-const navs=[['dashboard','◈ Kokpit'],['chart','▤ Grafik'],['technical','▧ Teknik'],['smc','◇ SMC / ICT'],['flow','⇄ Order Flow'],['depth','▥ DOM'],['derivatives','◉ Vadeli'],['macro','◎ Makro & Haber'],['quant','∑ Quant'],['altinquant','✦ ALTIN QUANT v2'],['strategies','▣ Stratejiler'],['decision','✦ Karar Motoru'],['performance','▱ Performans'],['health','● Veri Sağlığı'],['settings','⚙ Ayarlar']];
+const navs=[['dashboard','◈ Kokpit'],['chart','▤ Grafik'],['technical','▧ Teknik'],['smc','◇ SMC / ICT'],['flow','⇄ Order Flow'],['depth','▥ DOM'],['derivatives','◉ Vadeli'],['macro','◎ Makro & Haber'],['quant','∑ Quant'],['altinquant','✦ ALTIN QUANT v2'],['quanthub','◈ 7 Quant + Konsensüs'],['strategies','▣ Stratejiler'],['decision','✦ Karar Motoru'],['performance','▱ Performans'],['health','● Veri Sağlığı'],['settings','⚙ Ayarlar']];
 const tfs=['1m','3m','5m','15m','30m','1H','4H','1D'];
 const repoLinks=[['order-flow-platform','https://github.com/justaksi7/order-flow-platform'],['Gold-Dashboard','https://github.com/Econ-G/Gold-Dashboard'],['gold-sweep-backtester','https://github.com/baturdenada/gold-sweep-backtester'],['smc-backtester','https://github.com/Yousuf6273/smc-backtester'],['GoldBot','https://github.com/shrijeet-lokhande/GoldBot'],['aurum-intelligence','https://github.com/Pestador/aurum-intelligence'],['PickleChart','https://github.com/ikarisz/PickleChart'],['dukascopy-tools','https://github.com/Tradelyy/dukascopy-tools'],['lightweight-charts','https://github.com/tradingview/lightweight-charts'],['TA-Lib','https://github.com/TA-Lib/ta-lib'],['vectorbt','https://github.com/polakowo/vectorbt'],['quantstats','https://github.com/ranaroussi/quantstats']];
 let symbol='XAUUSDT',tf='1m',page='dashboard',snap=null,ana=null,candleData=[],plots={},osc={},clientWs=null,retryMs=1200,lastBT=null,inflight=0,firstLoad=true,lastRollRefresh=0;
@@ -31,7 +31,7 @@ $('strategy').innerHTML=Object.entries({'ema_trend':'EMA Trend + RSI','rsi_rever
 }
 function go(k){page=k;document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id==='v-'+k));$('nav').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x.dataset.page===k));
  if(['dashboard','chart'].includes(k)){setTimeout(()=>{ensureCharts();renderPlots()},70)}
- if(k==='health')loadHealth();if(k==='macro')loadMacro();if(k==='altinquant')loadAltinQuant();if(k==='technical')loadMTF();if(k==='strategies'&&lastBT)renderBT(lastBT);
+ if(k==='health')loadHealth();if(k==='macro')loadMacro();if(k==='altinquant')loadAltinQuant();if(k==='technical')loadMTF();if(k==='strategies'&&lastBT)renderBT(lastBT); if(k==='quanthub')window.dispatchEvent(new Event('gold-quant-hub-open'));
  window.scrollTo({top:0,behavior:'instant'});
 }
 function chartOptions(){return {autoSize:true,layout:{background:{type:'solid',color:'#0d172b'},textColor:'#92aacb',fontFamily:'system-ui',fontSize:11,attributionLogo:false},
@@ -66,6 +66,77 @@ function tickPlot(price,ms){if(!price||symbol!=='XAUUSDT'||!candleData.length)re
 function setMetric(id,value,unit=''){if($(id))$(id).textContent=value===null||value===undefined?'—':value+unit}
 function clsDecision(v){return v==='LONG'?'green':v==='SHORT'?'red':''}
 function setClass(el,kind){if(!$(el))return;$(el).classList.remove('green','red','gold','cyan');if(kind)$(el).classList.add(kind)}
+
+// GOLD v2.2.4 — DISPLAY-ONLY proportion and intensity coloring.
+// These values NEVER change strategy, signal, risk, market data or API decisions.
+const GOLD_HEAT_VERSION='2.2.4';
+const HEAT_TONES={up:'21,176,137',down:'226,85,111',neutral:'69,137,199',caution:'222,170,74'};
+const heatN=x=>x===null||x===undefined||x===''?null:(Number.isFinite(Number(x))?Number(x):null);
+const heatP=x=>Math.round(Math.max(0,Math.min(100,Number(x)||0)));
+function heatVars(p,tone){const q=heatP(p),rgb=HEAT_TONES[tone]||HEAT_TONES.neutral;
+ return `--heat-rgb:${rgb};--heat-opacity:${(.025+.27*q/100).toFixed(3)};--heat-fill:${q}%`;
+}
+function heatCard(label,display,opt={}){
+ const n=heatN(opt.pct),valid=n!==null,tone=valid?(opt.tone||'neutral'):'neutral';
+ const badge=valid?`<span class="heat-badge" title="${escaped(opt.title||'Yalnız görsel yoğunluk; başarı ihtimali değildir')}">${heatP(n)}% <em>görsel</em></span>`:'';
+ return `<div class="metric heat-surface ${valid?'':'heat-empty'}" style="${heatVars(valid?n:0,tone)}"><div class="heat-head"><small>${escaped(label)}</small>${badge}</div><b>${display??'—'}</b>${opt.unit?`<p>${escaped(opt.unit)}</p>`:''}${opt.note?`<p class="heat-hint">${escaped(opt.note)}</p>`:''}</div>`;
+}
+function heatBox(id,p,tone,show=true){
+ const el=typeof id==='string'?document.getElementById(id):id;if(!el)return;
+ let node=el.classList.contains('metric')||el.classList.contains('signal')||el.classList.contains('card')?el:el.closest('.metric,.signal,.card');
+ if(!node)return;
+ const q=heatN(p);if(q===null){node.classList.remove('heat-surface');node.querySelector(':scope > .heat-badge')?.remove();return}
+ node.classList.add('heat-surface');node.style.setProperty('--heat-rgb',HEAT_TONES[tone]||HEAT_TONES.neutral);node.style.setProperty('--heat-opacity',(.025+.27*heatP(q)/100).toFixed(3));node.style.setProperty('--heat-fill',heatP(q)+'%');
+ let badge=node.querySelector(':scope > .heat-badge');if(show){if(!badge){badge=document.createElement('span');badge.className='heat-badge heat-card-tag';node.append(badge)}badge.textContent=heatP(q)+'% görsel';badge.title='Göstergeye göre normalize edilmiş görsel değer; işlem kâr olasılığı değildir'}else badge?.remove();
+}
+function heatTechnical(k,value,ind){
+ const v=heatN(value);if(v===null)return null;
+ const close=heatN(ind.close)||heatN(snap?.price?.last);const atr=heatN(ind.atr14);
+ const bounded=['rsi14','rsi7','stoch_k','stoch_d','mfi14','plus_di','minus_di'];
+ if(bounded.includes(k)){let p=heatP(v),tone=k==='minus_di'?'down':k==='plus_di'?'up':v>55?'up':v<45?'down':'neutral';return {pct:p,tone,note:'0–100 ölçeği'}}
+ if(k==='williams14'){let p=heatP(v+100);return {pct:p,tone:p>=50?'up':'down',note:'−100…0 ölçeği'}}
+ if(k==='cmf20'){return {pct:heatP(Math.abs(v)*100),tone:v>=0?'up':'down',note:'Mutlak akış / ±1'}}
+ if(k==='adx14'){return {pct:heatP(v/50*100),tone:'neutral',note:'50 ADX referansı'}}
+ if(k==='supertrend_dir'){return {pct:null,tone:v>0?'up':'down',note:'Yön kodu, yüzde değil'}}
+ if(k==='zscore20'||k==='cci20'){return {pct:heatP(Math.abs(v)/(k==='zscore20'?3:200)*100),tone:v>=0?'up':'down',note:'Mutlak sapma referansı'}}
+ if(k==='atr_pct'||k==='bb_width_pct'||k==='realized_vol_ann_pct'){let cap=k==='realized_vol_ann_pct'?60:k==='bb_width_pct'?3:1;return {pct:heatP(Math.abs(v)/cap*100),tone:'caution',note:'Volatilite referans ölçeği'}}
+ if(k==='roc12'){return {pct:heatP(Math.abs(v)/2*100),tone:v>=0?'up':'down',note:'±2% referans'}}
+ if(k==='macd'||k==='macd_signal'||k==='macd_hist'){if(!atr)return null;return {pct:heatP(Math.abs(v)/atr*100),tone:v>=0?'up':'down',note:'ATR’a göre mutlak büyüklük'}}
+ if(/^(ema|bb_|vwap|supertrend$|donchian|close$)/.test(k)&&close&&atr&&atr>0){return {pct:heatP(Math.abs(close-v)/(2*atr)*100),tone:k==='close'?'neutral':close>=v?'up':'down',note:'Fiyata uzaklık / 2 ATR'}}
+ return null;
+}
+function heatRowAttrs(info){if(!info||info.pct===null||info.pct===undefined)return '';
+ return ` class="heat-row" style="${heatVars(info.pct,info.tone||'neutral')}"`;
+}
+function heatQuant(label,v){const x=heatN(v);if(x===null)return null;
+ const a=Math.abs(x);
+ if(label.startsWith('Log getiri'))return {pct:heatP(a/0.2*100),tone:x>=0?'up':'down',note:'%0,20 görsel referans'};
+ if(label.startsWith('Yıllıklandırılmış'))return {pct:heatP(a/60*100),tone:'caution',note:'%60 görsel referans'};
+ if(label.includes('VaR'))return {pct:heatP(a/0.3*100),tone:'caution',note:'%0,30 görsel referans'};
+ if(label.includes('Max fiyat'))return {pct:heatP(a/3*100),tone:'down',note:'%3 görsel referans'};
+ if(label.includes('momentum'))return {pct:heatP(a/1*100),tone:x>=0?'up':'down',note:'%1 görsel referans'};
+ if(label.includes('Z-Score'))return {pct:heatP(a/3*100),tone:x>=0?'up':'down',note:'|Z| / 3'};
+ if(label==='ADX')return {pct:heatP(a/50*100),tone:'neutral',note:'ADX / 50'};
+ if(label.startsWith('ATR'))return {pct:heatP(a/1*100),tone:'caution',note:'%1 görsel referans'};
+ return null;
+}
+function heatStatusTone(s){return /SHORT|SAT|DÜŞ/i.test(s||'')?'down':/LONG|AL|YÜKSEL/i.test(s||'')?'up':/VETO|HATA/i.test(s||'')?'caution':'neutral'}
+function heatSetupToggle(){
+ try{document.documentElement.classList.toggle('heat-off',localStorage.getItem('gold_heat_on')==='0')}catch(e){}
+ const settings=document.querySelector('#v-settings .body');
+ if(settings&&!document.getElementById('heatToggle')){
+  let wrap=document.createElement('div');wrap.className='heat-setting';wrap.innerHTML='<label for="heatToggle">Renkli yüzde yoğunlukları</label><input id="heatToggle" type="checkbox" aria-label="Gösterge kartlarının yüzdelik renk yoğunluğunu göster"><p>Yeşil/yön, kırmızı/karşı yön, amber/risk, mavi/nötr ölçüm. Yüzdeler görsel ölçek veya gerçek oranlardır; başarı olasılığı değildir.</p>';
+  settings.append(wrap);const ctrl=document.getElementById('heatToggle');ctrl.checked=!document.documentElement.classList.contains('heat-off');
+  ctrl.addEventListener('change',()=>{document.documentElement.classList.toggle('heat-off',!ctrl.checked);try{localStorage.setItem('gold_heat_on',ctrl.checked?'1':'0')}catch(e){}})
+ }
+ for(const id of ['technical','flow','quant','altinquant','decision','derivatives']){
+  let section=document.getElementById('v-'+id);if(!section||section.querySelector('.heat-legend'))continue;
+  let heading=section.querySelector('.sectiontop');if(!heading)continue;
+  let legend=document.createElement('div');legend.className='heat-legend';legend.innerHTML='<span class="heat-dot up"></span>Yukarı/alış <span class="heat-dot down"></span>Aşağı/satış <span class="heat-dot caution"></span>Risk <span class="heat-dot neutral"></span>Ölçüm <small>0–100 görsel yoğunluk; kazanma olasılığı değil</small>';
+  heading.after(legend)
+ }
+}
+
 function updateSnap(s){snap=s;let valid=s.valid||{},price=s.price,spot=s.spot,fl=s.flow;
  $('conn').textContent=valid.ticker&&s.ws_connected?'CANLI WS':valid.ticker?'REST / SINIRLI':'VERİ GECİKMELİ';$('led').className='dot '+(valid.ticker?(s.ws_connected?'ok':''):'bad');
  if(symbol==='XAUUSD'){$('k-price').textContent=spot?fmt(spot.last):'—';$('k-change').textContent='OANDA Spot · 15 sn REST';} else {$('k-price').textContent=price?fmt(price.last):'—';$('k-change').textContent=price?`24s ${pct(price.change24_pct)}`:'Fiyat doğrulanmadı'}
@@ -85,28 +156,73 @@ function updateSnap(s){snap=s;let valid=s.valid||{},price=s.price,spot=s.spot,fl
 function updateOrderBook(s){const render=(id,rows,color)=>{let body=$(id);if(!body)return;body.innerHTML=rows.slice(0,40).map(([p,q])=>`<tr><td class="${color}">${fmt(p)}</td><td>${fmt(q,4)}</td><td>${short(p*q)}</td></tr>`).join('')||'<tr><td colspan="3">Canlı derinlik yok</td></tr>'};render('bidsTable',s.bids||[],'green');render('asksTable',s.asks||[],'red');$('bookBidTotal').textContent=s.flow?'BUY '+short(s.flow.bid_notional20):'—';$('bookAskTotal').textContent=s.flow?'SELL '+short(s.flow.ask_notional20):'—'}
 function updateTrades(s){$('tradesTable').innerHTML=(s.trades||[]).slice(-48).reverse().map(x=>`<tr><td>${time(x.t)}</td><td>${fmt(x.p)}</td><td>${fmt(x.v,4)}</td><td class="${x.side==='buy'?'green':'red'}">${x.side?.toUpperCase()}</td></tr>`).join('')||'<tr><td colspan="4">Canlı işlem yok</td></tr>'}
 function updateDerivatives(s){let p=s.price;let values=[['Mark Price',p?.mark],['Index Price',p?.index],['Funding Rate',p&&p.funding!==undefined?p.funding*100:null,'%'],['Open Interest',p?.oi],['Best Bid',p?.bid],['Best Ask',p?.ask],['Fiyat Spread',p?.bid&&p?.ask?(p.ask-p.bid)/p.ask*100:null,'%'],['24s Turnover',p?.turnover24]];
- $('futuresMetrics').innerHTML=values.map(([k,v,suff])=>`<div class="metric"><small>${k}</small><b>${v===undefined||v===null?'—':fmt(v,k==='Funding Rate'?5:2)}${v===undefined||v===null?'':suff||''}</b></div>`).join('')}
+ $('futuresMetrics').innerHTML=values.map(([k,v,suff])=>{
+   const n=heatN(v),lo=heatN(p?.low24),hi=heatN(p?.high24);
+   let q=null,tone='neutral',note='Ham fiyat/tutar: doğrulanmış yüzde yok';
+   if(n!==null&&lo!==null&&hi!==null&&hi>lo&&['Mark Price','Index Price','Best Bid','Best Ask'].includes(k)){
+     q=100*(n-lo)/(hi-lo);note='24s fiyat aralığındaki konum';
+   }else if(n!==null&&k==='Funding Rate'){
+     q=Math.abs(n)/0.05*100;tone='caution';note='%0,05 görsel referans';
+   }else if(n!==null&&k==='Fiyat Spread'){
+     q=100-Math.min(100,n/0.12*100);tone=n>0.12?'down':'up';note='Dar spread: daha yüksek kalite';
+   }
+   let display=n===null?'—':fmt(n,k==='Funding Rate'?5:k==='Fiyat Spread'?4:2)+(suff||'');
+   return heatCard(k,display,{pct:q,tone,note:n===null?'Veri yok':note});
+ }).join('')}
 function updateFlow(s){let f=s.flow,arr=[['BUY (60s)',f?.buy_notional60,'USDT'],['SELL (60s)',f?.sell_notional60,'USDT'],['DELTA (60s)',f?.delta60,'USDT'],['Taker imbalance',f?.aggressor_ratio,'ratio'],['Book imbalance',f?.imbalance,'ratio'],['İşlem sayısı',f?.trades60,'işlem'],['Spread',f?.spread_pct,'%'],['Book Bid Notional',f?.bid_notional20,'USDT']];
- $('flowMetrics').innerHTML=arr.map(([name,x,unit])=>`<div class="metric"><small>${name}</small><b>${x===null||x===undefined?'—':fmt(x,unit==='ratio'?4:2)}</b><p>${unit}</p></div>`).join('');
+ const total=(heatN(f?.buy_notional60)||0)+(heatN(f?.sell_notional60)||0);
+ const bookTotal=(heatN(f?.bid_notional20)||0)+(heatN(f?.ask_notional20)||0);
+ $('flowMetrics').innerHTML=arr.map(([name,x,unit])=>{
+   const n=heatN(x);let p=null,tone='neutral',note='Ölçek karşılaştırması yok';
+   if(n!==null){
+     if(name==='BUY (60s)'&&total>0){p=n/total*100;tone='up';note='Son 60 sn işlem payı'}
+     else if(name==='SELL (60s)'&&total>0){p=n/total*100;tone='down';note='Son 60 sn işlem payı'}
+     else if(name==='DELTA (60s)'&&total>0){p=Math.abs(n)/total*100;tone=n>=0?'up':'down';note='Mutlak delta / işlem hacmi'}
+     else if(name==='Taker imbalance'||name==='Book imbalance'){p=Math.abs(n)*100;tone=n>=0?'up':'down';note='Mutlak dengesizlik oranı'}
+     else if(name==='Book Bid Notional'&&bookTotal>0){p=n/bookTotal*100;tone='up';note='DOM20 alış payı'}
+     else if(name==='İşlem sayısı'){p=n/120*100;tone='neutral';note='120 işlem/60sn görsel referans'}
+     else if(name==='Spread'){p=100-Math.min(100,Math.abs(n)/0.12*100);tone=n>0.12?'down':'up';note='Dar spread: daha yüksek kalite'}
+   }
+   const display=n===null?'—':fmt(n,name==='Spread'||unit==='ratio'?4:2);
+   return heatCard(name,display,{pct:p,tone,unit,note:n===null?'Veri yok':note});
+ }).join('');
  let fp=f?.footprint||[];$('overviewFP').textContent=fp.length?`${fp.length} fiyat kovası · en yüksek alış ${short(Math.max(...fp.map(x=>x.buy)))} · en yüksek satış ${short(Math.max(...fp.map(x=>x.sell)))}`:'Veri yok';
  $('fpTable').innerHTML='<div class="fp-row head"><div class="fp-cell">FİYAT</div><div class="fp-cell">BUY</div><div class="fp-cell">SELL</div><div class="fp-cell">DELTA</div></div>'+fp.slice(0,45).map(x=>`<div class="fp-row"><div class="fp-cell">${fmt(x.price)}</div><div class="fp-cell green">${fmt(x.buy,3)}</div><div class="fp-cell red">${fmt(x.sell,3)}</div><div class="fp-cell ${x.delta>=0?'green':'red'}">${fmt(x.delta,3)}</div></div>`).join('')}
 function updateAnalysis(a){ana=a;let ind=a.indicators?.latest||{},q=a.quant||{},d=a.decision||{},sm=a.smc||{};
  $('chartTitle').textContent=symbol+' · '+tf;$('overviewAtr').textContent=fmt(ind.atr14,3);$('overviewBB').textContent=pct(ind.bb_width_pct);$('overviewZ').textContent=fmt(ind.zscore20,2);$('overviewVar').textContent=pct(q.var95_1bar_pct);
  $('regimeName').textContent=q.regime||'Veri yetersiz';
- $('overviewSMC').innerHTML=`<p>Swing High: <b class="cyan">${fmt(sm.swing_high)}</b></p><p>Swing Low: <b class="cyan">${fmt(sm.swing_low)}</b></p><p>Son olaylar: <b>${sm.events?.length||0}</b></p><button class="btn" data-go="smc">SMC detayları</button>`;
+ const rangeHigh=heatN(sm.swing_high),rangeLow=heatN(sm.swing_low),lastClose=heatN(ind.close)||heatN(snap?.price?.last);
+ const rangePosition=rangeHigh!==null&&rangeLow!==null&&lastClose!==null&&rangeHigh>rangeLow?heatP((lastClose-rangeLow)/(rangeHigh-rangeLow)*100):null;
+ $('overviewSMC').innerHTML=`<div class="heat-stat-row" style="${heatVars(rangePosition,'down')}"><span>Swing High</span><b class="cyan">${fmt(sm.swing_high)}</b>${rangePosition===null?'':`<small>${rangePosition}% aralık konumu</small>`}</div>`+
+ `<div class="heat-stat-row" style="${heatVars(rangePosition===null?null:100-rangePosition,'up')}"><span>Swing Low</span><b class="cyan">${fmt(sm.swing_low)}</b>${rangePosition===null?'':`<small>${100-rangePosition}% aralık konumu</small>`}</div>`+
+ `<div class="heat-stat-row" style="${heatVars(null,'neutral')}"><span>Son SMC olayları</span><b>${sm.events?.length||0}</b></div>`+
+ `<p class="heat-hint">Aralık yüzdesi fiyatın son swing içindeki konumudur; destek/direnç başarı oranı değildir.</p><button class="btn" data-go="smc">SMC detayları</button>`;
  $('swingHi').textContent=fmt(sm.swing_high);$('swingLo').textContent=fmt(sm.swing_low);$('swingMid').textContent=fmt(sm.range_mid);
  let ev=sm.events||[];$('smcEvents').innerHTML=ev.length?ev.slice().reverse().map(x=>`<div class="event"><b class="${x.type.startsWith('FVG')?'fvg':'sweep'}">${escaped(x.type)}</b> <span>${x.price?fmt(x.price):fmt(x.low)+' – '+fmt(x.high)}</span><small class="muted" style="float:right">${date(x.t)}</small></div>`).join(''):'Son örneklemde doğrulanmış SMC olayı yok.';
  const info={'close':['Son kapanmış mum'], 'ema9':['Hızlı üssel ort.'], 'ema20':['Kısa trend'], 'ema50':['Orta trend'],'ema200':['Büyük trend'],'rsi14':['Momentum 0–100'],'rsi7':['Hızlı momentum'],'atr14':['Gerçek aralık'],'macd':['12−26 EMA'],'macd_signal':['9 EMA sinyal'],'macd_hist':['MACD−sinyal'],'bb_mid':['Bollinger 20'],'bb_up':['Bollinger +2σ'],'bb_low':['Bollinger −2σ'],'bb_width_pct':['Bant genişlik %'],'stoch_k':['Stoch K'],'stoch_d':['Stoch D'],'adx14':['Trend kuvveti'],'plus_di':['Pozitif yön'],'minus_di':['Negatif yön'],'cci20':['Commodity Channel Index'],'roc12':['12 mum hız %'],'williams14':['Williams %R'],'obv':['On-balance volume'],'cmf20':['Chaikin Money Flow'],'mfi14':['Money Flow Index'],'vwap50':['50 mum VWAP yaklaşımı'],'supertrend':['ATR tabanlı trend'],'supertrend_dir':['Yön +1/−1'],'donchian_high':['20 mum maksimum'],'donchian_low':['20 mum minimum'],'realized_vol_ann_pct':['Yıllıklaştırılmış vol %'],'zscore20':['20 bar z-skor'],'atr_pct':['ATR / fiyat %'],'volume_sma20':['20 bar hacim ort.'],'last_volume':['Son hacim']};
- $('techTable').innerHTML=Object.entries(ind).map(([k,v])=>`<tr><td>${escaped(k)}</td><td>${fmt(v,k==='supertrend_dir'?0:4)}</td><td class="muted">${escaped((info[k]||['—'])[0])}</td></tr>`).join('');$('techCount').textContent=Object.keys(ind).length+' gösterge/metrik';
+ $('techTable').innerHTML=Object.entries(ind).map(([k,v])=>{
+   const h=heatTechnical(k,v,ind),pct=h&&h.pct!==null&&h.pct!==undefined?`<span class="heat-table-badge">${heatP(h.pct)}% görsel</span>`:'';
+   return `<tr${heatRowAttrs(h)}><td>${escaped(k)}</td><td>${fmt(v,k==='supertrend_dir'?0:4)}</td><td class="muted">${escaped((info[k]||['—'])[0])}${h?.note?' · '+escaped(h.note):''}${pct}</td></tr>`;
+ }).join('');$('techCount').textContent=Object.keys(ind).length+' gösterge/metrik';
  $('macdValue').textContent=fmt(ind.macd_hist,4);$('rsiValue').textContent=fmt(ind.rsi14,2);$('stochValue').textContent=fmt(ind.stoch_k,2);
- $('quantMetrics').innerHTML=[['Log getiri (bar)',q.mean_return_pct,'%'],['Yıllıklandırılmış vol.',q.vol_annualized_pct,'%'],['%95 VaR (1 bar)',q.var95_1bar_pct,'%'],['Max fiyat düşüşü',q.max_price_drawdown_pct,'%'],['20 bar momentum',q.momentum20_pct,'%'],['Z-Score 20',ind.zscore20,''],['ADX',ind.adx14,''],['ATR %',ind.atr_pct,'%']].map(([k,v,u])=>`<div class="metric"><small>${k}</small><b>${v===null||v===undefined?'—':fmt(v,3)+u}</b></div>`).join('');$('quantExtra').textContent=q.note||'';
+ $('quantMetrics').innerHTML=[['Log getiri (bar)',q.mean_return_pct,'%'],['Yıllıklandırılmış vol.',q.vol_annualized_pct,'%'],['%95 VaR (1 bar)',q.var95_1bar_pct,'%'],['Max fiyat düşüşü',q.max_price_drawdown_pct,'%'],['20 bar momentum',q.momentum20_pct,'%'],['Z-Score 20',ind.zscore20,''],['ADX',ind.adx14,''],['ATR %',ind.atr_pct,'%']].map(([k,v,u])=>{
+   const h=heatQuant(k,v);return heatCard(k,heatN(v)===null?'—':fmt(v,3)+u,{...(h||{}),note:h?.note||'Veri ölçülemedi'});
+ }).join('');$('quantExtra').textContent=q.note||'';
  $('decisionTF').textContent=tf;$('bigDecision').textContent=d.decision||'BEKLE';setClass('bigDecision',clsDecision(d.decision));
  $('k-decision').textContent=d.decision||'BEKLE';setClass('k-decision',clsDecision(d.decision));
  $('k-risk').textContent=(d.veto||[]).length?'VETO: '+d.veto.length:'Koşullar gözden geçirildi';$('decisionData').textContent=a.data?.candles_valid?'Mum güncel · '+a.data.closed_bars+' kapalı':'Kapanmış mum gecikmeli';
  $('longScore').textContent=d.long===null?'—':fmt(d.long,1);$('shortScore').textContent=d.short===null?'—':fmt(d.short,1);$('netScore').textContent=d.score===null?'—':fmt(d.score,1);
  $('stop').textContent=fmt(d.stop);$('target').textContent=fmt(d.take_profit);
- $('reasonList').innerHTML=d.reasons?.length?d.reasons.map(x=>`<div class="reason">${escaped(x)}</div>`).join(''):'Gerekçe verisi yok';
+ $('reasonList').innerHTML=d.reasons?.length?d.reasons.map(x=>`<div class="reason heat-reason ${/^\s*\+/.test(x)?'heat-reason-up':/^\s*[−-]/.test(x)?'heat-reason-down':'heat-reason-neutral'}">${escaped(x)}</div>`).join(''):'Gerekçe verisi yok';
  $('vetoList').innerHTML=d.veto?.length?d.veto.map(x=>`<div class="reason negative">${escaped(x)}</div>`).join(''):'<span class="chip green">Belirlenen veto yok</span>';
+ // Card color intensities are visual-only; existing scores, vetoes and strategy outputs remain unchanged.
+ heatBox('longScore',d.long,'up');heatBox('shortScore',d.short,'down');
+ heatBox('netScore',heatN(d.score)===null?null:Math.abs(d.score),d.score>=0?'up':'down');
+ heatBox('bigDecision',Math.max(0,heatN(d.long)||0,heatN(d.short)||0),heatStatusTone(d.decision),false);
+ heatBox('overviewAtr',heatN(ind.atr_pct)===null?null:ind.atr_pct/1*100,'caution');
+ heatBox('overviewBB',heatN(ind.bb_width_pct)===null?null:ind.bb_width_pct/3*100,'caution');
+ heatBox('overviewZ',heatN(ind.zscore20)===null?null:Math.abs(ind.zscore20)/3*100,ind.zscore20>=0?'up':'down');
+ heatBox('overviewVar',heatN(q.var95_1bar_pct)===null?null:q.var95_1bar_pct/.3*100,'caution');
  renderPlots();
 }
 async function reloadAll(force=false){let seq=++inflight;showError('');$('chartTitle').textContent=symbol+' · '+tf;
@@ -158,9 +274,14 @@ async function loadAltinQuant(){
    $('aqRegime').textContent=r.label||'VERİ EKSİK';$('aqContext').textContent='Ana MTF: '+(d.mtf?.context||'—');
    $('aqLong').textContent=fmt(score.long_points,1);$('aqShort').textContent=fmt(score.short_points,1);
    $('aqCoverage').textContent='Ölçülebilir aile kapsamı '+(score.coverage_points??0)+'/100 · Puanlar gerçek başarı yüzdesi değil.';
+   heatBox('aqLong',score.long_points,'up');heatBox('aqShort',score.short_points,'down');
+   heatBox('aqLegacy',45,heatStatusTone(old.decision),false);
+   heatBox('aqNew',score.coverage_points,heatStatusTone(score.final),false);
+   heatBox('aqRegime',null,'neutral');
+
    $('aqStats').innerHTML=s.status==='ready'?
      [['Örneklem',s.samples,''],['Tarihsel VaR %95',s.historical_var95_pct,'%'],['Expected Shortfall %95',s.historical_es95_pct,'%'],['Skewness',s.skewness,''],['Excess kurtosis',s.excess_kurtosis,''],['Lag-1 oto-korelasyon',s.lag1_autocorrelation,'']]
-     .map(([n,v,u])=>`<div class="row" style="margin:6px 0"><span class="note">${escaped(n)}</span><b>${fmt(v,3)}${u}</b></div>`).join('')+
+     .map(([n,v,u])=>{const h=heatQuant(n,v);return `<div class="row heat-stat-row" ${h?.pct!==undefined?`style="${heatVars(h.pct,h.tone)}"`:''}><span class="note">${escaped(n)}</span><b>${fmt(v,3)}${u}</b>${h?.pct!==undefined?`<small>${heatP(h.pct)}% görsel</small>`:''}</div>`}).join('')+
      `<p class="note">Bootstrap ort. %95 GA: ${fmt(s.block_bootstrap_mean_ci95_pct?.[0],5)} … ${fmt(s.block_bootstrap_mean_ci95_pct?.[1],5)}</p>`:
      `<p class="note">${escaped(s.reason||'İstatistik verisi yetersiz')}</p>`;
    $('aqSetup').innerHTML=`<div class="metric"><small>Referans fiyat</small><b>${fmt(set.entry_ref)}</b></div>`+
@@ -170,7 +291,8 @@ async function loadAltinQuant(){
    $('aqFamilies').innerHTML=Object.entries(aqFamiliesLabels).map(([k,n])=>{
      let x=score.families?.[k]||{},available=x.long!==null&&x.long!==undefined;
      let l=available?Math.min(100,100*x.long/x.max):0,sh=available?Math.min(100,100*x.short/x.max):0;
-     return `<div style="margin-bottom:14px"><div class="row"><b style="font-size:12px">${escaped(n)}</b><span class="note">${available?fmt(x.long,1)+' L / '+fmt(x.short,1)+' S':'ÖLÇÜLEMİYOR'} · ${x.max??'—'} p.</span></div>
+     const intensity=available?Math.max(l,sh):null;
+     return `<div class="heat-family ${available?'heat-surface':'heat-empty'}" style="${heatVars(intensity,l>=sh?'up':'down')}"><div class="row"><b style="font-size:12px">${escaped(n)}</b><span class="note">${available?fmt(x.long,1)+' L / '+fmt(x.short,1)+' S':'ÖLÇÜLEMİYOR'} · ${x.max??'—'} p.</span></div>
      <div class="bar" style="margin-top:6px"><div style="width:${l}%;background:linear-gradient(90deg,#146c5f,#27d8ac)"></div></div>
      <div class="bar" style="margin-top:3px"><div style="width:${sh}%;background:linear-gradient(90deg,#723048,#ff7089)"></div></div>
      <p class="note" style="margin:5px 0 0">${escaped(x.detail||'')}</p></div>`}).join('');
@@ -178,7 +300,7 @@ async function loadAltinQuant(){
    let errors=Object.entries(d.data_errors||{}).map(([k,v])=>k+': '+v);
    $('aqMissing').textContent=[...(d.warnings||[]),...errors].join(' · ')||'Ek uyarı yok';
    $('aqMTF').innerHTML=(d.mtf?.rows||[]).map(x=>`<div class="row" style="margin:8px 0"><b>${escaped(x.tf)}</b><span class="${clsDecision(x.direction)}">${escaped(x.direction)}</span><small class="note">${x.bars} mum</small></div>`).join('');
-   $('aqFlow').innerHTML=flow.valid?Object.entries(flow.windows||{}).map(([k,w])=>`<div class="row" style="margin:8px 0"><b>${k} sn</b><span class="${w.delta_usdt>=0?'green':'red'}">${fmt(w.delta_usdt,1)} USDT</span><small class="note">${w.count} işlem</small></div>`).join('')+
+   $('aqFlow').innerHTML=flow.valid?Object.entries(flow.windows||{}).map(([k,w])=>{const total=(heatN(w.buy_usdt)||0)+(heatN(w.sell_usdt)||0);const h=total>0?Math.abs(w.delta_usdt)/total*100:null;return `<div class="row heat-stat-row" style="${heatVars(h,w.delta_usdt>=0?'up':'down')}"><b>${k} sn</b><span class="${w.delta_usdt>=0?'green':'red'}">${fmt(w.delta_usdt,1)} USDT</span><small class="note">${w.count} işlem${h===null?'':' · '+heatP(h)+'% delta payı'}</small></div>`}).join('')+
        `<p class="note">DOM20 imbalance: ${fmt(flow.depth?.['20']?.imbalance,3)} · Spread: ${fmt(flow.spread_bps,2)} bps</p>`:
        '<p class="hint warn">Doğrulanmış canlı XAUUSDT trade ve derinlik verisi eksik.</p>';
    $('aqContextDetails').innerHTML=`<div><b>Son SMC adayları</b><p class="note">${(d.smc?.events||[]).slice(-3).map(x=>escaped(x.type)).join(', ')||'Yok'}</p></div><div class="separator"></div>`+
@@ -370,11 +492,11 @@ function uxRenderSheet(name,arg=''){
   `<div class="ux-tile-grid"><button class="ux-tile ${uxDrawTool==='horizontal'?'active':''}" data-ux="tool" data-id="horizontal">━ Yatay fiyat çizgisi</button><button class="ux-tile ${uxDrawTool==='trend'?'active':''}" data-ux="tool" data-id="trend">╱ İki nokta trend çizgisi</button><button class="ux-tile" data-ux="draw-undo">↶ Son çizimi geri al</button><button class="ux-tile" data-ux="draw-clear">⌫ Tüm çizimleri temizle</button></div><p class="ux-note">Çizim sırasında grafiğe dokun. Tam görünür alana göre konumlar güncellenir.</p>`);return;
  }
  if(name==='analysis-menu'||name==='more-menu'){
-  const menus=name==='analysis-menu'?[['technical','▧','Teknik Göstergeler'],['smc','◇','SMC / ICT'],['flow','⇄','Order Flow'],['depth','▥','Emir Defteri DOM'],['quant','Σ','Quant İstatistik'],['altinquant','✦','ALTIN QUANT v2'],['decision','◎','Karar Motoru']]:[['derivatives','◉','Vadeli / OI / Funding'],['macro','☼','Makro ve Haber'],['performance','▤','Performans'],['health','●','Veri Sağlığı'],['settings','⚙','Ayarlar']];
+  const menus=name==='analysis-menu'?[['technical','▧','Teknik Göstergeler'],['smc','◇','SMC / ICT'],['flow','⇄','Order Flow'],['depth','▥','Emir Defteri DOM'],['quant','Σ','Quant İstatistik'],['altinquant','✦','ALTIN QUANT v2'],['quanthub','◈','7 Quant + Konsensüs'],['decision','◎','Karar Motoru']]:[['derivatives','◉','Vadeli / OI / Funding'],['macro','☼','Makro ve Haber'],['performance','▤','Performans'],['health','●','Veri Sağlığı'],['settings','⚙','Ayarlar']];
   uxSheetRender(name==='analysis-menu'?'Analiz Modülleri':'Diğer Bölümler',`<p class="ux-sheet-sub">Mevcut 15 bölüm korunmuştur. Her modüle buradan ulaşabilirsin.</p><div class="ux-tile-grid">${menus.map(([k,icon,name])=>`<button class="ux-tile" data-go="${k}">${icon} ${name}</button>`).join('')}</div>`);return;
  }
 }
-function uxUpdateDock(k){document.body.dataset.uxPage=k;const group=k==='dashboard'?'dashboard':k==='chart'?'chart':k==='strategies'?'strategies':['technical','smc','flow','depth','quant','altinquant','decision'].includes(k)?'analysis':'more';document.querySelectorAll('[data-uxnav]').forEach(x=>{let active=x.dataset.uxnav===group;x.classList.toggle('active',active);if(active)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});}
+function uxUpdateDock(k){document.body.dataset.uxPage=k;const group=k==='dashboard'?'dashboard':k==='chart'?'chart':k==='strategies'?'strategies':['technical','smc','flow','depth','quant','altinquant','quanthub','decision'].includes(k)?'analysis':'more';document.querySelectorAll('[data-uxnav]').forEach(x=>{let active=x.dataset.uxnav===group;x.classList.toggle('active',active);if(active)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});}
 function uxSetTf(v){if(!tfs.includes(v))return;tf=v;$('tfbar').querySelectorAll('[data-tf]').forEach(x=>x.classList.toggle('active',x.dataset.tf===v));document.querySelectorAll('[data-uxtf]').forEach(x=>x.classList.toggle('active',x.dataset.uxtf===v));uxToast(v+' zaman dilimi');uxLastBarsKey='';reloadAll()}
 function uxApplyPreset(k){if(!UX_PRESETS[k])return;UX_KEYS.forEach(id=>{UX.indicators[id].enabled=UX_PRESETS[k].keys.includes(id)});UX.preset=k;uxSave();uxUpdateIndicators();uxRenderSheet('templates');uxToast(UX_PRESETS[k].label+' şablonu uygulandı')}
 function uxToggle(k,open){if(!UX_LIB[k])return;UX.indicators[k].enabled=typeof open==='boolean'?open:!UX.indicators[k].enabled;UX.preset='custom';uxSave();uxUpdateIndicators();if(uxSheetName==='library'||uxSheetName==='active')uxRenderSheet(uxSheetName);uxToast(`${UX_LIB[k].short} ${UX.indicators[k].enabled?'açıldı':'kapatıldı'}`)}
@@ -558,8 +680,9 @@ function __goldStartPart(name,fn){
 }
 __goldStartPart('Gezinti',initNav);
 __goldStartPart('Mobil arayüz',uxInit);
+__goldStartPart('Yüzdelik renk gösterimi',heatSetupToggle);
 // The boot watchdog confirms that the complete application script executed.
-window.__GOLD_APP_READY__=true;window.__GOLD_BUILD__='2.2.2';
+window.__GOLD_APP_READY__=true;window.__GOLD_BUILD__='2.2.4';
 __goldStartPart('Grafik',ensureCharts);
 __goldStartPart('Canlı bağlantı',startSocket);
 __goldStartPart('İlk veri yükleme',reloadAll);

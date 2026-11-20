@@ -33,6 +33,23 @@
  function statusText(x){return x==='PASS'?'GEÇTİ':x==='BLOCK'?'ENGELLENDİ':x==='UNKNOWN'?'DOĞRULANMADI':String(x??'—')}
  function checksBox(checks){return checks?.length?`<div class="qh-box"><h4>Hangi kontrol neden geçti / engellendi?</h4><div class="qh-checklist">${checks.map(z=>`<div class="qh-check" data-status="${escape(z.status)}"><div><strong>${escape(z.label)}</strong><small>Ölçülen: ${escape(n(z.value))} ${escape(z.unit||'')} · Eşik: ${escape(n(z.limit))}</small></div><span>${escape(statusText(z.status))}</span></div>`).join('')}</div></div>`:''}
  function dailyInfoBox(){const d=report?.quality?.daily;if(!d)return '';return `<div class="qh-box"><h4>Günlük veri doğrulaması · tek kaynak</h4><div class="qh-cards"><div class="qh-card"><span>Gerçek kapanmış gün</span><strong>${escape(n(d.available_closed_days))}</strong></div><div class="qh-card"><span>MCM / Riskfolio ihtiyacı</span><strong>${escape(n(d.mcm_minimum_days))} / ${escape(n(d.riskfolio_minimum_days))}</strong></div></div><p class="qh-muted">Kaynak: ${escape(d.source||report?.quality?.source)} · İlk gün: ${escape(d.first_utc||'—')} · Son gün: ${escape(d.last_utc||'—')}</p><p class="qh-muted">Bitget geçmiş sorgusu: ${d.history_attempted?'Denendi':'Gerekmedi / bu kaynağa uygulanmaz'} · Eklenen eski gün: ${escape(n(d.history_added??0))} · Son kapalı mum yaşı: ${escape(n(d.last_candle_age_days))} gün</p>${d.history_error?`<p class="qh-muted qh-danger">Geçmiş sorgusu: ${escape(d.history_error)}</p>`:''}${d.notice?`<p class="qh-muted qh-danger">${escape(d.notice)}</p>`:''}<p class="qh-muted">Eksik 1D mumlar tahmin edilmez; başka sembolün fiyatlarıyla doldurulmaz.</p></div>`}
+ function xgbResearchPanel(ml){
+   if(!ml)return `<div class="qh-box"><h4>Makine öğrenimi · XGBoost</h4><p class="qh-muted">Eğitimli model dosyası henüz yüklenmedi. Verileri toplama ve ileri test GitHub Actions ile yapılır.</p></div>`;
+   const z=ml.metrics||{};
+   const state=ml.model_approved?'İLERİ TEST GEÇTİ':'DOĞRULAMA / VERİ BEKLİYOR';
+   const forecast=ml.prediction?`<div class="qh-box"><h4>Asya → Londra · araştırma tahmini</h4>${badge(ml.prediction)}<p class="qh-muted">Ham model Londra yükseliş puanı: %${escape(n(ml.probability))}. Kalibre edilmiş işlem kazanma olasılığı DEĞİL.</p><p class="qh-muted">Seans: ${escape(ml.candidate_day||'—')} · Yalnızca Bitget XAUUSDT için aynı kaynaklı H1 ile.</p></div>`:'';
+   return `<div class="qh-box"><h4>Makine öğrenimi · XGBoost (H1)</h4>
+      <p class="qh-muted">Durum: ${escape(ml.status)} · ${state} · GERÇEK EMİR YOK · KONSENSÜSE OY VERMEZ</p>
+      <div class="qh-cards">
+         <div class="qh-card"><span>Eğitim örneği</span><strong>${escape(n(z.train_sessions))}</strong></div>
+         <div class="qh-card"><span>Kronolojik ileri test örneği</span><strong>${escape(n(z.test_sessions))}</strong></div>
+         <div class="qh-card"><span>İleri test isabet %</span><strong>${escape(n(z.test_accuracy_pct))}</strong></div>
+         <div class="qh-card"><span>Çoğunluk referansı %</span><strong>${escape(n(z.test_majority_pct))}</strong></div>
+      </div>
+      <p class="qh-muted">Son ileri test günü: ${escape(z.test_end_day||'—')} · Kaynak: ${escape(ml.data_source||'—')}</p>
+      <p class="qh-muted qh-danger">${escape(ml.reason||'Geçmiş veriler tamamlanmadan ve ileri test geçilmeden tahmin gösterilmez.')}</p>
+   </div>${forecast}`;
+ }
  function quantAiPanel(ai){
   if(!ai)return `<div class="qh-box"><h4>QUANT AI · Seans araştırması</h4><p class="qh-muted">Önce “7 Motoru Analiz Et” butonuna bas. Bu alan yalnız Asya–Londra / Soloshun sekmesinde görünür.</p></div>`;
   const audit=ai.audit||{};
@@ -48,9 +65,9 @@
     <div class="qh-card"><span>Eğitim için ön örnek eşiği</span><strong>${escape(n(ai.min_prototype_samples))}</strong></div>
    </div>
    <p class="qh-muted">Sabit UTC · Asya önceki gün 22:00–07:59, Londra 08:00–16:59. Yalnız kapanmış ve aynı kaynaktan gelen H1 mumlar.</p>
-   ${candidate}${error}
+   ${candidate}${error}${xgbResearchPanel(ai.ml)}
    <p class="qh-muted">${escape(ai.source_warning||'Veri kaynağı kontrol ediliyor')}</p>
-   <p class="qh-muted qh-danger">XGBoost/LSTM modeli henüz eğitilmiş veya doğrulanmış değil. Bu aşamada LONG/SHORT tahmini ve başarı olasılığı üretilmez; mevcut Soloshun korelasyon motoru ve konsensüs hesabı değiştirilmez.</p>
+   <p class="qh-muted qh-danger">${ai.ml?.model_approved?"XGBoost modeli kronolojik test filtresini geçti. Bu yalnızca araştırma tahminidir; işlem olasılığı değildir. LSTM kurulu değildir. Mevcut Soloshun korelasyon motoru ve konsensüs hesabı değişmedi.":"XGBoost modeli henüz yeterli ileri test filtresi geçmedi veya veri yetersiz. LSTM kurulu değildir. Model tahmini ve işlem olasılığı sunulmaz; mevcut Soloshun korelasyon motoru ve konsensüs hesabı değişmez."}</p>
   </div>`;
  }
  function panelEngine(k){const m=report?.modules?.[k];const src=catalog?.sources?.find(x=>x.id===k);

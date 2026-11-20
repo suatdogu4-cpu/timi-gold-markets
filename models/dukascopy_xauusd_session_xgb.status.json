@@ -1,0 +1,29 @@
+{
+  "symbol": "XAUUSD",
+  "source": "dukascopy_xauusd_bid_h1",
+  "labelled_sessions": 420,
+  "minimum_sessions": 180,
+  "audit": {
+    "valid_hourly": 10233,
+    "invalid": 0,
+    "partial_asia": 8,
+    "partial_london": 0,
+    "first_hour_utc": "2025-09-16T00:00:00+00:00",
+    "last_hour_utc": "2026-11-19T23:00:00+00:00"
+  },
+  "cutoff_utc": "2026-11-20T10:40:16.600660+00:00",
+  "trained": true,
+  "approved": true,
+  "orders_enabled": false,
+  "consensus_vote": false,
+  "reasons": [
+    "Kronolojik ileri test kapıları geçildi; araştırma tahmini aktif."
+  ],
+  "train_sessions": 315,
+  "test_sessions": 105,
+  "test_accuracy_pct": 66.67,
+  "test_majority_pct": 63.81,
+  "test_brier": 0.182992,
+  "test_baseline_brier": 0.23102,
+  "portable_export_max_margin_diff": 3.047125751720614e-07
+}

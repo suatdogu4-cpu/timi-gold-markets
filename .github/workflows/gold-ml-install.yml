@@ -58,7 +58,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           BRANCH="feature/gold-ml-v1-${{ github.run_number }}"
           git switch -c "$BRANCH"
-          git add main.py index.html gold_quant_hub.js gold_ml_core.py test_gold_ml.py tools/gold_ml_pipeline.py .github/workflows/gold-ml-daily.yml
+          git add main.py index.html gold_quant_hub.js gold_ml_core.py test_gold_ml.py tools/gold_ml_pipeline.py
           git diff --cached --quiet && { echo 'No changes found'; exit 1; }
           git commit -m 'Gold ML: source-separated H1 history, verified XGBoost, existing Soloshun panel'
           git push -u origin "$BRANCH"

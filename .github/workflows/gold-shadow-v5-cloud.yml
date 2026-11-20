@@ -1,0 +1,77 @@
+name: GOLD SHADOW V5 - Cloud Prospective Asia London Journal
+
+# Schedules use UTC. 08:00 UTC = 11:00 Turkey time; 17:00 UTC = 20:00.
+# GitHub schedule may be late or dropped: each prediction is admitted only in
+# 08:05-08:55 UTC and recorded before its outcome. No backdated forecasts.
+# Independent of Android device and of Render waking/sleeping.
+"on":
+  workflow_dispatch:
+  schedule:
+    - cron: '11,25,43 8 * * 1-5'
+    - cron: '19,37,49 17 * * 1-5'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gold-shadow-v5-cloud
+  cancel-in-progress: false
+
+jobs:
+  shadow-prospective:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - name: Checkout committed model code and hash-chained audit history
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install read-only model dependencies for GitHub runner only
+        run: python -m pip install 'numpy>=2,<3' 'xgboost>=3,<4'
+      - name: Validate prospective-only and hash-chain safety
+        run: |
+          python -m py_compile gold_shadow_v5.py gold_ml_v3.py tools/gold_ml_v3_pipeline.py
+          python -m unittest -q test_gold_shadow_v5.py
+          python gold_shadow_v5.py check-journal
+      - name: Restore source-isolated H1 history from Git-tracked gzip snapshots
+        run: python tools/gold_ml_v3_pipeline.py restore
+      - name: Refresh Bitget public H1 directly (Render/phone not required)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/gold_ml_pipeline.py collect-bitget --pages 8
+      - name: Capture prospective forecast or settle older recorded forecast
+        shell: bash
+        run: |
+          set -euo pipefail
+          python gold_shadow_v5.py auto | tee /tmp/gold-shadow-v5.log
+          python gold_shadow_v5.py check-journal
+      - name: Publish verifiable on-time record to tracked Git history
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -q 'PROSPECTIVE_FORECAST_LOGGED' /tmp/gold-shadow-v5.log; then
+            NOW_UTC=$(date -u +%H%M)
+            if (( 10#$NOW_UTC < 805 || 10#$NOW_UTC >= 855 )); then
+              echo 'Too late to publish: discard local prospective record; mark missed on next settlement run.'
+              exit 1
+            fi
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add models/gold_shadow_v5_status.json
+          if [[ -f datasets/gold_shadow_v5/events.jsonl ]]; then
+            git add datasets/gold_shadow_v5/events.jsonl
+          fi
+          if git diff --cached --quiet; then
+            echo 'No new journal event; no commit needed.'
+            exit 0
+          fi
+          git commit -m 'Gold V5: append prospective shadow event (no orders) [skip ci]'
+          git pull --rebase origin main
+          git push origin HEAD:main
+          echo 'Cloud journal committed. This is NOT a trade signal.' >> "$GITHUB_STEP_SUMMARY"

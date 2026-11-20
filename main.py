@@ -839,5 +839,16 @@ async def quant_hub_analyze(payload:dict=Body(default={})):
                 soloshun_mod['quant_ai']['ml'] = {
                     'status':'ERROR', 'prediction':None, 'orders_enabled':False,
                     'reason':err_text(ml_exc)}
+    # GOLD ML V3: standard-library comparison report, research only, no new signal.
+    if isinstance(soloshun_mod, dict):
+        try:
+            from gold_ml_v3 import report_for_symbol
+            if not isinstance(soloshun_mod.get('quant_ai'), dict):
+                soloshun_mod['quant_ai']={'mode':'ERROR','orders_enabled':False}
+            soloshun_mod['quant_ai']['compare']=await asyncio.to_thread(report_for_symbol,symbol,ROOT)
+        except Exception as compare_exc:
+            if isinstance(soloshun_mod.get('quant_ai'), dict):
+                soloshun_mod['quant_ai']['compare']={'status':'ERROR','error':err_text(compare_exc),
+                    'orders_enabled':False,'consensus_vote':False,'prediction':None}
     out['requested_at_ms']=nowms()
     return out

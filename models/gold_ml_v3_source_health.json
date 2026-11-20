@@ -1,0 +1,20 @@
+{
+  "binance_xauusdt": {
+    "status": "ARCHIVE_VERIFIED",
+    "source": "binance_usdm_trade_h1",
+    "symbol": "XAUUSDT",
+    "h1_saved": 7656,
+    "packages_examined": 29,
+    "packages_verified": 29,
+    "packages_missing": 0,
+    "packages_without_checksum": 0,
+    "rest_error": "Binance public API unavailable HTTP Error 451: ",
+    "errors": [],
+    "earliest": "2026-01-05T00:00:00+00:00",
+    "latest": "2026-11-19T23:00:00+00:00",
+    "updated_at_utc": "2026-11-20T14:54:36.912291+00:00",
+    "orders_enabled": false,
+    "live_prediction": false,
+    "note": "Official Binance USD-M trade klines only; no Bitget/OANDA mixing."
+  }
+}

@@ -1,6 +1,6 @@
 {
   "version": "3.0.0",
-  "generated_at_utc": "2026-11-20T13:39:41.541551+00:00",
+  "generated_at_utc": "2026-11-20T14:55:00.717357+00:00",
   "sources": {
     "bitget_xauusdt": {
       "version": "3.0.0",
@@ -41,12 +41,12 @@
       ],
       "feature_count": 26,
       "audit": {
-        "valid_closed_h1": 8131,
+        "valid_closed_h1": 8132,
         "complete_sessions": 254,
         "missing_asia": 1,
         "missing_london": 84,
         "missing_indicator_history": 4,
-        "last_closed_utc": "2026-11-20T13:00:00+00:00",
+        "last_closed_utc": "2026-11-20T14:00:00+00:00",
         "feature_cutoff": "08:00 UTC London open, no London candles in X"
       },
       "samples": 254,
@@ -106,7 +106,7 @@
       "live_prediction_enabled": false,
       "consensus_vote": false,
       "orders_enabled": false,
-      "created_at_utc": "2026-11-20T13:39:40.205558+00:00",
+      "created_at_utc": "2026-11-20T14:54:58.918940+00:00",
       "limitations": [
         "Validation and historical test are retrospective, not live-forward evidence.",
         "H1 direction is a research label, not a 1-5 minute scalping profit target.",
@@ -161,30 +161,86 @@
       ],
       "feature_count": 26,
       "audit": {
-        "valid_closed_h1": 0,
-        "complete_sessions": 0,
-        "missing_asia": 0,
+        "valid_closed_h1": 7656,
+        "complete_sessions": 314,
+        "missing_asia": 2,
         "missing_london": 0,
-        "missing_indicator_history": 0,
-        "last_closed_utc": null,
+        "missing_indicator_history": 4,
+        "last_closed_utc": "2026-11-20T00:00:00+00:00",
         "feature_cutoff": "08:00 UTC London open, no London candles in X"
       },
-      "samples": 0,
+      "samples": 314,
       "minimum_sessions": 180,
-      "models": {},
-      "selected_by_validation": null,
-      "approved": false,
+      "models": {
+        "XGBoost": {
+          "status": "VALIDATED",
+          "walk_forward_folds": 3,
+          "walk_forward_avg_brier": 0.246068,
+          "walk_forward_avg_baseline_brier": 0.251064,
+          "walk_forward_avg_accuracy_pct": 55.74,
+          "final_holdout": {
+            "samples": 79,
+            "accuracy_pct": 55.7,
+            "baseline_accuracy_pct": 53.16,
+            "test_majority_pct": 53.16,
+            "brier": 0.247412,
+            "baseline_brier": 0.24944,
+            "log_loss": 0.688429
+          }
+        },
+        "LightGBM": {
+          "status": "VALIDATED",
+          "walk_forward_folds": 3,
+          "walk_forward_avg_brier": 0.246794,
+          "walk_forward_avg_baseline_brier": 0.251064,
+          "walk_forward_avg_accuracy_pct": 57.8,
+          "final_holdout": {
+            "samples": 79,
+            "accuracy_pct": 50.63,
+            "baseline_accuracy_pct": 53.16,
+            "test_majority_pct": 53.16,
+            "brier": 0.251316,
+            "baseline_brier": 0.24944,
+            "log_loss": 0.695968
+          }
+        },
+        "LogisticRegression": {
+          "status": "VALIDATED",
+          "walk_forward_folds": 3,
+          "walk_forward_avg_brier": 0.263355,
+          "walk_forward_avg_baseline_brier": 0.251064,
+          "walk_forward_avg_accuracy_pct": 56.66,
+          "final_holdout": {
+            "samples": 79,
+            "accuracy_pct": 53.16,
+            "baseline_accuracy_pct": 53.16,
+            "test_majority_pct": 53.16,
+            "brier": 0.250966,
+            "baseline_brier": 0.24944,
+            "log_loss": 0.694229
+          }
+        }
+      },
+      "selected_by_validation": "XGBoost",
+      "approved": true,
       "live_prediction_enabled": false,
       "consensus_vote": false,
       "orders_enabled": false,
-      "created_at_utc": "2026-11-20T13:39:40.983348+00:00",
+      "created_at_utc": "2026-11-20T14:55:00.012203+00:00",
       "limitations": [
         "Validation and historical test are retrospective, not live-forward evidence.",
         "H1 direction is a research label, not a 1-5 minute scalping profit target.",
         "Calendar uses fixed UTC sessions, not London DST shifts.",
         "Exchange and spot prices are never interleaved."
       ],
-      "reason": "Insufficient complete sessions: 0/180"
+      "reason": "Passes retrospective research gates, live prediction disabled pending shadow prospective validation",
+      "split": {
+        "train_validation_end_day": "2026-09-01",
+        "final_holdout_first_day": "2026-09-02",
+        "final_holdout_last_day": "2026-11-19",
+        "final_holdout_count": 79,
+        "selection": "validation-only Brier, before final holdout"
+      }
     },
     "dukascopy_xauusd": {
       "version": "3.0.0",
@@ -290,7 +346,7 @@
       "live_prediction_enabled": false,
       "consensus_vote": false,
       "orders_enabled": false,
-      "created_at_utc": "2026-11-20T13:39:41.395807+00:00",
+      "created_at_utc": "2026-11-20T14:55:00.517182+00:00",
       "limitations": [
         "Validation and historical test are retrospective, not live-forward evidence.",
         "H1 direction is a research label, not a 1-5 minute scalping profit target.",
@@ -309,20 +365,25 @@
   },
   "storage": {
     "version": "3.0.0",
-    "created_at_utc": "2026-11-20T13:39:39.653582+00:00",
+    "created_at_utc": "2026-11-20T14:54:58.281015+00:00",
     "storage_type": "git_tracked_gzip_files_in_public_repository",
     "artifacts_only_backup": false,
     "files": {
       "bitget_xauusdt": {
         "status": "SNAPSHOTTED",
-        "rows": 8131,
-        "sha256_uncompressed": "6be087f254b2c433327aa43c92f13e21f33715ccc6022468a0f51cc4b7136b45",
-        "bytes_compressed": 144412,
+        "rows": 8132,
+        "sha256_uncompressed": "3c02df4acd730635cb6c5aa47158913e056b18754c208a95ffd511173bb6ecb8",
+        "bytes_compressed": 144433,
         "first_h1_utc": "2025-12-13T06:00:00+00:00",
-        "last_h1_utc": "2026-11-20T12:00:00+00:00"
+        "last_h1_utc": "2026-11-20T13:00:00+00:00"
       },
       "binance_xauusdt": {
-        "status": "NO_VALID_DATA"
+        "status": "SNAPSHOTTED",
+        "rows": 7656,
+        "sha256_uncompressed": "169124605bd2dc2176191b0776b08fe7335e1d91899bfcf8931e05abe8da1182",
+        "bytes_compressed": 147645,
+        "first_h1_utc": "2026-01-05T00:00:00+00:00",
+        "last_h1_utc": "2026-11-19T23:00:00+00:00"
       },
       "dukascopy_xauusd": {
         "status": "SNAPSHOTTED",
@@ -334,6 +395,26 @@
       }
     },
     "notice": "Permanence requires a successful git commit and independent offsite backup; public OHLC only."
+  },
+  "source_health": {
+    "binance_xauusdt": {
+      "status": "ARCHIVE_VERIFIED",
+      "source": "binance_usdm_trade_h1",
+      "symbol": "XAUUSDT",
+      "h1_saved": 7656,
+      "packages_examined": 29,
+      "packages_verified": 29,
+      "packages_missing": 0,
+      "packages_without_checksum": 0,
+      "rest_error": "Binance public API unavailable HTTP Error 451: ",
+      "errors": [],
+      "earliest": "2026-01-05T00:00:00+00:00",
+      "latest": "2026-11-19T23:00:00+00:00",
+      "updated_at_utc": "2026-11-20T14:54:36.912291+00:00",
+      "orders_enabled": false,
+      "live_prediction": false,
+      "note": "Official Binance USD-M trade klines only; no Bitget/OANDA mixing."
+    }
   },
   "errors": {},
   "no_trade": true,

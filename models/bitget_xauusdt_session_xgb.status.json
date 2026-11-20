@@ -4,14 +4,14 @@
   "labelled_sessions": 257,
   "minimum_sessions": 180,
   "audit": {
-    "valid_hourly": 8131,
+    "valid_hourly": 8132,
     "invalid": 0,
     "partial_asia": 1,
     "partial_london": 85,
     "first_hour_utc": "2025-12-13T06:00:00+00:00",
-    "last_hour_utc": "2026-11-20T12:00:00+00:00"
+    "last_hour_utc": "2026-11-20T13:00:00+00:00"
   },
-  "cutoff_utc": "2026-11-20T13:39:37.429349+00:00",
+  "cutoff_utc": "2026-11-20T14:54:55.718248+00:00",
   "trained": true,
   "approved": false,
   "orders_enabled": false,

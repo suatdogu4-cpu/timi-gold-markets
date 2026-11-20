@@ -95,7 +95,13 @@ def collect_binance(pages=16):
     seen=None;reqs=0;reason='max_pages'
     for _ in range(max(1,min(pages,50))):
         params=urlencode({'symbol':'XAUUSDT','interval':'1h','endTime':end_ms,'limit':1000})
-        response=_get_json('https://fapi.binance.com/fapi/v1/klines?'+params)
+        try:
+            response=_get_json('https://fapi.binance.com/fapi/v1/klines?'+params)
+        except RuntimeError as exc:
+            # Official Binance public Vision files only; stop on archive 403/451.
+            # No proxies, other exchanges, synthetic candles or model overclaims.
+            from tools.binance_vision_archive import collect_official_archive
+            return collect_official_archive(path, ROOT, rest_error=str(exc))
         if isinstance(response,dict):
             raise RuntimeError('Binance endpoint rejected contract: '+str(response.get('msg') or response)[:150])
         reqs+=1
@@ -122,6 +128,8 @@ def collect_binance(pages=16):
         'requests':reqs,'reason':reason,
         'earliest':datetime.fromtimestamp(saved[0]['t'],UTC).isoformat() if saved else None,
         'latest':datetime.fromtimestamp(saved[-1]['t'],UTC).isoformat() if saved else None}
+    from tools.binance_vision_archive import record_rest_success
+    record_rest_success(ROOT,result)
     print('BINANCE_HISTORY',json.dumps(result,ensure_ascii=False))
     return result
 
@@ -168,10 +176,14 @@ def train_comparison():
                 'reason':f'{type(e).__name__}: {str(e)[:150]}',
                 'approved':False,'live_prediction_enabled':False,'consensus_vote':False}
             errors[key]=all_reports[key]['reason']
+    try:
+        source_health=json.loads(SOURCE_STATUS.read_text(encoding='utf-8')) if SOURCE_STATUS.exists() else {}
+        if not isinstance(source_health,dict):source_health={}
+    except (OSError,ValueError):source_health={}
     manifest=ARCHIVE/'manifest.json'
     storage=json.loads(manifest.read_text(encoding='utf-8')) if manifest.exists() else {'storage_type':'NOT_YET_ARCHIVED'}
     report={'version':FEAT_VERSION,'generated_at_utc':datetime.now(UTC).isoformat(),
-        'sources':all_reports,'storage':storage,'errors':errors,'no_trade':True,'no_live_prediction':True}
+        'sources':all_reports,'storage':storage,'source_health':source_health,'errors':errors,'no_trade':True,'no_live_prediction':True}
     MODEL_REPORT.parent.mkdir(parents=True,exist_ok=True)
     MODEL_REPORT.write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     print('REPORT_WRITTEN',str(MODEL_REPORT),'sources',len(all_reports),'errors',len(errors))

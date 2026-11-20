@@ -50,17 +50,32 @@
       <p class="qh-muted qh-danger">${escape(ml.reason||'Geçmiş veriler tamamlanmadan ve ileri test geçilmeden tahmin gösterilmez.')}</p>
    </div>${forecast}`;
  }
+ function modelAuditCard(name,val){
+   const t=val.final_holdout||{},score=Number(t.accuracy_pct),ref=Number(t.test_majority_pct);
+   const known=Number.isFinite(score)&&Number.isFinite(ref);
+   const ahead=known&&score>ref;
+   const tone=known?(ahead?'#48afc7':'#eb8293'):'#8293aa';
+   const pct=Number.isFinite(score)?Math.max(0,Math.min(100,score)):0;
+   const difference=known?(score-ref):null;
+   return `<div class="qh-card" style="border-left:3px solid ${tone};overflow-wrap:anywhere;min-width:0">
+     <span>${escape(name)}</span><strong>${known?'%'+escape(n(score)):'—'}</strong>
+     <div aria-label="Son test isabet yüzdesi" style="height:7px;overflow:hidden;border-radius:8px;background:#273c54;margin:8px 0"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#334969,${tone})"></div></div>
+     <small>Referans: %${escape(n(t.test_majority_pct))} · Fark: ${difference===null?'—':(difference>=0?'+':'')+escape(n(difference))} puan</small>
+     <small>${escape(n(t.samples))} ileri test · Brier ${escape(n(t.brier))} / ref ${escape(n(t.baseline_brier))}</small>
+   </div>`;
+ }
  function multiModelResearchPanel(report){
    if(!report||report.status==='NO_REPORT')return `<div class="qh-box"><h4>Çoklu ML · 26 özellik</h4><p class="qh-muted">XGBoost, LightGBM ve lojistik regresyonun yeni kronolojik raporu henüz üretilmedi. Araştırma sinyali kapalıdır.</p></div>`;
    if(report.status!=='RESEARCH_COMPARISON')return `<div class="qh-box"><h4>Çoklu ML · veri/rapor durumu</h4><p class="qh-muted qh-danger">${escape(report.status||'UNKNOWN')} · ${escape(report.error||'Rapor okunamadı')}</p></div>`;
-   const sources=Object.entries(report.sources||{});
+   const sources=Object.entries(report.sources||{});const health=report.source_health||{};
    const summary=sources.length?sources.map(([key,s])=>{
       const models=Object.entries(s.models||{});
       const rows=models.map(([name,val])=>{
         const t=val.final_holdout||{};
-        return `<div class="qh-card"><span>${escape(name)}</span><strong>${t.accuracy_pct==null?'—':'%'+escape(n(t.accuracy_pct))}</strong><small>İleri test ${escape(n(t.samples))} örnek · Brier ${escape(n(t.brier))} · Referans ${escape(n(t.baseline_brier))}</small></div>`
+        return modelAuditCard(name,val)
       }).join('');
       return `<div class="qh-box"><h4>${escape(s.source?.exchange||key)} · ${escape(s.source?.symbol||'')}</h4><p class="qh-muted">H1 kapanmış mum: ${escape(n(s.audit?.valid_closed_h1))} · Seans: ${escape(n(s.samples))} · Özellik: ${escape(n(s.feature_count))}</p>
+        ${health[key]?.status?`<p class="qh-muted">Kaynak erişimi: ${escape(health[key].status)} · Arşiv doğrulanan paket: ${escape(n(health[key].packages_verified||0))} · ${escape((health[key].errors||[]).slice(0,2).join(' / '))}</p>`:''}
         <p class="qh-muted">Doğrulama dönemine göre seçilen model: <strong>${escape(s.selected_by_validation||'Yok')}</strong> · Geçmiş test kapısı: ${s.approved?'Geçti (canlıya kapalı)':'Geçmedi'}</p>
         <div class="qh-cards">${rows||'<p class="qh-muted">Yeterli veya doğrulanmış eğitim örneği yok.</p>'}</div>
         ${s.reason?`<p class="qh-muted">${escape(s.reason)}</p>`:''}</div>`;
@@ -68,6 +83,7 @@
    const storage=report.storage||{};
    return `<div class="qh-box"><h4>Çoklu ML · RSI / MACD / ATR / EMA / Rejim</h4>
       <p class="qh-muted">26 öznitelik · XGBoost / LightGBM / Lojistik Regresyon · 3 artan pencereli doğrulama + son %25 ileri test.</p>
+      <p class="qh-muted">Renkler yalnız geçmiş test isabetini gösterir; canlı yön onayı veya kâr olasılığı DEĞİLDİR.</p>
       <p class="qh-muted">Model eğitim raporu UTC: ${escape(report.last_run_utc||'—')}</p>
       <p class="qh-muted">Kalıcı veri türü: ${escape(storage.storage_type||'HENÜZ ARŞİV YOK')}</p>
       ${summary}
@@ -88,7 +104,7 @@
     <div class="qh-card"><span>Eğitim için ön örnek eşiği</span><strong>${escape(n(ai.min_prototype_samples))}</strong></div>
    </div>
    <p class="qh-muted">Sabit UTC · Asya önceki gün 22:00–07:59, Londra 08:00–16:59. Yalnız kapanmış ve aynı kaynaktan gelen H1 mumlar.</p>
-   ${candidate}${error}${xgbResearchPanel(ai.ml)}${multiModelResearchPanel(ai.compare)}
+   ${candidate}${error}<details class="qh-box"><summary style="cursor:pointer;font-weight:700">Eski XGBoost v1 · Ayrıntıları göster</summary>${xgbResearchPanel(ai.ml)}</details>${multiModelResearchPanel(ai.compare)}
    <p class="qh-muted">${escape(ai.source_warning||'Veri kaynağı kontrol ediliyor')}</p>
    <p class="qh-muted qh-danger">${ai.ml?.model_approved?"XGBoost modeli kronolojik test filtresini geçti. Bu yalnızca araştırma tahminidir; işlem olasılığı değildir. LSTM kurulu değildir. Mevcut Soloshun korelasyon motoru ve konsensüs hesabı değişmedi.":"XGBoost modeli henüz yeterli ileri test filtresi geçmedi veya veri yetersiz. LSTM kurulu değildir. Model tahmini ve işlem olasılığı sunulmaz; mevcut Soloshun korelasyon motoru ve konsensüs hesabı değişmez."}</p>
   </div>`;

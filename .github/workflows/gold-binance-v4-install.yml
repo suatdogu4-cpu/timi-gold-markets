@@ -60,7 +60,7 @@ jobs:
           node --check gold_quant_hub.js
           grep -F 'function quantAiPanel(ai)' gold_quant_hub.js
           grep -F 'function multiModelResearchPanel(report)' gold_quant_hub.js
-          grep -F 'no_trade' gold_ml_v3.py
+          grep -F "'no_trade':True" tools/gold_ml_v3_pipeline.py
 
       - name: Commit tested updates to a separate review branch
         shell: bash

@@ -850,5 +850,18 @@ async def quant_hub_analyze(payload:dict=Body(default={})):
             if isinstance(soloshun_mod.get('quant_ai'), dict):
                 soloshun_mod['quant_ai']['compare']={'status':'ERROR','error':err_text(compare_exc),
                     'orders_enabled':False,'consensus_vote':False,'prediction':None}
+    # GOLD SHADOW V5: read-only, cloud-generated independent prospective journal.
+    # Never modifies existing Soloshun/Quant Hub voting or orders.
+    if isinstance(soloshun_mod,dict):
+        try:
+            from gold_shadow_v5 import public_status
+            if not isinstance(soloshun_mod.get('quant_ai'),dict):
+                soloshun_mod['quant_ai']={'mode':'ERROR','orders_enabled':False}
+            soloshun_mod['quant_ai']['shadow_v5']=await asyncio.to_thread(public_status,symbol,ROOT)
+        except Exception as shadow_exc:
+            if isinstance(soloshun_mod.get('quant_ai'),dict):
+                soloshun_mod['quant_ai']['shadow_v5']={
+                   'status':'ERROR','error':err_text(shadow_exc),'orders_enabled':False,
+                   'consensus_vote':False,'live_trade_signal':False}
     out['requested_at_ms']=nowms()
     return out

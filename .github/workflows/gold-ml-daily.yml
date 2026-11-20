@@ -18,7 +18,7 @@ concurrency:
 jobs:
   collect-and-train:
     runs-on: ubuntu-latest
-    timeout-minutes: 55
+    timeout-minutes: 60
     steps:
       - name: Check out the current GOLD SCALP PRO source
         uses: actions/checkout@v4
@@ -36,12 +36,15 @@ jobs:
           node-version: '22'
 
       - name: Install training dependencies (only in Actions, not Render)
-        run: python -m pip install 'numpy>=2.1,<3' 'xgboost>=3.0,<4' 'scikit-learn>=1.5,<2'
+        run: python -m pip install 'numpy>=2.1,<3' 'xgboost>=3.0,<4' 'lightgbm>=4.4,<5' 'scikit-learn>=1.5,<2' 
 
       - name: Verify leakage protections and XGBoost export
         run: |
-          python -m py_compile gold_ml_core.py tools/gold_ml_pipeline.py main.py
-          python -m unittest -v test_gold_ml.py test_gold_session_ai.py
+          python -m py_compile gold_ml_core.py gold_ml_v3.py tools/gold_ml_pipeline.py tools/gold_ml_v3_pipeline.py main.py
+          python -m unittest -v test_gold_ml.py test_gold_session_ai.py test_gold_ml_v3.py
+
+      - name: Restore durable compressed OHLC history from tracked Git files
+        run: python tools/gold_ml_v3_pipeline.py restore
 
       - name: Restore data from most recent successful run (30-day backup)
         shell: bash
@@ -55,7 +58,9 @@ jobs:
             --workflow gold-ml-daily.yml \
             --branch main --status success --limit 1 \
             --json databaseId --jq '.[0].databaseId // empty' 2>/dev/null || true)"
-          if [[ -z "$PREVIOUS" ]]; then
+          if [[ -s data/bitget_xauusdt_h1.csv && -s data/dukascopy_xauusd_h1.csv ]]; then
+            echo 'Both primary sources restored from Git-tracked durable archives; no artifact needed.'
+          elif [[ -z "$PREVIOUS" ]]; then
             echo 'First run or no saved successful artifact. Downloading available history from source.'
           elif gh run download "$PREVIOUS" --repo "$GITHUB_REPOSITORY" \
                  --name gold-ml-h1-source-audit --dir /tmp/gold-ml-history; then
@@ -72,6 +77,13 @@ jobs:
 
       - name: Backfill Bitget XAUUSDT 1H history (single source)
         run: python tools/gold_ml_pipeline.py collect-bitget --pages 180
+
+      - name: Backfill Binance USD-M Futures XAUUSDT H1 (separate source)
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          python tools/gold_ml_v3_pipeline.py collect-binance --pages 16
 
       - name: Calculate Dukascopy XAUUSD history range independently
         id: spot-range
@@ -102,6 +114,12 @@ jobs:
           python tools/gold_ml_pipeline.py train --symbol XAUUSD
           python tools/gold_ml_pipeline.py status
 
+      - name: Archive each closed H1 source in durable compressed Git snapshots
+        run: python tools/gold_ml_v3_pipeline.py archive
+
+      - name: Compare 26 features across XGBoost, LightGBM, LogisticRegression
+        run: python tools/gold_ml_v3_pipeline.py compare
+
       - name: Retain source-separated H1 history (30-day rolling artifact)
         if: always()
         uses: actions/upload-artifact@v4
@@ -110,19 +128,22 @@ jobs:
           path: |
             data/bitget_xauusdt_h1.csv
             data/dukascopy_xauusd_h1.csv
+            data/binance_xauusdt_h1.csv
           if-no-files-found: warn
           retention-days: 30
 
-      - name: Publish research model and validation status, never raw CSV
+      - name: Publish research model and durable compressed source archives
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add models/
+          git add models/ datasets/gold_ml/
           if git diff --cached --quiet; then
             echo 'No model/status updates to publish.'
             exit 0
           fi
           git commit -m 'Gold ML: update research model and validation audit [skip ci]'
+          # Never force-push; rebase to include user commits made while training ran.
+          git pull --rebase origin main
           git push origin HEAD:main

@@ -1,0 +1,43 @@
+{
+  "generated_at_utc": "2026-11-20T19:09:57.586122+00:00",
+  "market": "XAUUSDT",
+  "no_orders": true,
+  "sources": {
+    "binance": {
+      "source_key": "binance",
+      "source_id": "binance_usdm_futures_trade_1m",
+      "symbol": "XAUUSDT",
+      "bars": 115200,
+      "first_utc": "2026-09-01T00:00:00+00:00",
+      "last_utc": "2026-11-19T23:59:00+00:00",
+      "sha256_gzip": "202cb7bf181cbbe3b4d6a5eebf46d6d5d2147dfddb9e97871e29d27970188ea0",
+      "bytes_gzip": 1689086,
+      "packages_seen": 21,
+      "verified": 21,
+      "unpublished": 0,
+      "errors": [],
+      "status": "OK",
+      "missing_minutes_between_extremes": 0,
+      "first": "2026-09-01T00:00:00+00:00",
+      "last": "2026-11-19T23:59:00+00:00"
+    },
+    "bitget": {
+      "source_key": "bitget",
+      "source_id": "bitget_usdt_futures_trade_1m",
+      "symbol": "XAUUSDT",
+      "bars": 48000,
+      "first_utc": "2026-10-18T03:11:00+00:00",
+      "last_utc": "2026-11-20T19:09:00+00:00",
+      "sha256_gzip": "5f45ab810669025502c7fc9262af2cf4d0ad5a3131259bc3c926c6c07f3df253",
+      "bytes_gzip": 641494,
+      "status": "OK",
+      "pages": 480,
+      "added": 48000,
+      "mode": "initial",
+      "error": null,
+      "missing_minutes_between_extremes": 479,
+      "first": "2026-10-18T03:11:00+00:00",
+      "last": "2026-11-20T19:09:00+00:00"
+    }
+  }
+}

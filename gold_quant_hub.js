@@ -33,10 +33,30 @@
  function statusText(x){return x==='PASS'?'GEÇTİ':x==='BLOCK'?'ENGELLENDİ':x==='UNKNOWN'?'DOĞRULANMADI':String(x??'—')}
  function checksBox(checks){return checks?.length?`<div class="qh-box"><h4>Hangi kontrol neden geçti / engellendi?</h4><div class="qh-checklist">${checks.map(z=>`<div class="qh-check" data-status="${escape(z.status)}"><div><strong>${escape(z.label)}</strong><small>Ölçülen: ${escape(n(z.value))} ${escape(z.unit||'')} · Eşik: ${escape(n(z.limit))}</small></div><span>${escape(statusText(z.status))}</span></div>`).join('')}</div></div>`:''}
  function dailyInfoBox(){const d=report?.quality?.daily;if(!d)return '';return `<div class="qh-box"><h4>Günlük veri doğrulaması · tek kaynak</h4><div class="qh-cards"><div class="qh-card"><span>Gerçek kapanmış gün</span><strong>${escape(n(d.available_closed_days))}</strong></div><div class="qh-card"><span>MCM / Riskfolio ihtiyacı</span><strong>${escape(n(d.mcm_minimum_days))} / ${escape(n(d.riskfolio_minimum_days))}</strong></div></div><p class="qh-muted">Kaynak: ${escape(d.source||report?.quality?.source)} · İlk gün: ${escape(d.first_utc||'—')} · Son gün: ${escape(d.last_utc||'—')}</p><p class="qh-muted">Bitget geçmiş sorgusu: ${d.history_attempted?'Denendi':'Gerekmedi / bu kaynağa uygulanmaz'} · Eklenen eski gün: ${escape(n(d.history_added??0))} · Son kapalı mum yaşı: ${escape(n(d.last_candle_age_days))} gün</p>${d.history_error?`<p class="qh-muted qh-danger">Geçmiş sorgusu: ${escape(d.history_error)}</p>`:''}${d.notice?`<p class="qh-muted qh-danger">${escape(d.notice)}</p>`:''}<p class="qh-muted">Eksik 1D mumlar tahmin edilmez; başka sembolün fiyatlarıyla doldurulmaz.</p></div>`}
+ function quantAiPanel(ai){
+  if(!ai)return `<div class="qh-box"><h4>QUANT AI · Seans araştırması</h4><p class="qh-muted">Önce “7 Motoru Analiz Et” butonuna bas. Bu alan yalnız Asya–Londra / Soloshun sekmesinde görünür.</p></div>`;
+  const audit=ai.audit||{};
+  const error=ai.error?`<p class="qh-muted qh-danger">Hata: ${escape(ai.error)}</p>`:'';
+  const c=ai.live_candidate;
+  const candidate=c?`<p class="qh-muted">Asya tamamlandı · ${escape(c.session_date_utc||'—')} · Asya getirisi %${escape(n(c.asia_return_pct))}. Londra sonucu henüz bilinmiyor.</p>`:`<p class="qh-muted">Güncel, tamamlanmış Asya seansı adayı yok.</p>`;
+  return `<div class="qh-box" id="qh-soloshun-quant-ai"><h4>QUANT AI · Asya → Londra / H1</h4>
+   <p class="qh-muted">ARAŞTIRMA · ${escape(ai.mode||'VERİ BEKLENİYOR')} · GERÇEK EMİR YOK</p>
+   <div class="qh-cards">
+    <div class="qh-card"><span>Kapanmış ve geçerli H1 mum</span><strong>${escape(n(audit.valid_closed))}</strong></div>
+    <div class="qh-card"><span>Etiketli tam seans</span><strong>${escape(n(ai.labelled_samples))}</strong></div>
+    <div class="qh-card"><span>Eksik Asya / Londra</span><strong>${escape(n(audit.partial_asia_days))} / ${escape(n(audit.partial_london_days))}</strong></div>
+    <div class="qh-card"><span>Eğitim için ön örnek eşiği</span><strong>${escape(n(ai.min_prototype_samples))}</strong></div>
+   </div>
+   <p class="qh-muted">Sabit UTC · Asya önceki gün 22:00–07:59, Londra 08:00–16:59. Yalnız kapanmış ve aynı kaynaktan gelen H1 mumlar.</p>
+   ${candidate}${error}
+   <p class="qh-muted">${escape(ai.source_warning||'Veri kaynağı kontrol ediliyor')}</p>
+   <p class="qh-muted qh-danger">XGBoost/LSTM modeli henüz eğitilmiş veya doğrulanmış değil. Bu aşamada LONG/SHORT tahmini ve başarı olasılığı üretilmez; mevcut Soloshun korelasyon motoru ve konsensüs hesabı değiştirilmez.</p>
+  </div>`;
+ }
  function panelEngine(k){const m=report?.modules?.[k];const src=catalog?.sources?.find(x=>x.id===k);
    return `<section class="qh-panel" role="tabpanel"><div class="qh-head"><div><h3 class="qh-title">${escape(m?.name||src?.name||TITLES[k])}</h3><p class="qh-muted">${escape(m?.implementation||src?.implementation||'Uyarlanmış araştırma modülü')}</p>${sourceLink(k)}</div>${badge(m?.direction)}</div>
    <div class="qh-box"><h4>Motor durumu</h4><p class="qh-muted">${escape(m?.status||'Analiz yapılmadı')} · ${escape(m?.kind||src?.kind||'—')} · ${escape(m?.gate||'—')}</p><p class="qh-muted">${escape(m?.execution||'Orijinal kodu/model ağırlıkları değildir.')}</p>${m?.strength!=null?`<p class="qh-muted">Yön gücü: ${n(m.strength)} / 100 (başarı yüzdesi değil)</p>${directionBar(m.direction==='SHORT'?'short':'long',m.strength)}`:''}</div>
-   ${checksBox(m?.checks)}${(k==='mcm'||k==='riskfolio')?dailyInfoBox():''}${settingsBox(k)}<div class="qh-box"><h4>Kaynaklı hesaplama metrikleri</h4>${metricsCard(m?.metrics)}</div>
+   ${checksBox(m?.checks)}${k==='soloshun'?quantAiPanel(m?.quant_ai):''}${(k==='mcm'||k==='riskfolio')?dailyInfoBox():''}${settingsBox(k)}<div class="qh-box"><h4>Kaynaklı hesaplama metrikleri</h4>${metricsCard(m?.metrics)}</div>
    <div class="qh-box"><h4>Nedenler ve sınırlar</h4>${m?.reasons?.length?`<ul class="qh-textlist">${m.reasons.map(r=>`<li>${escape(r)}</li>`).join('')}</ul>`:'<p class="qh-muted">Analiz için veri bekleniyor.</p>'}${m?.warnings?.length?`<p class="qh-muted qh-danger">${m.warnings.map(escape).join(' · ')}</p>`:''}</div></section>`}
  function panelConsensus(){const c=report?.consensus;const q=report?.quality||{};
  return `<section class="qh-panel" role="tabpanel"><div class="qh-head"><div><h3 class="qh-title">ORTAK KARAR & KONSENSÜS</h3><p class="qh-muted">Yön motorları oy kullanır; risk ve uygulama motorları veto eder.</p></div>${badge(c?.decision||'BEKLE')}</div>

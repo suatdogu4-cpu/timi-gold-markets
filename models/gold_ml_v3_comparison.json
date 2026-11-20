@@ -1,0 +1,341 @@
+{
+  "version": "3.0.0",
+  "generated_at_utc": "2026-11-20T13:39:41.541551+00:00",
+  "sources": {
+    "bitget_xauusdt": {
+      "version": "3.0.0",
+      "source_key": "bitget_xauusdt",
+      "source": {
+        "symbol": "XAUUSDT",
+        "exchange": "Bitget",
+        "market": "USDT-FUTURES",
+        "source_id": "bitget_futures_market_h1"
+      },
+      "features": [
+        "asia_log_return",
+        "asia_range_pct",
+        "asia_body_pct",
+        "asia_volatility",
+        "asia_first_half_pct",
+        "asia_last_half_pct",
+        "asia_wick_balance_pct",
+        "day_of_week_sin",
+        "day_of_week_cos",
+        "rsi14",
+        "macd_hist_pct",
+        "ema20_50_gap_pct",
+        "price_ema20_gap_pct",
+        "atr14_pct",
+        "volatility_24",
+        "volatility_72",
+        "volatility_ratio",
+        "momentum_6",
+        "momentum_24",
+        "prior_asia_return",
+        "prior_london_return",
+        "prior_session_missing",
+        "trend_regime",
+        "vol_regime",
+        "asia_volume_ratio",
+        "last_candle_range_pct"
+      ],
+      "feature_count": 26,
+      "audit": {
+        "valid_closed_h1": 8131,
+        "complete_sessions": 254,
+        "missing_asia": 1,
+        "missing_london": 84,
+        "missing_indicator_history": 4,
+        "last_closed_utc": "2026-11-20T13:00:00+00:00",
+        "feature_cutoff": "08:00 UTC London open, no London candles in X"
+      },
+      "samples": 254,
+      "minimum_sessions": 180,
+      "models": {
+        "XGBoost": {
+          "status": "VALIDATED",
+          "walk_forward_folds": 3,
+          "walk_forward_avg_brier": 0.246383,
+          "walk_forward_avg_baseline_brier": 0.251975,
+          "walk_forward_avg_accuracy_pct": 54.46,
+          "final_holdout": {
+            "samples": 64,
+            "accuracy_pct": 51.56,
+            "baseline_accuracy_pct": 42.19,
+            "test_majority_pct": 57.81,
+            "brier": 0.259835,
+            "baseline_brier": 0.25085,
+            "log_loss": 0.71428
+          }
+        },
+        "LightGBM": {
+          "status": "VALIDATED",
+          "walk_forward_folds": 3,
+          "walk_forward_avg_brier": 0.252858,
+          "walk_forward_avg_baseline_brier": 0.251975,
+          "walk_forward_avg_accuracy_pct": 54.46,
+          "final_holdout": {
+            "samples": 64,
+            "accuracy_pct": 45.31,
+            "baseline_accuracy_pct": 42.19,
+            "test_majority_pct": 57.81,
+            "brier": 0.254388,
+            "baseline_brier": 0.25085,
+            "log_loss": 0.702177
+          }
+        },
+        "LogisticRegression": {
+          "status": "VALIDATED",
+          "walk_forward_folds": 3,
+          "walk_forward_avg_brier": 0.257058,
+          "walk_forward_avg_baseline_brier": 0.251975,
+          "walk_forward_avg_accuracy_pct": 53.13,
+          "final_holdout": {
+            "samples": 64,
+            "accuracy_pct": 46.88,
+            "baseline_accuracy_pct": 42.19,
+            "test_majority_pct": 57.81,
+            "brier": 0.266346,
+            "baseline_brier": 0.25085,
+            "log_loss": 0.726563
+          }
+        }
+      },
+      "selected_by_validation": "XGBoost",
+      "approved": false,
+      "live_prediction_enabled": false,
+      "consensus_vote": false,
+      "orders_enabled": false,
+      "created_at_utc": "2026-11-20T13:39:40.205558+00:00",
+      "limitations": [
+        "Validation and historical test are retrospective, not live-forward evidence.",
+        "H1 direction is a research label, not a 1-5 minute scalping profit target.",
+        "Calendar uses fixed UTC sessions, not London DST shifts.",
+        "Exchange and spot prices are never interleaved."
+      ],
+      "reason": "Walk-forward or final holdout gates not met; no signal",
+      "split": {
+        "train_validation_end_day": "2026-08-27",
+        "final_holdout_first_day": "2026-08-29",
+        "final_holdout_last_day": "2026-11-19",
+        "final_holdout_count": 64,
+        "selection": "validation-only Brier, before final holdout"
+      }
+    },
+    "binance_xauusdt": {
+      "version": "3.0.0",
+      "source_key": "binance_xauusdt",
+      "source": {
+        "symbol": "XAUUSDT",
+        "exchange": "Binance",
+        "market": "USD-M-FUTURES",
+        "source_id": "binance_usdm_trade_h1"
+      },
+      "features": [
+        "asia_log_return",
+        "asia_range_pct",
+        "asia_body_pct",
+        "asia_volatility",
+        "asia_first_half_pct",
+        "asia_last_half_pct",
+        "asia_wick_balance_pct",
+        "day_of_week_sin",
+        "day_of_week_cos",
+        "rsi14",
+        "macd_hist_pct",
+        "ema20_50_gap_pct",
+        "price_ema20_gap_pct",
+        "atr14_pct",
+        "volatility_24",
+        "volatility_72",
+        "volatility_ratio",
+        "momentum_6",
+        "momentum_24",
+        "prior_asia_return",
+        "prior_london_return",
+        "prior_session_missing",
+        "trend_regime",
+        "vol_regime",
+        "asia_volume_ratio",
+        "last_candle_range_pct"
+      ],
+      "feature_count": 26,
+      "audit": {
+        "valid_closed_h1": 0,
+        "complete_sessions": 0,
+        "missing_asia": 0,
+        "missing_london": 0,
+        "missing_indicator_history": 0,
+        "last_closed_utc": null,
+        "feature_cutoff": "08:00 UTC London open, no London candles in X"
+      },
+      "samples": 0,
+      "minimum_sessions": 180,
+      "models": {},
+      "selected_by_validation": null,
+      "approved": false,
+      "live_prediction_enabled": false,
+      "consensus_vote": false,
+      "orders_enabled": false,
+      "created_at_utc": "2026-11-20T13:39:40.983348+00:00",
+      "limitations": [
+        "Validation and historical test are retrospective, not live-forward evidence.",
+        "H1 direction is a research label, not a 1-5 minute scalping profit target.",
+        "Calendar uses fixed UTC sessions, not London DST shifts.",
+        "Exchange and spot prices are never interleaved."
+      ],
+      "reason": "Insufficient complete sessions: 0/180"
+    },
+    "dukascopy_xauusd": {
+      "version": "3.0.0",
+      "source_key": "dukascopy_xauusd",
+      "source": {
+        "symbol": "XAUUSD",
+        "exchange": "Dukascopy",
+        "market": "SPOT-BID",
+        "source_id": "dukascopy_xauusd_bid_h1"
+      },
+      "features": [
+        "asia_log_return",
+        "asia_range_pct",
+        "asia_body_pct",
+        "asia_volatility",
+        "asia_first_half_pct",
+        "asia_last_half_pct",
+        "asia_wick_balance_pct",
+        "day_of_week_sin",
+        "day_of_week_cos",
+        "rsi14",
+        "macd_hist_pct",
+        "ema20_50_gap_pct",
+        "price_ema20_gap_pct",
+        "atr14_pct",
+        "volatility_24",
+        "volatility_72",
+        "volatility_ratio",
+        "momentum_6",
+        "momentum_24",
+        "prior_asia_return",
+        "prior_london_return",
+        "prior_session_missing",
+        "trend_regime",
+        "vol_regime",
+        "asia_volume_ratio",
+        "last_candle_range_pct"
+      ],
+      "feature_count": 26,
+      "audit": {
+        "valid_closed_h1": 10233,
+        "complete_sessions": 416,
+        "missing_asia": 8,
+        "missing_london": 0,
+        "missing_indicator_history": 4,
+        "last_closed_utc": "2026-11-20T00:00:00+00:00",
+        "feature_cutoff": "08:00 UTC London open, no London candles in X"
+      },
+      "samples": 416,
+      "minimum_sessions": 180,
+      "models": {
+        "XGBoost": {
+          "status": "VALIDATED",
+          "walk_forward_folds": 3,
+          "walk_forward_avg_brier": 0.19793,
+          "walk_forward_avg_baseline_brier": 0.2287,
+          "walk_forward_avg_accuracy_pct": 58.14,
+          "final_holdout": {
+            "samples": 104,
+            "accuracy_pct": 72.12,
+            "baseline_accuracy_pct": 64.42,
+            "test_majority_pct": 64.42,
+            "brier": 0.176264,
+            "baseline_brier": 0.229454,
+            "log_loss": 0.509626
+          }
+        },
+        "LightGBM": {
+          "status": "VALIDATED",
+          "walk_forward_folds": 3,
+          "walk_forward_avg_brier": 0.195657,
+          "walk_forward_avg_baseline_brier": 0.2287,
+          "walk_forward_avg_accuracy_pct": 66.67,
+          "final_holdout": {
+            "samples": 104,
+            "accuracy_pct": 66.35,
+            "baseline_accuracy_pct": 64.42,
+            "test_majority_pct": 64.42,
+            "brier": 0.177146,
+            "baseline_brier": 0.229454,
+            "log_loss": 0.51288
+          }
+        },
+        "LogisticRegression": {
+          "status": "VALIDATED",
+          "walk_forward_folds": 3,
+          "walk_forward_avg_brier": 0.210346,
+          "walk_forward_avg_baseline_brier": 0.2287,
+          "walk_forward_avg_accuracy_pct": 57.37,
+          "final_holdout": {
+            "samples": 104,
+            "accuracy_pct": 74.04,
+            "baseline_accuracy_pct": 64.42,
+            "test_majority_pct": 64.42,
+            "brier": 0.176031,
+            "baseline_brier": 0.229454,
+            "log_loss": 0.518469
+          }
+        }
+      },
+      "selected_by_validation": "LightGBM",
+      "approved": false,
+      "live_prediction_enabled": false,
+      "consensus_vote": false,
+      "orders_enabled": false,
+      "created_at_utc": "2026-11-20T13:39:41.395807+00:00",
+      "limitations": [
+        "Validation and historical test are retrospective, not live-forward evidence.",
+        "H1 direction is a research label, not a 1-5 minute scalping profit target.",
+        "Calendar uses fixed UTC sessions, not London DST shifts.",
+        "Exchange and spot prices are never interleaved."
+      ],
+      "reason": "Walk-forward or final holdout gates not met; no signal",
+      "split": {
+        "train_validation_end_day": "2026-08-05",
+        "final_holdout_first_day": "2026-08-06",
+        "final_holdout_last_day": "2026-11-19",
+        "final_holdout_count": 104,
+        "selection": "validation-only Brier, before final holdout"
+      }
+    }
+  },
+  "storage": {
+    "version": "3.0.0",
+    "created_at_utc": "2026-11-20T13:39:39.653582+00:00",
+    "storage_type": "git_tracked_gzip_files_in_public_repository",
+    "artifacts_only_backup": false,
+    "files": {
+      "bitget_xauusdt": {
+        "status": "SNAPSHOTTED",
+        "rows": 8131,
+        "sha256_uncompressed": "6be087f254b2c433327aa43c92f13e21f33715ccc6022468a0f51cc4b7136b45",
+        "bytes_compressed": 144412,
+        "first_h1_utc": "2025-12-13T06:00:00+00:00",
+        "last_h1_utc": "2026-11-20T12:00:00+00:00"
+      },
+      "binance_xauusdt": {
+        "status": "NO_VALID_DATA"
+      },
+      "dukascopy_xauusd": {
+        "status": "SNAPSHOTTED",
+        "rows": 10233,
+        "sha256_uncompressed": "a20ae3c33b9b965cdb327e723f9dddfaa88b9f81a66a976fe5d170c7ab74496b",
+        "bytes_compressed": 129234,
+        "first_h1_utc": "2025-09-16T00:00:00+00:00",
+        "last_h1_utc": "2026-11-19T23:00:00+00:00"
+      }
+    },
+    "notice": "Permanence requires a successful git commit and independent offsite backup; public OHLC only."
+  },
+  "errors": {},
+  "no_trade": true,
+  "no_live_prediction": true
+}

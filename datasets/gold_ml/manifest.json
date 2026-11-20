@@ -1,0 +1,28 @@
+{
+  "version": "3.0.0",
+  "created_at_utc": "2026-11-20T13:39:39.653582+00:00",
+  "storage_type": "git_tracked_gzip_files_in_public_repository",
+  "artifacts_only_backup": false,
+  "files": {
+    "bitget_xauusdt": {
+      "status": "SNAPSHOTTED",
+      "rows": 8131,
+      "sha256_uncompressed": "6be087f254b2c433327aa43c92f13e21f33715ccc6022468a0f51cc4b7136b45",
+      "bytes_compressed": 144412,
+      "first_h1_utc": "2025-12-13T06:00:00+00:00",
+      "last_h1_utc": "2026-11-20T12:00:00+00:00"
+    },
+    "binance_xauusdt": {
+      "status": "NO_VALID_DATA"
+    },
+    "dukascopy_xauusd": {
+      "status": "SNAPSHOTTED",
+      "rows": 10233,
+      "sha256_uncompressed": "a20ae3c33b9b965cdb327e723f9dddfaa88b9f81a66a976fe5d170c7ab74496b",
+      "bytes_compressed": 129234,
+      "first_h1_utc": "2025-09-16T00:00:00+00:00",
+      "last_h1_utc": "2026-11-19T23:00:00+00:00"
+    }
+  },
+  "notice": "Permanence requires a successful git commit and independent offsite backup; public OHLC only."
+}

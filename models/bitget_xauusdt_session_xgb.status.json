@@ -1,17 +1,17 @@
 {
   "symbol": "XAUUSDT",
   "source": "bitget_futures_market_h1",
-  "labelled_sessions": 256,
+  "labelled_sessions": 257,
   "minimum_sessions": 180,
   "audit": {
-    "valid_hourly": 8127,
+    "valid_hourly": 8131,
     "invalid": 0,
     "partial_asia": 1,
-    "partial_london": 86,
+    "partial_london": 85,
     "first_hour_utc": "2025-12-13T06:00:00+00:00",
-    "last_hour_utc": "2026-11-20T09:00:00+00:00"
+    "last_hour_utc": "2026-11-20T12:00:00+00:00"
   },
-  "cutoff_utc": "2026-11-20T10:40:15.589714+00:00",
+  "cutoff_utc": "2026-11-20T13:39:37.429349+00:00",
   "trained": true,
   "approved": false,
   "orders_enabled": false,
@@ -20,10 +20,10 @@
     "İleri test referans başarısı / Brier filtresi geçilmedi: canlı yön tahmini devre dışı."
   ],
   "train_sessions": 192,
-  "test_sessions": 64,
-  "test_accuracy_pct": 46.88,
-  "test_majority_pct": 57.81,
-  "test_brier": 0.265997,
-  "test_baseline_brier": 0.251736,
+  "test_sessions": 65,
+  "test_accuracy_pct": 47.69,
+  "test_majority_pct": 56.92,
+  "test_brier": 0.265385,
+  "test_baseline_brier": 0.251551,
   "portable_export_max_margin_diff": 2.3808618365706025e-07
 }

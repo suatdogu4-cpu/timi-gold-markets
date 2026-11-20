@@ -826,5 +826,18 @@ async def quant_hub_analyze(payload:dict=Body(default={})):
             soloshun_mod['quant_ai'] = {
                 'mode':'ERROR', 'error':err_text(exc), 'orders_enabled':False,
                 'model_loaded':False, 'prediction':None, 'probability':None}
+    # GOLD ML v1: read-only inference on same-source H1; never changes 7-engine consensus.
+    if isinstance(soloshun_mod, dict):
+        try:
+            from gold_ml_core import live_status
+            ml_data = await asyncio.to_thread(live_status, result.get('1H') or [], symbol, ROOT)
+            if not isinstance(soloshun_mod.get('quant_ai'), dict):
+                soloshun_mod['quant_ai'] = {'mode': 'ERROR', 'orders_enabled': False}
+            soloshun_mod['quant_ai']['ml'] = ml_data
+        except Exception as ml_exc:
+            if isinstance(soloshun_mod.get('quant_ai'), dict):
+                soloshun_mod['quant_ai']['ml'] = {
+                    'status':'ERROR', 'prediction':None, 'orders_enabled':False,
+                    'reason':err_text(ml_exc)}
     out['requested_at_ms']=nowms()
     return out

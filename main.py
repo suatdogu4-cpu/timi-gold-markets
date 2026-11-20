@@ -814,5 +814,17 @@ async def quant_hub_analyze(payload:dict=Body(default={})):
     # The expensive numerical calculations run off-event-loop.
     out=await asyncio.to_thread(analyze,result,symbol,config,quality)
     out['analysis_tf']=tf
+    # QUANT AI (Asya–Londra): yalnız mevcut Soloshun paneline araştırma verisi.
+    # Orijinal konsensüs, diğer altı motor ve gerçek emir yasağı değişmez.
+    soloshun_mod = (out.get('modules') or {}).get('soloshun')
+    if isinstance(soloshun_mod, dict):
+        try:
+            from gold_session_ai import session_ai_status
+            soloshun_mod['quant_ai'] = await asyncio.to_thread(
+                session_ai_status, result.get('1H') or [], symbol=symbol)
+        except Exception as exc:
+            soloshun_mod['quant_ai'] = {
+                'mode':'ERROR', 'error':err_text(exc), 'orders_enabled':False,
+                'model_loaded':False, 'prediction':None, 'probability':None}
     out['requested_at_ms']=nowms()
     return out

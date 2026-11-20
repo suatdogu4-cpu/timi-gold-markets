@@ -12,6 +12,7 @@ import json
 import math
 from pathlib import Path
 import statistics
+import struct
 import time
 
 UTC=timezone.utc
@@ -106,12 +107,24 @@ def session_dataset(bars,now_s=None):
                      'first_hour_utc':datetime.fromtimestamp(valid[0]['t'],UTC).isoformat() if valid else None,
                      'last_hour_utc':datetime.fromtimestamp(valid[-1]['t'],UTC).isoformat() if valid else None}}
 
+def _float32(value):
+    """Match XGBoost's float32 feature AND split-threshold semantics.
+
+    JSON dump decimals (e.g. 0.6666667) can round differently from the
+    original float32 threshold. Casting only the feature is NOT sufficient:
+    both sides must be interpreted as IEEE 754 binary32 before comparing.
+    """
+    return struct.unpack('<f', struct.pack('<f', float(value)))[0]
+
+
 def eval_tree(tree,features):
     node=tree
     for _ in range(12):
         if 'leaf' in node:return float(node['leaf'])
         split=node['split']; idx=int(split[1:]) if split.startswith('f') else FEATURES.index(split)
-        value=features[idx];direction=node['yes'] if (value is None or value<float(node['split_condition'])) else node['no']
+        value = None if features[idx] is None else _float32(features[idx])
+        threshold = _float32(node['split_condition'])
+        direction = node['yes'] if (value is None or value < threshold) else node['no']
         node=next(c for c in node['children'] if c['nodeid']==direction)
     raise ValueError('Bad tree: maximum depth exceeded')
 

@@ -863,5 +863,16 @@ async def quant_hub_analyze(payload:dict=Body(default={})):
                 soloshun_mod['quant_ai']['shadow_v5']={
                    'status':'ERROR','error':err_text(shadow_exc),'orders_enabled':False,
                    'consensus_vote':False,'live_trade_signal':False}
+    # GOLD SCALP V6: read-only minute-scale research report. Zero trade actions.
+    if isinstance(soloshun_mod,dict):
+        try:
+            from gold_scalp_v6_view import read_research
+            if not isinstance(soloshun_mod.get('quant_ai'),dict):
+                soloshun_mod['quant_ai']={'mode':'RESEARCH','orders_enabled':False}
+            soloshun_mod['quant_ai']['scalp_v6']=await asyncio.to_thread(read_research,ROOT,symbol)
+        except Exception as v6_exc:
+            if isinstance(soloshun_mod.get('quant_ai'),dict):
+                soloshun_mod['quant_ai']['scalp_v6']={'status':'ERROR','reason':err_text(v6_exc),
+                    'live_signal':False,'trade_decision':'BEKLE','no_orders':True}
     out['requested_at_ms']=nowms()
     return out

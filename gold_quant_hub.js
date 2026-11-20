@@ -112,6 +112,33 @@
      <p class="qh-muted qh-danger">${escape(s.note||'Araştırma yönü, canlı alım satım onayı değildir.')} </p>
    </div>`;
  }
+ function scalpV6Panel(info){
+   if(!info||info.status==='NO_REPORT')return `<details class="qh-box"><summary style="cursor:pointer;font-weight:700">GOLD SCALP LEARNING V6 · 1/3/5/15 dakika</summary><p class="qh-muted">Araştırma altyapısı kuruldu. İlk doğrulanmış 1 dakikalık geçmiş veri ve makine öğrenimi raporu bekleniyor. İşlem kararı: BEKLE.</p></details>`;
+   if(info.status!=='RESEARCH_READY')return `<details class="qh-box"><summary>GOLD SCALP LEARNING V6 · Rapor sağlığı</summary><p class="qh-muted qh-danger">${escape(info.status)} · ${escape(info.reason||'')}</p></details>`;
+   const labels={binance:'Binance · XAUUSDT Futures',bitget:'Bitget · XAUUSDT Futures'};
+   const name={trend:'EMA + RSI + MACD',breakout:'Donchian kırılımı + momentum',reversion:'RSI + Bollinger dönüşü'};
+   const rows=Object.entries(info.sources||{}).map(([id,s])=>{
+     const tf=Object.entries(s.timeframes||{}).map(([period,m])=>{
+       const best=m.best||{},cf=best.configuration||{},hold=best.holdout||{};
+       const ml=m.ml||{},picked=ml.models?.[ml.selected_by_validation]?.final_holdout||{};
+       const ok=m.status==='RETROSPECTIVE_GATE_PASSED';
+       return `<div class="qh-box" style="min-width:0"><h4>${escape(period)} · ${ok?'Tarihsel filtre geçti':'Araştırma / BEKLE'}</h4>
+        <p class="qh-muted">Doğrulanmış mum: ${escape(n(m.bars))} · Denenen kombinasyon: ${escape(n(m.tested_configurations||0))} · Uygun: ${escape(n(m.eligible_configurations||0))}</p>
+        <p class="qh-muted">Seçilen: <strong>${escape(name[cf.family]||'Yok')}</strong> · Hacim x${escape(n(cf.vol_min))} · Saat: ${escape(cf.session||'—')} · Hassasiyet: ${escape(n(cf.sensitivity))}</p>
+        <div class="qh-cards"><div class="qh-card"><span>Son bağımsız test · işlem</span><strong>${escape(n(hold.trades))}</strong></div>
+        <div class="qh-card"><span>Net beklenti (bps/işlem)</span><strong>${escape(n(hold.expectancy_bps))}</strong></div>
+        <div class="qh-card"><span>Profit Factor</span><strong>${escape(n(hold.profit_factor))}</strong></div>
+        <div class="qh-card"><span>Maksimum düşüş (bps)</span><strong>${escape(n(hold.max_drawdown_bps))}</strong></div></div>
+        <p class="qh-muted">ML seçimi: ${escape(ml.selected_by_validation||'—')} · ML isabet: ${escape(n(picked.accuracy_pct))}% · Çoğunluk ref.: ${escape(n(picked.majority_pct))}% · Test öncesi seçim</p>
+        <p class="qh-muted qh-danger">${ok?'Geçmişte geçerli; gelecekte doğrulanmadı.':'Geçmiş test filtresini geçmedi.'} Gerçek işlem yok, otomatik LONG/SHORT onayı yok.</p></div>`;
+     }).join('');
+     return `<div class="qh-box"><h4>${escape(labels[id]||id)}</h4><p class="qh-muted">Kayıtlı gerçek 1m OHLCV: ${escape(n(s.one_minute_bars||0))} · Ayrı borsa veri seti</p>${tf||'<p class="qh-muted">1m veri bekleniyor.</p>'}</div>`;
+   }).join('');
+   return `<details class="qh-box" id="qh-scalp-v6"><summary style="cursor:pointer;font-weight:700">GOLD SCALP LEARNING V6 · 1/3/5/15 dakika</summary>
+    <p class="qh-muted">Araştırma: indikatör + saat + hacim kombinasyonları · 3 kronolojik doğrulama dönemi · bağımsız son test. Rapora yazılma (UTC): ${escape(info.generated_utc||'—')}</p>
+    <p class="qh-muted">Varsayılan maliyet (bps): yön başına komisyon ${escape(n(info.costs?.fee_bps_per_side))}, kayma ${escape(n(info.costs?.slippage_bps_per_side))}, gidiş-dönüş spread ${escape(n(info.costs?.spread_bps_roundtrip))}</p>
+    ${rows}<p class="qh-muted qh-danger">BÜTÜN V6 DEĞERLERİ GEÇMİŞ TEST ARAŞTIRMASIDIR. İşleme uygunluk: BEKLE. Konsensüs oyu veya gerçek emir yoktur.</p></details>`;
+ }
  function quantAiPanel(ai){
   if(!ai)return `<div class="qh-box"><h4>QUANT AI · Seans araştırması</h4><p class="qh-muted">Önce “7 Motoru Analiz Et” butonuna bas. Bu alan yalnız Asya–Londra / Soloshun sekmesinde görünür.</p></div>`;
   const audit=ai.audit||{};
@@ -127,7 +154,7 @@
     <div class="qh-card"><span>Eğitim için ön örnek eşiği</span><strong>${escape(n(ai.min_prototype_samples))}</strong></div>
    </div>
    <p class="qh-muted">Sabit UTC · Asya önceki gün 22:00–07:59, Londra 08:00–16:59. Yalnız kapanmış ve aynı kaynaktan gelen H1 mumlar.</p>
-   ${candidate}${error}${shadowV5Panel(ai.shadow_v5)}<details class="qh-box"><summary style="cursor:pointer;font-weight:700">Eski XGBoost v1 · Ayrıntıları göster</summary>${xgbResearchPanel(ai.ml)}</details>${multiModelResearchPanel(ai.compare)}
+   ${candidate}${error}${shadowV5Panel(ai.shadow_v5)}<details class="qh-box"><summary style="cursor:pointer;font-weight:700">Eski XGBoost v1 · Ayrıntıları göster</summary>${xgbResearchPanel(ai.ml)}</details>${multiModelResearchPanel(ai.compare)}${scalpV6Panel(ai.scalp_v6)}
    <p class="qh-muted">${escape(ai.source_warning||'Veri kaynağı kontrol ediliyor')}</p>
    <p class="qh-muted qh-danger">${ai.ml?.model_approved?"XGBoost modeli kronolojik test filtresini geçti. Bu yalnızca araştırma tahminidir; işlem olasılığı değildir. LSTM kurulu değildir. Mevcut Soloshun korelasyon motoru ve konsensüs hesabı değişmedi.":"XGBoost modeli henüz yeterli ileri test filtresi geçmedi veya veri yetersiz. LSTM kurulu değildir. Model tahmini ve işlem olasılığı sunulmaz; mevcut Soloshun korelasyon motoru ve konsensüs hesabı değişmez."}</p>
   </div>`;

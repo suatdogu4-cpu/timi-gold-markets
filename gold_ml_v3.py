@@ -313,6 +313,6 @@ def report_for_symbol(symbol:str,root:str|Path):
         sources={k:all_sources[k] for k in allowed if k in all_sources and all_sources[k].get('source_key')==k}
         return {**result,'status':'RESEARCH_COMPARISON','sources':sources,
             'last_run_utc':raw.get('generated_at_utc'),
-            'storage':raw.get('storage',{}),'signal_policy':'NO_V3_LIVE_SIGNAL'}
+            'storage':raw.get('storage',{}),'source_health':{k:v for k,v in (raw.get('source_health') or {}).items() if k in allowed},'signal_policy':'NO_V3_LIVE_SIGNAL'}
     except (OSError,ValueError,TypeError) as e:
         return {**result,'status':'REPORT_ERROR','error':str(e)[:100]}

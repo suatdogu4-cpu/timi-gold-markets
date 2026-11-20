@@ -89,6 +89,29 @@
       ${summary}
       <p class="qh-muted qh-danger">BÜTÜN V3 MODELLERİ SADECE ARAŞTIRMA. Bu karşılaştırma konsensüse oy vermez, gerçek emir açmaz veya canlı LONG/SHORT tahmini üretmez.</p></div>`;
  }
+ function shadowV5Panel(s){
+   if(!s||s.status==='NO_SHADOW_RECORD')return `<div class="qh-box"><h4>V5 · İleriye dönük gölge testi</h4><p class="qh-muted">Henüz ilk gerçek, önceden kaydedilmiş seans tahmini yok. Telefon/Render yerine GitHub Actions çalıştıracak.</p><p class="qh-muted">İşlem kararı: BEKLE · Gerçek emir yok.</p></div>`;
+   if(s.status==='SOURCE_NOT_AVAILABLE_FOR_SYMBOL')return `<div class="qh-box"><h4>V5 · Gölge test</h4><p class="qh-muted">Bu gölge tahmin motoru yalnız Bitget XAUUSDT kaynağında etkin; XAUUSD spot ile birleştirilmez.</p></div>`;
+   const f=s.latest_forecast||{},previous=s.last_settlement||{};
+   const liveToday=Boolean(s.latest_forecast_is_today);
+   const rawDirection=liveToday?(f.direction||'BEKLE'):'BEKLE';
+   const tint=rawDirection==='LONG'?'#42b99d':rawDirection==='SHORT'?'#ef7c93':'#8d9fb6';
+   const isCurrent=liveToday&&s.status==='SHADOW_RESEARCH_ONLY';
+   return `<div class="qh-box" style="border:1px solid #385b73"><h4>V5 · İleriye dönük gölge tahmin</h4>
+     <p class="qh-muted">GitHub bulut kaydı · Kaynak: ${escape(s.market||'Bitget XAUUSDT')} · ${escape(s.session_clock||'sabit UTC')}</p>
+     <div class="qh-cards">
+       <div class="qh-card" style="border-left:4px solid ${tint}"><span>Ham araştırma yönü (bugün)</span><strong style="color:${tint}">${escape(rawDirection)}</strong><small>Son kaydedilen gün: ${escape(f.day||'—')}</small></div>
+       <div class="qh-card"><span>İşleme uygunluk</span><strong>BEKLE</strong><small>Canlı onay yok, gerçek emir yok</small></div>
+       <div class="qh-card"><span>İleriye dönük kayıt</span><strong>${escape(n(s.forecasts_recorded??0))}</strong><small>Sonuçlanan: ${escape(n(s.sessions_settled??0))}</small></div>
+       <div class="qh-card"><span>Kaçırılan seans</span><strong>${escape(n(s.sessions_missed??0))}</strong><small>GitHub gecikmesi/eksik veri izlenir</small></div>
+     </div>
+     ${isCurrent?`<p class="qh-muted">Ham yukarı yön skoru: %${escape(n((Number(f.raw_up_score)||0)*100))} — <strong>işlem kazanma olasılığı DEĞİL</strong>.</p>`:'<p class="qh-muted">Bugün için geçerli yeni gölge kaydı yok. Geçmiş tahmin güncel sinyal gibi kullanılmaz.</p>'}
+     <p class="qh-muted">Model ${escape(f.model||'XGBoost')} · Eğitim örneği ${escape(n(f.train_sessions))} · Son tahmin UTC ${escape(f.timestamp_utc||'—')}</p>
+     <p class="qh-muted">Örneklenmiş yön tahmininde ileri test isabeti: ${s.directional_accuracy_pct==null?'henüz hesaplanmadı':'%'+escape(n(s.directional_accuracy_pct))} · Brier: ${escape(n(s.brier))} · Hedef en az ${escape(n(s.min_forward_sessions_before_review))} ileri test gözlemi.</p>
+     ${previous.day?`<p class="qh-muted">Son kapanmış Londra seansı: ${escape(previous.day)} · Tahmin ${escape(previous.forecast_direction)} / Gerçekleşen ${escape(previous.actual_direction)} · ${previous.correct==null?'BEKLE':'Yön '+(previous.correct?'doğru':'yanlış')}</p>`:''}
+     <p class="qh-muted qh-danger">${escape(s.note||'Araştırma yönü, canlı alım satım onayı değildir.')} </p>
+   </div>`;
+ }
  function quantAiPanel(ai){
   if(!ai)return `<div class="qh-box"><h4>QUANT AI · Seans araştırması</h4><p class="qh-muted">Önce “7 Motoru Analiz Et” butonuna bas. Bu alan yalnız Asya–Londra / Soloshun sekmesinde görünür.</p></div>`;
   const audit=ai.audit||{};
@@ -104,7 +127,7 @@
     <div class="qh-card"><span>Eğitim için ön örnek eşiği</span><strong>${escape(n(ai.min_prototype_samples))}</strong></div>
    </div>
    <p class="qh-muted">Sabit UTC · Asya önceki gün 22:00–07:59, Londra 08:00–16:59. Yalnız kapanmış ve aynı kaynaktan gelen H1 mumlar.</p>
-   ${candidate}${error}<details class="qh-box"><summary style="cursor:pointer;font-weight:700">Eski XGBoost v1 · Ayrıntıları göster</summary>${xgbResearchPanel(ai.ml)}</details>${multiModelResearchPanel(ai.compare)}
+   ${candidate}${error}${shadowV5Panel(ai.shadow_v5)}<details class="qh-box"><summary style="cursor:pointer;font-weight:700">Eski XGBoost v1 · Ayrıntıları göster</summary>${xgbResearchPanel(ai.ml)}</details>${multiModelResearchPanel(ai.compare)}
    <p class="qh-muted">${escape(ai.source_warning||'Veri kaynağı kontrol ediliyor')}</p>
    <p class="qh-muted qh-danger">${ai.ml?.model_approved?"XGBoost modeli kronolojik test filtresini geçti. Bu yalnızca araştırma tahminidir; işlem olasılığı değildir. LSTM kurulu değildir. Mevcut Soloshun korelasyon motoru ve konsensüs hesabı değişmedi.":"XGBoost modeli henüz yeterli ileri test filtresi geçmedi veya veri yetersiz. LSTM kurulu değildir. Model tahmini ve işlem olasılığı sunulmaz; mevcut Soloshun korelasyon motoru ve konsensüs hesabı değişmez."}</p>
   </div>`;

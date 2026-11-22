@@ -617,7 +617,7 @@ function uxRenderSheet(name,arg=''){
   uxSheetRender('Diğer Bölümler',`<p class="ux-sheet-sub">Vadeli, haberler, performans ve sistem ayarları.</p><div class="ux-tile-grid">${menus.map(([k,icon,label])=>`<button class="ux-tile" data-go="${k}">${icon} ${label}</button>`).join('')}</div>`);return;
  }
 }
-function uxUpdateDock(k){document.body.dataset.uxPage=k;const group=k==='dashboard'?'dashboard':k==='chart'?'chart':k==='strategies'?'strategies':['technical','smc','flow','depth','quant','altinquant','quanthub','decision'].includes(k)?'analysis':'more';document.querySelectorAll('[data-uxnav]').forEach(x=>{let active=x.dataset.uxnav===group;x.classList.toggle('active',active);if(active)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});}
+function uxUpdateDock(k){document.body.dataset.uxPage=k;const group=k==='dashboard'?'dashboard':k==='chart'?'chart':['technical','smc','flow','depth','quant','altinquant','quanthub','decision'].includes(k)?'analysis':'more';document.querySelectorAll('[data-uxnav]').forEach(x=>{let active=x.dataset.uxnav===group;x.classList.toggle('active',active);if(active)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});}
 function uxSetTf(v){if(!tfs.includes(v))return;tf=v;$('tfbar').querySelectorAll('[data-tf]').forEach(x=>x.classList.toggle('active',x.dataset.tf===v));document.querySelectorAll('[data-uxtf]').forEach(x=>x.classList.toggle('active',x.dataset.uxtf===v));uxToast(v+' zaman dilimi');uxLastBarsKey='';reloadAll()}
 function uxApplyPreset(k){if(!UX_PRESETS[k])return;UX_KEYS.forEach(id=>{UX.indicators[id].enabled=UX_PRESETS[k].keys.includes(id)});UX.preset=k;uxSave();uxUpdateIndicators();uxRenderSheet('templates');uxToast(UX_PRESETS[k].label+' şablonu uygulandı')}
 function uxToggle(k,open){if(!UX_LIB[k])return;UX.indicators[k].enabled=typeof open==='boolean'?open:!UX.indicators[k].enabled;UX.preset='custom';uxSave();uxUpdateIndicators();if(uxSheetName==='library'||uxSheetName==='active')uxRenderSheet(uxSheetName);uxToast(`${UX_LIB[k].short} ${UX.indicators[k].enabled?'açıldı':'kapatıldı'}`)}
@@ -751,7 +751,7 @@ function uxCheckAlert(){const a=UX.alerts[symbol];if(!a?.active||a.triggered||!s
 function uxUpdateTop(){uxUpdatePriceGuides();uxCheckAlert();let el=$('uxTopPrice');if(!el)return;const p=symbol==='XAUUSDT'?snap?.price?.last:snap?.spot?.last;el.textContent=Number.isFinite(Number(p))?uxV(p,2):'—';const price=$('uxChartPrice');if(price)price.textContent=el.textContent;const name=$('uxTopSymbol');if(name)name.textContent=symbol;const status=$('uxFeedStatus');if(status)status.textContent=snap?.valid?.ticker?(snap?.ws_connected?'CANLI':'GECİKMELİ'):'VERİ EKSİK'}
 function uxInit(){
  uxUpdateDock(page);uxRenderQuick();uxUpdateActiveTags();$('uxTfrow').innerHTML=tfs.map(x=>`<button class="ux-time ${x===tf?'active':''}" data-uxtf="${x}">${x}</button>`).join('');
- $('uxMobileNav').addEventListener('click',e=>{const b=e.target.closest('[data-uxnav]');if(!b)return;const k=b.dataset.uxnav;if(k==='analysis'||k==='more')uxOpen(k==='analysis'?'analysis-menu':'more-menu');else go(k==='strategies'?'strategies':k)});
+ $('uxMobileNav').addEventListener('click',e=>{const b=e.target.closest('[data-uxnav]');if(!b)return;const k=b.dataset.uxnav;if(k==='analysis'||k==='more')uxOpen(k==='analysis'?'analysis-menu':'more-menu');else go(k==='quant'?'quant':k)});
  $('uxOverlay').addEventListener('click',uxClose);$('uxCloseSheet').addEventListener('click',uxClose);
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&uxSheetName)uxClose()});
  let held=false,quickTimer=null;const quick=$('uxQuick');quick.addEventListener('pointerdown',e=>{const el=e.target.closest('[data-uxquick]');if(!el)return;held=false;quickTimer=setTimeout(()=>{held=true;uxOpen('edit',el.dataset.uxquick)},520)});
@@ -941,6 +941,6 @@ __goldStartPart('Canlı bağlantı',startSocket);
 __goldStartPart('İlk veri yükleme',reloadAll);
 setInterval(()=>{const clock=document.getElementById('clock');if(clock)clock.textContent=new Date().toLocaleTimeString('tr-TR',{hour12:false})},1000);
 setInterval(()=>{if(document.visibilityState==='visible')__goldStartPart('Yenileme',reloadAll)},45000);
-window.addEventListener('resize',()=>{if(lastBT&&page==='strategies')paintEquity(lastBT.equity_curve||[])});
+window.addEventListener('resize',()=>{if(lastBT&&page==='quant')paintEquity(lastBT.equity_curve||[])});
 window.addEventListener('gold-chart-library-ready',()=>{__goldStartPart('Grafik kütüphanesi',()=>{ensureCharts();renderPlots()})});
 console.info('GOLD SCALP PRO',window.__GOLD_BUILD__,'uygulama yüklendi',__bootStatus);

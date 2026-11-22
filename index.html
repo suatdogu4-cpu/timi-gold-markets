@@ -11,7 +11,7 @@
 })();</script>
 
 <link rel="stylesheet" href="gold_style.css?v=3200">
-<link rel="stylesheet" href="gold_redesign.css?v=3304">
+<link rel="stylesheet" href="gold_redesign.css?v=3305">
 <link rel="stylesheet" href="gold_quant_hub.css?v=3100">
 </head><body>
 <div class="wrap">
@@ -221,7 +221,7 @@
   <button class="ux-dock-btn active" data-uxnav="dashboard"><span aria-hidden="true">⌂</span>Özet</button>
   <button class="ux-dock-btn" data-uxnav="chart"><span aria-hidden="true">▥</span>Grafik</button>
   <button class="ux-dock-btn" data-uxnav="analysis"><span aria-hidden="true">✦</span>Analiz</button>
-  <button class="ux-dock-btn" data-uxnav="strategies"><span aria-hidden="true">▣</span>Strateji</button>
+  <button class="ux-dock-btn" data-uxnav="quant"><span aria-hidden="true">∑</span>Quant</button>
   <button class="ux-dock-btn" data-uxnav="more"><span aria-hidden="true">☷</span>Diğer</button>
 </nav>
 <div id="uxOverlay" class="ux-sheet-backdrop"></div>
@@ -234,14 +234,14 @@
 </div>
 
 <script async src="https://cdn.jsdelivr.net/npm/lightweight-charts@5.1.0/dist/lightweight-charts.standalone.production.js" onload="window.dispatchEvent(new Event('gold-chart-library-ready'))"></script>
-<script defer src="gold_app.js?v=3304"></script>
+<script defer src="gold_app.js?v=3305"></script>
 <script defer src="gold_quant_hub.js?v=3701"></script>
 <script>
 (function(){
  document.addEventListener('click',function(e){
   if(window.__GOLD_APP_READY__)return;
   var b=e.target.closest('[data-uxnav]');if(!b)return;
-  var target={dashboard:'dashboard',chart:'chart',strategies:'strategies'}[b.dataset.uxnav];
+  var target={dashboard:'dashboard',chart:'chart',quant:'quant'}[b.dataset.uxnav];
   if(!target)return;
   document.querySelectorAll('.view').forEach(function(v){v.classList.toggle('active',v.id==='v-'+target)});
   document.querySelectorAll('[data-uxnav]').forEach(function(v){v.classList.toggle('active',v===b)});

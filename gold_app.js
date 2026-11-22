@@ -1,6 +1,6 @@
 'use strict';
 const $=id=>document.getElementById(id);
-const navs=[['dashboard','◈ Kokpit'],['chart','▤ Grafik'],['technical','▧ Teknik'],['smc','◇ SMC / ICT'],['flow','⇄ Order Flow'],['depth','▥ DOM'],['derivatives','◉ Vadeli'],['macro','◎ Makro & Haber'],['quant','∑ Quant'],['altinquant','✦ ALTIN QUANT v2'],['quanthub','◈ 7 Quant + Konsensüs'],['strategies','▣ Stratejiler'],['decision','✦ Karar Motoru'],['performance','▱ Performans'],['health','● Veri Sağlığı'],['settings','⚙ Ayarlar']];
+const navs=[['dashboard','◈ Kokpit'],['chart','▤ Grafik'],['technical','▧ Teknik'],['smc','◇ SMC / ICT'],['flow','⇄ Order Flow'],['depth','▥ DOM'],['derivatives','◉ Vadeli'],['macro','◎ Makro & Haber'],['quant','∑ Quant / Altın Quant'],['quanthub','◈ 7 Quant + Konsensüs'],['decision','✦ Karar Motoru'],['performance','▱ Performans'],['health','● Veri Sağlığı'],['settings','⚙ Ayarlar']];
 const tfs=['1m','3m','5m','15m','30m','1H','4H','1D'];
 const repoLinks=[['order-flow-platform','https://github.com/justaksi7/order-flow-platform'],['Gold-Dashboard','https://github.com/Econ-G/Gold-Dashboard'],['gold-sweep-backtester','https://github.com/baturdenada/gold-sweep-backtester'],['smc-backtester','https://github.com/Yousuf6273/smc-backtester'],['GoldBot','https://github.com/shrijeet-lokhande/GoldBot'],['aurum-intelligence','https://github.com/Pestador/aurum-intelligence'],['PickleChart','https://github.com/ikarisz/PickleChart'],['dukascopy-tools','https://github.com/Tradelyy/dukascopy-tools'],['lightweight-charts','https://github.com/tradingview/lightweight-charts'],['TA-Lib','https://github.com/TA-Lib/ta-lib'],['vectorbt','https://github.com/polakowo/vectorbt'],['quantstats','https://github.com/ranaroussi/quantstats']];
 let symbol='XAUUSDT',tf='1m',page='dashboard',snap=null,ana=null,candleData=[],plots={},osc={},clientWs=null,retryMs=1200,lastBT=null,inflight=0,firstLoad=true,lastRollRefresh=0;
@@ -48,8 +48,10 @@ $('repoList').innerHTML=repoLinks.map(([name,u])=>`<a href="${u}" target="_blank
 $('resetPrefs').onclick=()=>{for(let k in opts)localStorage.removeItem('gold-'+k);location.reload()};
 $('healthReload').onclick=loadHealth;$('macroReload').onclick=loadMacro;
 $('mtfReload').onclick=loadMTF;
-$('runTest').onclick=runBacktest; $('aqRefresh').onclick=loadAltinQuant; $('aqRiskBtn').onclick=aqRiskCalc;
-$('strategy').innerHTML=Object.entries({'ema_trend':'EMA Trend + RSI','rsi_revert':'RSI Reversal','donchian':'Donchian Breakout','vwap_revert':'VWAP Return','smc_sweep':'Liquidity Sweep','bb_break':'Bollinger Break','momentum':'Price Momentum','macd_cross':'MACD Cross'}).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+ if($('aqRefresh'))$('aqRefresh').onclick=loadAltinQuant;
+ if($('aqRiskBtn'))$('aqRiskBtn').onclick=aqRiskCalc;
+ if($('runTest'))$('runTest').onclick=runBacktest;
+ if($('strategy'))$('strategy').innerHTML=Object.entries({'ema_trend':'EMA Trend + RSI','rsi_revert':'RSI Reversal','donchian':'Donchian Breakout','vwap_revert':'VWAP Return','smc_sweep':'Liquidity Sweep','bb_break':'Bollinger Break','momentum':'Price Momentum','macd_cross':'MACD Cross'}).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
  initAssistant();
 }
 function go(k){page=k;document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id==='v-'+k));$('nav').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x.dataset.page===k));
@@ -167,8 +169,11 @@ function updateSnap(s){snap=s;let valid=s.valid||{},price=s.price,spot=s.spot,fl
  $('k-spot').textContent=spot?fmt(spot.last):'—';$('k-spot-sub').textContent=s.spot_status+' · '+age(s.spot_age_s);
  $('k-mark').textContent=price&&price.mark?fmt(price.mark):'—';$('k-index').textContent='INDEX '+(price&&price.index?fmt(price.index):'—');
  $('k-volume').textContent=price?short(price.volume24):'—';$('k-dayrange').textContent=price?fmt(price.low24)+' → '+fmt(price.high24):'—';
+ let buy=fl?.buy_notional60||0,sell=fl?.sell_notional60||0,flowTotal=buy+sell;
+ if($('k-flow-buy'))$('k-flow-buy').textContent=flowTotal?fmt(buy/flowTotal*100,1)+'%':'—';
+ if($('k-flow-sell'))$('k-flow-sell').textContent=flowTotal?fmt(sell/flowTotal*100,1)+'%':'—';
  $('k-imb').textContent=fl&&fl.imbalance!==null?pct(fl.imbalance*100):'—';setClass('k-imb',fl?.imbalance>0.08?'green':fl?.imbalance<-.08?'red':null);
- let buy=fl?.buy_notional60||0,sell=fl?.sell_notional60||0,percent=buy+sell?buy/(buy+sell)*100:50;
+ let percent=buy+sell?buy/(buy+sell)*100:50;
  $('donut').style.background=`conic-gradient(var(--green) 0 ${percent}%,var(--red) ${percent}% 100%)`;
  $('donutTxt').textContent=fl?fmt(percent,0)+'%':'—';$('flowBuy').textContent=fl?short(buy):'—';$('flowSell').textContent=fl?short(sell):'—';$('flowDelta').textContent=fl?short(fl.delta60):'—';
  $('basis').textContent=(price&&spot)?fmt(price.last-spot.last,3):'—';$('basisNote').textContent=(price&&spot)?'XAUUSDT − XAUUSD, anlık kaynak farkı':'OANDA spot bağlantısı yok';
@@ -341,9 +346,12 @@ async function loadMTF(){try{let j=await getJSON('/api/mtf?symbol='+symbol);$('m
 async function loadHealth(){try{let h=await getJSON('/api/health');$('healthCards').innerHTML=[['Gateway',h.status],['Bitget WS',h.bitget_ws?'BAĞLI':'BAĞLI DEĞİL'],['Fiyat',h.feed_valid?.ticker?'GÜNCEL':'GECİKMELİ'],['Emir defteri',h.feed_valid?.book?'GÜNCEL':'GECİKMELİ'],['İşlemler',h.feed_valid?.trades?'GÜNCEL':'GECİKMELİ'],['OANDA',h.spot_configured?'YAPILANDIRILDI':'KAPALI'],['WS son fiyat',age(h.feed_age_seconds?.ticker)],['Son olay',h.time_utc]].map(([n,v])=>`<div class="metric"><small>${n}</small><b style="font-size:15px">${escaped(v)}</b></div>`).join('');$('healthRaw').textContent=JSON.stringify(h,null,2)}catch(e){$('healthRaw').textContent=e.message}}
 async function loadMacro(){let macro=$('macroGrid'),news=$('newsList');macro.innerHTML='<div class="hint">FRED sorgulanıyor...</div>';news.textContent='GDELT sorgulanıyor...';
  let [a,b]=await Promise.allSettled([getJSON('/api/macro'),getJSON('/api/news')]);
- if(a.status==='fulfilled'){macro.innerHTML=Object.entries(a.value.data||{}).map(([k,x])=>`<div class="metric"><small>${escaped(x.label||k)}</small><b>${fmt(x.last,3)}</b><p>${escaped(x.date||x.error||'—')} · ${k}</p></div>`).join('')}else macro.textContent=a.reason.message;
- if(b.status==='fulfilled'){let items=b.value.items||[];news.innerHTML='';if(!items.length)news.textContent=b.value.error?'Kaynak erişim hatası: '+b.value.error:'Son 24 saatte doğrulanmış haber bulunamadı';
-  for(let x of items){let div=document.createElement('div');div.className='event';let link=document.createElement('a');link.href=x.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=x.title||'Haber';div.appendChild(link);let s=document.createElement('div');s.className='smallline';s.textContent=(x.domain||'GDELT')+' · '+(x.time||'');div.appendChild(s);news.appendChild(div)}}else news.textContent=b.reason.message;
+ if(a.status==='fulfilled'){macro.innerHTML=Object.entries(a.value.data||{}).map(([k,x])=>{
+  const change=x.previous!==null&&x.previous!==undefined&&x.last!==null?((x.last-x.previous)/Math.abs(x.previous)*100):null;
+  return `<div class="metric macro-card"><small>${escaped(x.label||k)}</small><b>${fmt(x.last,3)}</b><p>${escaped(x.date||x.error||'—')} · ${k}</p>${change!==null?`<em class="${change>=0?'green':'red'}">${change>=0?'▲':'▼'} ${fmt(Math.abs(change),2)}%</em>`:''}`
+ }).join('')}else macro.textContent=a.reason.message;
+ if(b.status==='fulfilled'){let items=b.value.items||[];news.innerHTML='';if(!items.length)news.textContent=b.value.error?'Kaynak erişim hatası: '+b.value.error:'Son 24 saatte doğrulanmış altın haber bulunamadı';
+  for(let x of items){let div=document.createElement('div');div.className='event news-row';let link=document.createElement('a');link.href=x.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=x.title||'Haber';div.appendChild(link);let s=document.createElement('div');s.className='smallline';s.textContent=(x.domain||x.source||'Haber kaynağı')+' · '+(x.time||'Güncel');div.appendChild(s);news.appendChild(div)}}else news.textContent=b.reason.message;
 }
 async function runBacktest(){let bt=$('runTest');bt.disabled=true;bt.textContent='Hesaplanıyor...';$('btInfo').textContent='Kapanmış mumlarla maliyetli strateji testi...';try{let q=new URLSearchParams({symbol,tf,strategy:$('strategy').value,fee_bps:$('fee').value,slippage_bps:$('slip').value});let j=await getJSON('/api/backtest?'+q);lastBT=j;renderBT(j)}catch(e){$('btInfo').textContent='Backtest çalışmadı: '+e.message}finally{bt.disabled=false;bt.textContent='Backtest çalıştır'}}
 function renderBT(x){if(x.error){$('btInfo').textContent=x.error;return}

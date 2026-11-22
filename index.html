@@ -11,7 +11,7 @@
 })();</script>
 
 <link rel="stylesheet" href="gold_style.css?v=3200">
-<link rel="stylesheet" href="gold_redesign.css?v=3302">
+<link rel="stylesheet" href="gold_redesign.css?v=3303">
 <link rel="stylesheet" href="gold_quant_hub.css?v=3100">
 </head><body>
 <div class="wrap">
@@ -31,7 +31,7 @@
 <section class="view active" id="v-dashboard">
   <div class="kpirow">
     <div class="card kpi"><div class="key">Son fiyat</div><div class="val cyan" id="k-price">—</div><div class="sub" id="k-change">Bekleniyor</div></div>
-    <div class="card kpi"><div class="key">XAUUSD spot</div><div class="val gold" id="k-spot">—</div><div class="sub" id="k-spot-sub">OANDA bağlantısı bekleniyor</div></div>
+    <div class="card kpi kpi-market-flow"><div class="key">XAUUSD spot / Order Flow</div><div class="microflow"><div class="flow-spot"><b class="gold" id="k-spot">—</b><small id="k-spot-sub">Spot bekleniyor</small></div><div class="flow-split"><div class="buy"><small>ALIS</small><b id="k-flow-buy">—</b></div><div class="sell"><small>SATIS</small><b id="k-flow-sell">—</b></div></div></div></div>
     <div class="card kpi"><div class="key">Mark · Index</div><div class="val" id="k-mark">—</div><div class="sub" id="k-index">Index —</div></div>
     <div class="card kpi"><div class="key">24s Hacim · Futures</div><div class="val" id="k-volume">—</div><div class="sub" id="k-dayrange">Gün aralığı —</div></div>
     <div class="card kpi"><div class="key">Order Book · 20</div><div class="val" id="k-imb">—</div><div class="sub">Notional dengesizliği</div></div>
@@ -97,6 +97,7 @@
   <button type="button" data-go="technical">Teknik</button>
   <button type="button" data-go="flow">Order Flow</button>
   <button type="button" data-go="quant">Quant</button>
+  <button type="button" data-go="altinquant">Altın Quant v2</button>
   <button type="button" data-go="smc">SMC</button>
   <button type="button" data-go="quanthub">7 Quant</button>
 </nav><div class="sectiontop"><h2>Teknik göstergeler · ayrıntılı analiz</h2><span class="chip" id="techCount">—</span></div><section id="g32-tech-summary" class="g32-summary" aria-label="Teknik gösterge skorları" aria-live="polite"><p class="g32-loading">Kapanmış mumlara dayalı teknik skorlar bekleniyor…</p></section>
@@ -233,7 +234,7 @@
 </div>
 
 <script async src="https://cdn.jsdelivr.net/npm/lightweight-charts@5.1.0/dist/lightweight-charts.standalone.production.js" onload="window.dispatchEvent(new Event('gold-chart-library-ready'))"></script>
-<script defer src="gold_app.js?v=3302"></script>
+<script defer src="gold_app.js?v=3303"></script>
 <script defer src="gold_quant_hub.js?v=3701"></script>
 <script>
 (function(){

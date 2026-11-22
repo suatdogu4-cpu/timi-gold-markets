@@ -12,6 +12,7 @@ import json
 import logging
 import os
 import time
+import xml.etree.ElementTree as ET
 from collections import deque
 from contextlib import asynccontextmanager, suppress
 from datetime import datetime, timezone
@@ -303,7 +304,7 @@ class Market:
                 else:
                     # FRED publicly publishes CSV chart downloads; not guaranteed SLA or API.
                     u='https://fred.stlouisfed.org/graph/fredgraph.csv'
-                    resp=await self.client.get(u,params={'id':key,'cosd':'2026-01-01'});resp.raise_for_status()
+                    resp=await self.client.get(u,params={'id':key,'cosd':'2024-01-01','coed':datetime.now(timezone.utc).strftime('%Y-%m-%d')});resp.raise_for_status()
                     if len(resp.content)>2_000_000:raise ValueError('FRED response too large')
                     parsed=list(csv.DictReader(io.StringIO(resp.text)))
                     vals=[{'date':x.get('observation_date') or x.get('DATE'), 'value':num(x.get(key),None)} for x in parsed if x.get(key) and x.get(key)!='.'][-12:][::-1]
@@ -703,19 +704,52 @@ async def correlation(tf:str='15m'):
 
 @app.get('/api/news')
 async def news():
-    # Public GDELT may throttle or return empty; never fabricate news.
+    items=[]
     try:
         d=await M.get_json('https://api.gdeltproject.org/api/v2/doc/doc',
             {'query':'("gold price" OR "gold futures" OR XAUUSD) sourcelang:english',
              'mode':'artlist','maxrecords':12,'timespan':'24h','format':'json','sort':'datedesc'})
-        items=[]
-        for x in d.get('articles',[]):
+        for x in d.get('articles',[]) if isinstance(d,dict) else []:
             u=x.get('url','')
-            if not u.startswith(('https://','http://')):continue
-            items.append({'title':str(x.get('title',''))[:180], 'url':u,'domain':x.get('domain'),
-                          'time':x.get('seendate'),'source':'GDELT'})
-        return {'items':items,'source':'GDELT DOC 2.0','note':'Haber akışı gecikebilir; duygu puanı veya fiyat tahmini içermez.'}
-    except Exception as ex:return {'items':[],'error':err_text(ex),'source':'GDELT DOC 2.0'}
+            if u.startswith(('https://','http://')):
+                items.append({'title':str(x.get('title',''))[:180], 'url':u,
+                              'domain':x.get('domain'),'time':x.get('seendate'),'source':'GDELT'})
+    except Exception as ex:
+        gdelt_error=err_text(ex)
+    else:
+        gdelt_error=None
+    if len(items)<6:
+        try:
+            import urllib.parse
+            q=urllib.parse.quote('gold price OR XAUUSD OR gold futures')
+            resp=await M.client.get('https://news.google.com/rss/search',
+                                    params={'q':q,'hl':'en-US','gl':'US','ceid':'US:en'},
+                                    timeout=12,follow_redirects=True)
+            resp.raise_for_status()
+            root=ET.fromstring(resp.text)
+            for node in root.findall('.//item')[:12]:
+                title=(node.findtext('title') or '').strip()
+                link=(node.findtext('link') or '').strip()
+                pub=(node.findtext('pubDate') or '').strip()
+                source_name=(node.findtext('source') or 'Google News')
+                if title and link.startswith(('https://','http://')):
+                    items.append({'title':title[:180],'url':link,'domain':source_name,
+                                  'time':pub,'source':'GOOGLE_NEWS'})
+        except Exception as ex:
+            rss_error=err_text(ex)
+        else:
+            rss_error=None
+    dedup={};dedup_items=[]
+    for item in items:
+        key=item['url']
+        if key not in dedup:
+            dedup[key]=True;dedup_items.append(item)
+    result={'items':dedup_items[:20],'source':'GDELT + Google News RSS',
+            'note':'Mikro/makro kaynaklı canlı haber akışı; duygu puanı veya fiyat tahmini değildir.',
+            'updated_ms':nowms()}
+    if not dedup_items:
+        result['error']=gdelt_error if 'gdelt_error' in locals() else None
+    return result
 
 # ============================================================
 # ALTIN QUANT v2 SHADOW INTEGRATION

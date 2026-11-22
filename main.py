@@ -69,6 +69,13 @@ class Market:
         self.macro_cache={};self.macro_ts=0;self.macro_error=None
         self.last_bitget_rest=0;self.last_spot_rest=0
         self.channels={}
+        # Public trades are event-driven. REST fills can bootstrap after reconnects.
+        self.trade_rest_last_attempt=0
+        self.trade_rest_last_success=0
+        self.trade_rest_error=''
+        self.trade_rest_recent_count=0
+        self.trade_rest_latest_trade_ts=0
+        self.trade_ws_last_event=0
         self.bg=[]
         self.clients=set()
 
@@ -99,12 +106,15 @@ class Market:
         try:
             trade={"t":int(t.get('T') or t.get('ts') or nowms()),"p":num(t.get('p') or t.get('price')),
                 "v":num(t.get('v') or t.get('size')),"side":str(t.get('S') or t.get('side') or '').lower(),
-                "id":str(t.get('i') or t.get('tradeId') or '')}
+                "id":str(t.get('i') or t.get('tradeId') or t.get('execId') or '')}
             if trade['p']<=0 or trade['v']<=0 or trade['side'] not in ('buy','sell'):return
             # No duplicated snapshot fills or replay reconnects.
             if trade['id'] and trade['id'] in self.trade_ids:return
             if trade['id']:self.trade_ids.add(trade['id'])
-            self.trades.append(trade);self.trades_ts=nowms()
+            # An old REST trade must not acquire the freshness of its HTTP fetch.
+            event_time=int(trade['t'])
+            if event_time<=0 or event_time>nowms()+5000:return
+            self.trades.append(trade);self.trades_ts=max(self.trades_ts,min(event_time,nowms()))
             if len(self.trade_ids)>8000:self.trade_ids={x['id'] for x in self.trades if x['id']}
         except (ValueError,TypeError):return
 
@@ -132,8 +142,11 @@ class Market:
 
     def on_message(self,j):
         if j.get('event'):
-            if j.get('event')=='error':
-                arg=j.get('arg',{});self.channels[arg.get('topic','unknown')]=str(j.get('msg') or j.get('code'))
+            evt=j.get('event');arg=j.get('arg') or {};topic=str(arg.get('topic') or 'unknown')
+            if evt=='subscribe':self.channels[topic]='SUBSCRIBED'
+            elif evt=='unsubscribe':self.channels[topic]='UNSUBSCRIBED'
+            elif evt=='error':
+                self.channels[topic]=str(j.get('msg') or j.get('code'))
                 self.ws_error=f'Abonelik hatası: {self.channels}'
                 LOG.warning('Bitget subscription error: %s',self.ws_error)
             return
@@ -154,6 +167,7 @@ class Market:
                     self.ticker_ts=nowms()
                     self.ticker_source='websocket'
         if topic=='publicTrade':
+            self.trade_ws_last_event=nowms()
             if j.get('action')=='snapshot':
                 # Preserve fill history but do not count duplicate initial snapshot as new trades
                 for d in data:self.feed_trade(d)
@@ -169,6 +183,7 @@ class Market:
             try:
                 self.depth_bids={};self.depth_asks={};self.book_seq=None;self.book_ts=0
                 self.ws_online=False
+                self.channels={}
                 async with websockets.connect(WS,ping_interval=20,ping_timeout=20,open_timeout=18,
                                                close_timeout=5,max_size=2**22) as ws:
                     args=[{"instType":"usdt-futures","topic":topic,"symbol":"XAUUSDT"}
@@ -259,6 +274,30 @@ class Market:
                 self.candle_errors[key]=err_text(ex)
                 raise
 
+    async def fetch_recent_public_fills(self):
+        """Read-only recovery for 2026-11 Bitget v3 publicTrade snapshot change.
+
+        Does not turn old trades into live ones, and never synthesizes a trade.
+        """
+        self.trade_rest_last_attempt=nowms()  # throttle even on HTTP errors
+        rows=await self.bitget('/api/v3/market/fills',
+                              {'category':'USDT-FUTURES','symbol':'XAUUSDT','limit':100})
+        if not isinstance(rows,list):raise ValueError('Bitget public fills beklenmeyen yanit')
+        now=nowms();valid_rows=[x for x in rows if isinstance(x,dict)]
+        valid_rows.sort(key=lambda x:int(x.get('ts') or 0))
+        newest=0;recent_count=0
+        for row in valid_rows:
+            try:ts=int(row.get('ts') or 0)
+            except (TypeError,ValueError):continue
+            newest=max(newest,ts)
+            if 0<=now-ts<=120000:
+                recent_count+=1
+                self.feed_trade(row)  # WS and REST share a deduped execution-ID set.
+        self.trade_rest_latest_trade_ts=newest
+        self.trade_rest_recent_count=recent_count
+        self.trade_rest_last_success=nowms()
+        self.trade_rest_error=''
+
     async def fetch_initial_rest(self):
         if not fresh(self.ticker_ts,5):
             data=await self.bitget('/api/v3/market/tickers',{'category':'USDT-FUTURES','symbol':'XAUUSDT'})
@@ -283,6 +322,12 @@ class Market:
                 await self.fetch_initial_rest()
             except asyncio.CancelledError:raise
             except Exception as ex:LOG.warning('REST market fallback: %s',err_text(ex))
+            if not fresh(self.trades_ts,25) and not fresh(self.trade_rest_last_attempt,15):
+                try:await self.fetch_recent_public_fills()
+                except asyncio.CancelledError:raise
+                except Exception as ex:
+                    self.trade_rest_error=err_text(ex)
+                    LOG.warning('REST public fills fallback: %s',self.trade_rest_error)
             for candle_tf,refresh_seconds in (('1m',5),('5m',15),('15m',30)):
                 key=('XAUUSDT',candle_tf)
                 if fresh(self.candle_updated.get(key,0),refresh_seconds):continue
@@ -531,6 +576,13 @@ async def health():
         'symbol':'XAUUSDT','ticker_source':s['ticker_source'],'feed_valid':s['valid'],'feed_age_seconds':s['age_s'],
         'spot_configured':bool(OANDA_TOKEN and OANDA_ACCOUNT),'spot_age_s':s['spot_age_s'],
         'last_errors':{'ws':s['ws_error'],'spot':M.spot_error,'candles':s['errors']},
+        'trade_channel':{'ws_subscription':M.channels.get('publicTrade','UNKNOWN'),
+            'ws_last_push_age_s':age(M.trade_ws_last_event),
+            'rest_last_check_age_s':age(M.trade_rest_last_attempt),
+            'rest_last_success_age_s':age(M.trade_rest_last_success),
+            'rest_last_market_trade_age_s':age(M.trade_rest_latest_trade_ts),
+            'rest_fills_last_120s':M.trade_rest_recent_count,
+            'rest_error':M.trade_rest_error},
         'live_external_verified':bool(s['ws_connected'] and s['valid']['ticker'] and s['valid']['book'] and s['valid']['trades'])}
 
 @app.get('/api/freqtrade/overview')

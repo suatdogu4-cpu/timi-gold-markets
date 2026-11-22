@@ -500,9 +500,9 @@ async def quant_hub_js():
 
 @app.get('/vendor/lightweight-charts.standalone.production.js', include_in_schema=False)
 async def lightweight_charts_asset():
-    chart_library = ROOT / 'node_modules' / 'lightweight-charts' / 'dist' / 'lightweight-charts.standalone.production.js'
+    chart_library = ROOT / 'vendor' / 'lightweight-charts.standalone.production.js'
     if not chart_library.is_file():
-        raise HTTPException(503, 'Lightweight Charts dependency is not installed')
+        raise HTTPException(503, 'Lightweight Charts asset is missing')
     return FileResponse(chart_library, media_type='application/javascript')
 
 @app.get('/api/health')

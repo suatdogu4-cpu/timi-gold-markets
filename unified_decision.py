@@ -23,6 +23,7 @@ MIN_TRAIN_OUTCOMES = 100
 MIN_FORWARD_ACCURACY = 0.55
 LONG_THRESHOLD = 0.58
 SHORT_THRESHOLD = 0.42
+_HISTORICAL_CACHE: dict[tuple[str, str, int, int], dict] = {}
 
 
 def _number(value: Any, default: float | None = None) -> float | None:
@@ -259,13 +260,21 @@ def historical_condition_analysis(bars: list[dict], tf: str) -> dict:
     It includes only bars available before entry and never uses future values
     to construct the setup. This is a shadow research statistic, not PnL.
     """
+    cache_key = (tf, str(len(bars)), int(bars[-1]["t"]) if bars else 0,
+                 int(bars[-2]["c"]*100) if len(bars)>1 else 0)
+    cache_key_full = ("XAU",) + cache_key
+    cached = _HISTORICAL_CACHE.get(cache_key_full)
+    if cached:
+        return dict(cached)
     if len(bars) < 260:
-        return {
+        result = {
             "status": "INSUFFICIENT_DATA", "sample_positions": 0,
             "win_rate_pct": None, "profit_factor": None,
             "max_drawdown_pct": None, "expectancy_pct": None,
             "average_return_pct": None,
         }
+        _HISTORICAL_CACHE[cache_key_full] = result
+        return dict(result)
 
     horizon = 12
     fees_slippage_pct = 0.05
@@ -328,19 +337,21 @@ def historical_condition_analysis(bars: list[dict], tf: str) -> dict:
         })
 
     if not trades:
-        return {
+        result = {
             "status": "NO_MATCHING_POSITIONS", "sample_positions": 0,
             "win_rate_pct": None, "profit_factor": None,
             "max_drawdown_pct": None, "expectancy_pct": None,
             "average_return_pct": None,
         }
+        _HISTORICAL_CACHE[cache_key_full] = result
+        return dict(result)
 
     returns = [trade["return_pct"] for trade in trades]
     winners = [value for value in returns if value > 0]
     losers = [abs(value) for value in returns if value < 0]
     win_rate = 100*len(winners)/len(trades)
     profit_factor = (sum(winners)/sum(losers)) if losers else (None if not winners else 999.0)
-    return {
+    result = {
         "status": "READY",
         "sample_positions": len(trades),
         "wins": len(winners),
@@ -357,6 +368,8 @@ def historical_condition_analysis(bars: list[dict], tf: str) -> dict:
         "horizon_bars": horizon,
         "note": "Geriye dönük koşul istatistiği; gelecek getiri garantisi değildir.",
     }
+    _HISTORICAL_CACHE[cache_key_full] = result
+    return dict(result)
 
 
 def settle_pending(store: UnifiedDecisionStore, symbol: str, tf: str, bars: list[dict]):

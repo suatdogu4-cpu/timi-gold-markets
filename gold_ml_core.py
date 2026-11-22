@@ -149,8 +149,13 @@ def train_xgb(bars,symbol):
     if n<MIN_ROWS:
         meta['reasons']=[f'Yeterli tarihsel seans yok: {n}/{MIN_ROWS}. Gerçek veri bekleniyor.']
         return None,meta
-    from xgboost import XGBClassifier
-    import numpy as np
+    try:
+        from xgboost import XGBClassifier
+        import numpy as np
+    except (ImportError, OSError) as ex:
+        meta['status']='DEPENDENCY_UNAVAILABLE'
+        meta['reasons']=[f'XGBoost araştırma bağımlılığı yüklenemedi ({type(ex).__name__}); eğitim için GOLD ML GitHub Actions iş akışını kullanın.']
+        return None,meta
     ntrain=int(n*.75)
     if n-ntrain<40:meta['reasons']=['Kronolojik test örneği 40 altında'];return None,meta
     xtrain=np.array([r['features'] for r in rows[:ntrain]],dtype=float)

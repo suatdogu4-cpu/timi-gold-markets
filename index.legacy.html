@@ -10,7 +10,7 @@
  window.addEventListener('load',function(){setTimeout(function(){if(!window.__GOLD_APP_READY__)warn('Başlangıç kodu eksik ya da çalışmadı')},3500)});
 })();</script>
 
-<link rel="stylesheet" href="gold_style.css?v=3201">
+<link rel="stylesheet" href="gold_style.css?v=3203">
 <link rel="stylesheet" href="gold_redesign.css?v=3305">
 <link rel="stylesheet" href="gold_quant_hub.css?v=3100">
 </head><body>
@@ -31,7 +31,7 @@
 <section class="view active" id="v-dashboard">
   <div class="kpirow">
     <div class="card kpi"><div class="key">Son fiyat</div><div class="val cyan" id="k-price">—</div><div class="sub" id="k-change">Bekleniyor</div></div>
-    <div class="card kpi kpi-market-flow"><div class="key">XAUUSD spot / Order Flow</div><div class="microflow"><div class="flow-spot"><b class="gold" id="k-spot">—</b><small id="k-spot-sub">Spot bekleniyor</small></div><div class="flow-split"><div class="buy"><small>ALIS</small><b id="k-flow-buy">—</b></div><div class="sell"><small>SATIS</small><b id="k-flow-sell">—</b></div></div></div></div>
+    <div class="card kpi kpi-market-flow"><div class="key">XAUUSD spot / Order Flow</div><div class="microflow"><div class="flow-spot"><b class="gold" id="k-spot">—</b><small id="k-spot-sub">Spot bekleniyor</small></div><div class="flow-split"><div class="buy"><small>ALIŞ</small><b id="k-flow-buy">—</b></div><div class="sell"><small>SATIŞ</small><b id="k-flow-sell">—</b></div></div><small class="flow-caption" id="k-flow-sub">Order Flow kaynağı bekleniyor</small></div></div>
     <div class="card kpi"><div class="key">Mark · Index</div><div class="val" id="k-mark">—</div><div class="sub" id="k-index">Index —</div></div>
     <div class="card kpi"><div class="key">24s Hacim · Futures</div><div class="val" id="k-volume">—</div><div class="sub" id="k-dayrange">Gün aralığı —</div></div>
     <div class="card kpi"><div class="key">Order Book · 20</div><div class="val" id="k-imb">—</div><div class="sub">Notional dengesizliği</div></div>
@@ -145,20 +145,83 @@
   <button type="button" data-go="quanthub">7 Quant + Konsensüs</button>
   <button type="button" data-go="freqtrade" aria-current="page">Freqtrade</button>
  </nav>
- <div class="sectiontop"><h2>Freqtrade · Bot ve portföy özeti</h2><button class="btn" id="freqtradeRefresh">↻ Yenile</button></div>
- <div class="hint warn">Resmi Freqtrade REST API bağlantısı · yalnızca okuma. Bu panel emir göndermez; botu başlatıp durdurmaz, strateji değiştirmez. Freqtrade’in kendi uygulama arayüzü/kodu kopyalanmamıştır.</div>
- <div class="card"><div class="body" id="freqtradeStatus" role="status" aria-live="polite">Bağlantı durumu kontrol ediliyor…</div></div>
- <div class="metricgrid" id="freqtradeMetrics" style="margin-top:10px"></div>
- <div class="twocol" style="margin-top:10px">
-  <div class="card"><div class="cardhead"><h3>Açık pozisyonlar</h3><small id="freqtradeOpenCount">—</small></div><div class="table-scroll"><table><thead><tr><th>Parite</th><th>Giriş</th><th>Güncel</th><th>PnL</th></tr></thead><tbody id="freqtradeTrades"><tr><td colspan="4">Veri bekleniyor…</td></tr></tbody></table></div></div>
-  <div class="card"><div class="cardhead"><h3>Bağlantı kurulumu</h3></div><div class="body">
-   <p>Freqtrade’i ayrı bir sunucuda çalıştırın ve REST API’yi yalnızca HTTPS, VPN veya güvenli tünel üzerinden erişilebilir yapın.</p>
-   <p>Render Environment değişkenleri:</p>
-   <ul class="list"><li><code>FREQTRADE_API_URL</code></li><li><code>FREQTRADE_API_USERNAME</code></li><li><code>FREQTRADE_API_PASSWORD</code></li></ul>
-   <p>Kimlik bilgileri tarayıcıya gönderilmez. Bağlantı yalnızca token, sürüm, pozisyon sayısı ve kâr özeti okur.</p>
-   <p><a href="https://www.freqtrade.io/en/stable/rest-api/" target="_blank" rel="noopener noreferrer">Resmi Freqtrade REST API belgeleri</a></p>
-  </div></div>
- </div>
+ <div class="sectiontop"><div><h2>Freqtrade · Bot çalışma masası</h2><small id="freqtradeMode" class="muted">Güvenli API bağlantısı kontrol ediliyor</small></div><button class="btn" id="freqtradeRefresh">↻ Yenile</button></div>
+ <section id="freqtradeAuth" class="card ft-auth" aria-label="Freqtrade panel kilidi">
+  <div class="cardhead"><h3>Güvenli erişim</h3><span class="chip">Sunucu tarafı API</span></div>
+  <div class="body">
+   <p id="freqtradeAuthStatus" role="status" aria-live="polite">Bağlantı durumu kontrol ediliyor…</p>
+   <form id="freqtradeUnlockForm" class="ft-login" hidden>
+    <label for="freqtradePassword">Freqtrade panel parolası</label>
+    <input id="freqtradePassword" class="field" type="password" autocomplete="current-password" required>
+    <button class="btn primary" type="submit">Panel kilidini aç</button>
+   </form>
+   <div id="freqtradeSetup" hidden>
+    <p>Render Environment bölümünde API ve panel parolasını sunucu tarafında tanımlayın:</p>
+    <ul class="list"><li><code>FREQTRADE_API_URL</code> (HTTPS / VPN tüneli)</li><li><code>FREQTRADE_API_USERNAME</code></li><li><code>FREQTRADE_API_PASSWORD</code></li><li><code>FREQTRADE_UI_PASSWORD</code> (API parolasından ayrı, en az 16 karakter)</li></ul>
+    <p>API anahtarı veya parolayı sohbet/arayüz içine yazmayın. REST API'yi herkese açık bırakmayın.</p>
+   </div>
+   <button class="btn" id="freqtradeLogout" type="button" hidden>Oturumu kilitle</button>
+  </div>
+ </section>
+ <section id="freqtradeApp" hidden>
+  <div id="freqtradeApiSetup" class="hint warn" hidden>Freqtrade REST API bağlantısı Render ortamında yapılandırılmamış. Bot verisini açmak için <code>FREQTRADE_API_URL</code>, <code>FREQTRADE_API_USERNAME</code> ve <code>FREQTRADE_API_PASSWORD</code> değerlerini Render Environment bölümüne ekleyip servisi yeniden başlatın.</div>
+  <div class="ft-tabs" id="freqtradeTabs" role="tablist" aria-label="Freqtrade bölümleri">
+   <button class="active" type="button" data-ft-tab="overview" role="tab" aria-selected="true">Genel</button>
+   <button type="button" data-ft-tab="trades" role="tab" aria-selected="false">İşlemler</button>
+   <button type="button" data-ft-tab="strategy" role="tab" aria-selected="false">Strateji analizi</button>
+   <button type="button" data-ft-tab="data" role="tab" aria-selected="false">Piyasa verisi</button>
+  </div>
+  <section class="ft-pane active" data-ft-pane="overview">
+   <div class="card ft-status" id="freqtradeStatus" role="status" aria-live="polite"></div>
+   <div class="ft-controls card">
+    <div class="cardhead"><h3>Bot kontrolleri</h3><span class="chip">Onay zorunlu</span></div>
+    <div class="body ft-control-buttons">
+     <button class="btn primary" type="button" data-ft-action="start">▶ Başlat</button>
+     <button class="btn" type="button" data-ft-action="pause">Ⅱ Duraklat</button>
+     <button class="btn" type="button" data-ft-action="stopbuy">Girişleri durdur</button>
+     <button class="btn dangerbox" type="button" data-ft-action="stop">■ Durdur</button>
+     <button class="btn" type="button" data-ft-action="reload_config">Ayarları yeniden yükle</button>
+    </div>
+    <p class="note">Başlatma canlı modda gerçek emirlerin oluşmasına izin verebilir. Her komut ayrıca onaylanır. Bu panel manuel alış/satış emri göndermez.</p>
+   </div>
+   <div class="metricgrid ft-metrics" id="freqtradeMetrics"></div>
+   <div class="twocol">
+    <div class="card"><div class="cardhead"><h3>Açık pozisyonlar</h3><small id="freqtradeOpenCount">—</small></div><div class="ft-trade-list" id="freqtradeOpenTrades"></div></div>
+    <div class="card"><div class="cardhead"><h3>Gerçekleşen performans</h3></div><div class="ft-period-list" id="freqtradePeriods"></div></div>
+   </div>
+  </section>
+  <section class="ft-pane" data-ft-pane="trades">
+   <div class="card"><div class="cardhead"><h3>Son işlemler</h3><small>Freqtrade API · en çok 100 kayıt</small></div><div class="ft-trade-list" id="freqtradeHistory"></div></div>
+   <div class="card" style="margin-top:10px"><div class="cardhead"><h3>Parite performansı</h3></div><div class="ft-period-list" id="freqtradePerformance"></div></div>
+  </section>
+  <section class="ft-pane" data-ft-pane="strategy">
+   <div class="card"><div class="cardhead"><h3>Strateji sinyali analizi</h3><span class="chip">Freqtrade pair_history</span></div>
+    <form id="freqtradeAnalysisForm" class="body ft-query">
+     <label>Parite<select id="freqtradePair" class="select"></select></label>
+     <label>Zaman dilimi<select id="freqtradeTimeframe" class="select"><option>1m</option><option>5m</option><option selected>15m</option><option>1h</option><option>4h</option><option>1d</option></select></label>
+     <label>Strateji<select id="freqtradeStrategy" class="select"></select></label>
+     <label>Tarih aralığı<input id="freqtradeTimerange" class="field" placeholder="YYYYMMDD-YYYYMMDD"></label>
+     <button class="btn primary" id="freqtradeAnalyze" type="submit">Veriyi stratejiyle analiz et</button>
+    </form>
+    <div class="body"><div id="freqtradeAnalysisStatus" class="note" role="status" aria-live="polite">Strateji ve parite seçin.</div><div class="metricgrid ft-signal-metrics" id="freqtradeSignals"></div></div>
+    <div class="ft-trade-list" id="freqtradeAnalysisRows"></div>
+   </div>
+  </section>
+  <section class="ft-pane" data-ft-pane="data">
+   <div class="card"><div class="cardhead"><h3>Botun bildiği OHLCV verisi</h3><span class="chip">Freqtrade pair_candles</span></div>
+    <form id="freqtradeDataForm" class="body ft-query">
+     <label>Parite<select id="freqtradeDataPair" class="select"></select></label>
+     <label>Zaman dilimi<select id="freqtradeDataTimeframe" class="select"><option>1m</option><option>5m</option><option selected>15m</option><option>1h</option><option>4h</option><option>1d</option></select></label>
+     <button class="btn primary" type="submit">Mum verisini getir</button>
+    </form>
+    <div id="freqtradeChart" class="ft-chart"></div>
+    <div id="freqtradeDataStatus" class="body note" role="status" aria-live="polite">Veri bekleniyor.</div>
+    <div class="ft-trade-list" id="freqtradeDataRows"></div>
+   </div>
+  </section>
+  <div class="hint warn">Strateji analizi, botta yüklü stratejinin Freqtrade tarafından üretilen sinyallerini gösterir; kendi başına backtest çalıştırdığı anlamına gelmez. Resmi Freqtrade REST API, araştırma amaçlıdır ve canlı işlem riskini ortadan kaldırmaz.</div>
+ </section>
+ <p class="note"><a href="https://www.freqtrade.io/en/stable/rest-api/" target="_blank" rel="noopener noreferrer">Resmi Freqtrade REST API belgeleri</a></p>
 </section>
 
 <section class="view" id="v-altinquant">
@@ -257,7 +320,7 @@
 </div>
 
 <script async src="/vendor/lightweight-charts.standalone.production.js" onload="window.dispatchEvent(new Event('gold-chart-library-ready'))"></script>
-<script defer src="gold_app.js?v=3306"></script>
+<script defer src="gold_app.js?v=3308"></script>
 <script defer src="gold_quant_hub.js?v=3701"></script>
 <script>
 (function(){

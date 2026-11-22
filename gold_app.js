@@ -3,18 +3,18 @@ const $=id=>document.getElementById(id);
 const navs=[['dashboard','◈ Kokpit'],['chart','▤ Grafik'],['technical','▧ Teknik'],['smc','◇ SMC / ICT'],['flow','⇄ Order Flow'],['depth','▥ DOM'],['derivatives','◉ Vadeli'],['macro','◎ Makro & Haber'],['quant','∑ Quant / Altın Quant'],['freqtrade','◉ Freqtrade'],['quanthub','◈ 7 Quant + Konsensüs'],['decision','✦ Karar Motoru'],['performance','▱ Performans'],['health','● Veri Sağlığı'],['settings','⚙ Ayarlar']];
 const tfs=['1m','3m','5m','15m','30m','1H','4H','1D'];
 const repoLinks=[['order-flow-platform','https://github.com/justaksi7/order-flow-platform'],['Gold-Dashboard','https://github.com/Econ-G/Gold-Dashboard'],['gold-sweep-backtester','https://github.com/baturdenada/gold-sweep-backtester'],['smc-backtester','https://github.com/Yousuf6273/smc-backtester'],['GoldBot','https://github.com/shrijeet-lokhande/GoldBot'],['aurum-intelligence','https://github.com/Pestador/aurum-intelligence'],['PickleChart','https://github.com/ikarisz/PickleChart'],['dukascopy-tools','https://github.com/Tradelyy/dukascopy-tools'],['lightweight-charts','https://github.com/tradingview/lightweight-charts'],['TA-Lib','https://github.com/TA-Lib/ta-lib'],['vectorbt','https://github.com/polakowo/vectorbt'],['quantstats','https://github.com/ranaroussi/quantstats']];
-let symbol='XAUUSDT',tf='1m',page='dashboard',snap=null,ana=null,candleData=[],plots={},osc={},clientWs=null,retryMs=1200,lastBT=null,inflight=0,firstLoad=true,lastRollRefresh=0,chartDataFresh=false,candleFetchInFlight=false,candleUpdatedMs=0;
+let symbol='XAUUSDT',tf='1m',page='dashboard',snap=null,ana=null,candleData=[],plots={},osc={},clientWs=null,retryMs=1200,lastBT=null,inflight=0,firstLoad=true,lastRollRefresh=0,chartDataFresh=false,candleFetchInFlight=false,candleUpdatedMs=0,freqtradeDataChart=null,freqtradeCandleSeries=null,freqtradeOverview=null,freqtradeAuthenticated=false,freqtradeLoadInFlight=false;
 const togglesConfig=[['EMA20','ema20',true],['EMA50','ema50',true],['EMA200','ema200',false],['BB','bb',true],['VWAP50','vwap50',false],['SUPERTREND','supertrend',false]];
 const opts=Object.fromEntries(togglesConfig.map(x=>[x[1],localStorage.getItem('gold-'+x[1])===null?x[2]:localStorage.getItem('gold-'+x[1])==='true']));
 const fmt=(x,d=2)=>x===null||x===undefined||!Number.isFinite(Number(x))?'—':Number(x).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
 const short=x=>x===null||x===undefined||!Number.isFinite(Number(x))?'—':Math.abs(x)>=1e9?fmt(x/1e9,2)+'B':Math.abs(x)>=1e6?fmt(x/1e6,2)+'M':Math.abs(x)>=1000?fmt(x/1000,2)+'K':fmt(x,2);
 const age=x=>x===null||x===undefined?'—':fmt(x,1)+'s';
 const pct=x=>x===null||x===undefined?'—':fmt(x,2)+'%';
-const showError=s=>{let e=$('err');e.style.display=s?'block':'none';e.textContent=s||''};
 const escaped=s=>String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');
 const time=x=>{try{return new Date(x).toLocaleTimeString('tr-TR')}catch{return '—'}};
 const date=x=>{try{return new Date(x*1000).toLocaleString('tr-TR',{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'})}catch{return '—'}};
-async function getJSON(url){let r=await fetch(url,{cache:'no-store'});let j=await r.json().catch(()=>({detail:'Yanıt JSON değil'}));if(!r.ok)throw new Error(j.detail||r.status+' HTTP');return j}
+async function getJSON(url,options={}){let r=await fetch(url,{cache:'no-store',...options}),type=r.headers.get('content-type')||'',j=null;if(type.includes('json')){try{j=await r.json()}catch{throw Error(`Sunucu geçersiz JSON döndürdü (HTTP ${r.status})`)}}else{await r.text();if(!r.ok)throw Error(`Sunucu geçici yanıt verdi (HTTP ${r.status})`);throw Error(`Sunucu JSON yerine farklı içerik döndürdü (HTTP ${r.status})`)}if(!r.ok)throw Error(j?.detail||`HTTP ${r.status}`);return j}
+const postJSON=(url,data)=>getJSON(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
 function initAssistant(){
  const panel=$('assistantPanel'),fab=$('assistantFab'),close=$('assistantClose'),form=$('assistantForm'),input=$('assistantInput'),messages=$('assistantMessages');
  if(!panel||!fab||!form)return;
@@ -42,13 +42,19 @@ $('v-strategies')?.remove();
 $('nav').addEventListener('click',e=>{let b=e.target.closest('[data-page]');if(b)go(b.dataset.page)});
 document.body.addEventListener('click',e=>{let b=e.target.closest('[data-go]');if(b)go(b.dataset.go)});
 $('tfbar').innerHTML=tfs.map(x=>`<button data-tf="${x}" class="${x===tf?'active':''}">${x}</button>`).join('');
-$('tfbar').onclick=e=>{let b=e.target.closest('[data-tf]');if(b){tf=b.dataset.tf; $('tfbar').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));reloadAll()}};
-$('symbol').onchange=e=>{symbol=e.target.value;reloadAll()};$('reload').onclick=()=>reloadAll(true);
+$('tfbar').onclick=e=>{let b=e.target.closest('[data-tf]');if(b){tf=b.dataset.tf; $('tfbar').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));markChartUnavailable('Yeni zaman dilimi için güncel mumlar yükleniyor…',true);reloadAll()}};
+$('symbol').onchange=e=>{symbol=e.target.value;markChartUnavailable('Yeni parite için güncel mumlar yükleniyor…',true);reloadAll()};$('reload').onclick=()=>reloadAll(true);
 for(let id of ['toggles','toggles-detail']){$(id).innerHTML=togglesConfig.map(([lab,k])=>`<label class="switch"><input data-opt="${k}" type="checkbox" ${opts[k]?'checked':''}>${lab}</label>`).join('');$(id).onchange=e=>{if(!e.target.dataset.opt)return;let k=e.target.dataset.opt;opts[k]=e.target.checked;localStorage.setItem('gold-'+k,String(opts[k]));document.querySelectorAll(`[data-opt="${k}"]`).forEach(x=>x.checked=opts[k]);renderPlots()}}
 $('repoList').innerHTML=repoLinks.map(([name,u])=>`<a href="${u}" target="_blank" rel="noopener noreferrer">${escaped(name)}</a>`).join('');
 $('resetPrefs').onclick=()=>{for(let k in opts)localStorage.removeItem('gold-'+k);location.reload()};
 $('healthReload').onclick=loadHealth;$('macroReload').onclick=loadMacro;
 $('freqtradeRefresh').onclick=loadFreqtrade;
+$('freqtradeUnlockForm').onsubmit=async e=>{e.preventDefault();const password=$('freqtradePassword').value;$('freqtradeAuthStatus').textContent='Güvenli oturum açılıyor…';try{await postJSON('/api/freqtrade/session',{password});$('freqtradePassword').value='';await loadFreqtrade()}catch(ex){$('freqtradeAuthStatus').textContent='Oturum açılamadı: '+ex.message}};
+$('freqtradeLogout').onclick=async()=>{try{await postJSON('/api/freqtrade/session/logout',{});freqtradeAuthenticated=false;freqtradeOverview=null;await loadFreqtrade()}catch(ex){$('freqtradeAuthStatus').textContent='Oturum kilitlenemedi: '+ex.message}};
+$('freqtradeTabs').onclick=e=>{const b=e.target.closest('[data-ft-tab]');if(!b)return;const pane=b.dataset.ftTab;$('freqtradeTabs').querySelectorAll('[data-ft-tab]').forEach(x=>{const active=x===b;x.classList.toggle('active',active);x.setAttribute('aria-selected',String(active))});document.querySelectorAll('#freqtradeApp [data-ft-pane]').forEach(x=>x.classList.toggle('active',x.dataset.ftPane===pane));if(pane==='data')requestAnimationFrame(resizeFreqtradeChart)};
+document.querySelectorAll('[data-ft-action]').forEach(b=>b.onclick=()=>freqtradeAction(b.dataset.ftAction));
+$('freqtradeAnalysisForm').onsubmit=e=>{e.preventDefault();loadFreqtradeStrategyAnalysis()};
+$('freqtradeDataForm').onsubmit=e=>{e.preventDefault();loadFreqtradeMarketData()};
 $('mtfReload').onclick=loadMTF;
  if($('aqRefresh'))$('aqRefresh').onclick=loadAltinQuant;
  if($('aqRiskBtn'))$('aqRiskBtn').onclick=aqRiskCalc;
@@ -165,7 +171,8 @@ function heatSetupToggle(){
  }
 }
 
-function updateSnap(s){snap=s;if(chartDataFresh&&Date.now()-candleUpdatedMs>(symbol==='XAUUSD'?20000:tf==='1m'?8000:15000))markChartUnavailable('Mum verisi zaman aşımına uğradı; eski gösterge ve mumlar gizlendi.');let valid=s.valid||{},price=s.price,spot=s.spot,fl=s.flow;
+function candleMaxAgeMs(){return symbol==='XAUUSD'?20000:tf==='1m'?8000:15000}
+function updateSnap(s){snap=s;if(chartDataFresh&&Date.now()-candleUpdatedMs>candleMaxAgeMs())markChartUnavailable('Mum verisi zaman aşımına uğradı; doğrulanmış eski mum ve göstergeler gizlendi.',true);let valid=s.valid||{},price=s.price,spot=s.spot,fl=s.flow;
  $('conn').textContent=valid.ticker?(s.ticker_source==='websocket'?'CANLI WS':'CANLI REST · ≤5 sn'):'VERİ GECİKMELİ';$('led').className='dot '+(valid.ticker?(s.ticker_source==='websocket'?'ok':''):'bad');
  if(symbol==='XAUUSD'){$('k-price').textContent=spot?fmt(spot.last):'—';$('k-change').textContent='OANDA Spot · 15 sn REST';} else {$('k-price').textContent=price?fmt(price.last):'—';$('k-change').textContent=price?`24s ${pct(price.change24_pct)}`:'Fiyat doğrulanmadı'}
  $('k-spot').textContent=spot?fmt(spot.last):'—';$('k-spot-sub').textContent=s.spot_status+' · '+age(s.spot_age_s);
@@ -174,13 +181,14 @@ function updateSnap(s){snap=s;if(chartDataFresh&&Date.now()-candleUpdatedMs>(sym
  let buy=fl?.buy_notional60||0,sell=fl?.sell_notional60||0,flowTotal=buy+sell;
  if($('k-flow-buy'))$('k-flow-buy').textContent=flowTotal?fmt(buy/flowTotal*100,1)+'%':'—';
  if($('k-flow-sell'))$('k-flow-sell').textContent=flowTotal?fmt(sell/flowTotal*100,1)+'%':'—';
+ if($('k-flow-sub'))$('k-flow-sub').textContent=valid.book&&valid.trades?flowTotal?`${fl.trades60||0} Bitget işlemi · son 60 sn`:'Son 60 sn işlem yok':'Order Flow bekleniyor · emir defteri / işlem akışı ayrı kaynaklar';
  $('k-imb').textContent=fl&&fl.imbalance!==null?pct(fl.imbalance*100):'—';setClass('k-imb',fl?.imbalance>0.08?'green':fl?.imbalance<-.08?'red':null);
- let percent=buy+sell?buy/(buy+sell)*100:50;
- $('donut').style.background=`conic-gradient(var(--green) 0 ${percent}%,var(--red) ${percent}% 100%)`;
- $('donutTxt').textContent=fl?fmt(percent,0)+'%':'—';$('flowBuy').textContent=fl?short(buy):'—';$('flowSell').textContent=fl?short(sell):'—';$('flowDelta').textContent=fl?short(fl.delta60):'—';
+ let hasTrades=Boolean(fl&&flowTotal>0),percent=hasTrades?buy/flowTotal*100:null;
+ if(hasTrades)$('donut').style.background=`conic-gradient(var(--green) 0 ${percent}%,var(--red) ${percent}% 100%)`;else $('donut').style.background='conic-gradient(#52647b 0 100%)';
+ $('donutTxt').textContent=hasTrades?fmt(percent,0)+'%':'—';$('flowBuy').textContent=hasTrades?short(buy):'—';$('flowSell').textContent=hasTrades?short(sell):'—';$('flowDelta').textContent=hasTrades?short(fl.delta60):'—';
  $('basis').textContent=(price&&spot)?fmt(price.last-spot.last,3):'—';$('basisNote').textContent=(price&&spot)?'XAUUSDT − XAUUSD, anlık kaynak farkı':'OANDA spot bağlantısı yok';
  $('overviewHealth').innerHTML=`<p>${valid.ticker?'🟢':'🔴'} Fiyat: ${age(s.age_s.ticker)}</p><p>${valid.book?'🟢':'🔴'} Derinlik: ${age(s.age_s.book)}</p><p>${valid.trades?'🟢':'🔴'} İşlemler: ${age(s.age_s.trades)}</p>`;
- updateOrderBook(s);updateTrades(s);updateDerivatives(s);updateFlow(s);g32FlowUpdate(s);$('chartUpdated').textContent=chartDataFresh?'Mum güncel · '+age((Date.now()-candleUpdatedMs)/1000):'Mum verisi gecikmeli';
+ updateOrderBook(s);updateTrades(s);updateDerivatives(s);updateFlow(s);g32FlowUpdate(s);
  if(price&&valid.ticker&&symbol==='XAUUSDT')tickPlot(price.last,s.server_time);
  if(symbol==='XAUUSD'&&!spot&&ana)$('k-decision').textContent='BEKLE';
 }
@@ -323,17 +331,17 @@ function updateUnifiedDecision(u){
  updateUnifiedChartZones(u);
 }
 function clearCurrentAnalysis(){ana=null;$('techTable').innerHTML='';$('techCount').textContent='Güncel analiz yok';$('quantMetrics').innerHTML='';$('g32-tech-summary').textContent='Güncel teknik veri yok.';$('g32-quant-summary').textContent='Güncel Quant verisi yok.';$('overviewSMC').textContent='Güncel mum verisi yok.';$('smcEvents').textContent='Güncel mum verisi yok.';$('swingHi').textContent='—';$('swingLo').textContent='—';$('swingMid').textContent='—';$('overviewAtr').textContent='—';$('overviewBB').textContent='—';$('overviewZ').textContent='—';$('overviewVar').textContent='—';$('regimeName').textContent='Veri gecikmeli';$('mtfCards').textContent='Güncel mum verisi yok.';$('aqStamp').textContent='GÜNCEL VERİ YOK';$('aqLegacy').textContent='—';$('aqNew').textContent='—';$('aqLong').textContent='—';$('aqShort').textContent='—';$('aqStats').textContent='Güncel veri yok.';$('aqSetup').textContent='Güncel veri yok.';$('decisionData').textContent='Güncel analiz yok · karar gizlendi';$('bigDecision').textContent='BEKLE';$('k-decision').textContent='BEKLE';$('longScore').textContent='—';$('shortScore').textContent='—';$('netScore').textContent='—';$('stop').textContent='—';$('target').textContent='—';$('entryZone').textContent='—';$('targetZone').textContent='—';$('riskReward').textContent='—';$('positionIndex').textContent='—';$('reasonList').textContent='Güncel veri yok';$('vetoList').textContent='—';for(let p of Object.values(plots)){if(!p)continue;for(const s of Object.values(p.lines||{}))try{s.setData([])}catch(e){}}for(let o of Object.values(osc))if(o)for(const s of Object.values(o.lines||{}))try{s.setData([])}catch(e){}}
-function markChartUnavailable(message){chartDataFresh=false;candleData=[];candleUpdatedMs=0;clearCurrentAnalysis();renderPlots();$('chartUpdated').textContent='GÜNCEL VERİ YOK';if($('uxFeedStatus'))$('uxFeedStatus').textContent='GÜNCEL VERİ YOK';if(message)showError(message)}
+function markChartUnavailable(message,force=false){if(!force&&chartDataFresh&&Date.now()-candleUpdatedMs<=candleMaxAgeMs()){$('chartUpdated').textContent=`Mum yenilemesi bekleniyor · son veri ${age((Date.now()-candleUpdatedMs)/1000)}`;return false}chartDataFresh=false;candleData=[];candleUpdatedMs=0;clearCurrentAnalysis();renderPlots();$('chartUpdated').textContent=message||'GÜNCEL VERİ YOK';if($('uxFeedStatus'))$('uxFeedStatus').textContent='GÜNCEL VERİ YOK';return true}
 function acceptCandleResponse(c){if(!c?.fresh||!Array.isArray(c.bars)||!c.bars.length)throw Error('Mum verisi güncelliği doğrulanamadı');candleData=c.bars;candleUpdatedMs=Number(c.updated_ms)||Date.now();chartDataFresh=true;$('chartUpdated').textContent='Mum verisi · '+age(c.age_s)+' önce';if($('uxFeedStatus'))$('uxFeedStatus').textContent='MUM GÜNCEL · '+age(c.age_s);renderPlots()}
-async function refreshCandles(){if(candleFetchInFlight||document.visibilityState!=='visible')return;candleFetchInFlight=true;const wantedSymbol=symbol,wantedTf=tf;try{const c=await getJSON(`/api/candles?symbol=${wantedSymbol}&tf=${wantedTf}&limit=550`);if(wantedSymbol!==symbol||wantedTf!==tf)return;acceptCandleResponse(c)}catch(e){if(wantedSymbol===symbol&&wantedTf===tf)markChartUnavailable('Güncel mum verisi alınamadı: '+e.message)}finally{candleFetchInFlight=false}}
-async function reloadAll(force=false){let seq=++inflight;showError('');$('chartTitle').textContent=symbol+' · '+tf;
+async function refreshCandles(){if(candleFetchInFlight||document.visibilityState!=='visible')return;candleFetchInFlight=true;const wantedSymbol=symbol,wantedTf=tf;try{const c=await getJSON(`/api/candles?symbol=${wantedSymbol}&tf=${wantedTf}&limit=550`);if(wantedSymbol!==symbol||wantedTf!==tf)return;acceptCandleResponse(c)}catch(e){if(wantedSymbol===symbol&&wantedTf===tf){const stale=e.message.includes('Güncel mum verisi doğrulanamadı')||e.message.includes('eski veri gösterilmiyor');markChartUnavailable('Mum verisi yenilenemedi · '+e.message,stale)}}finally{candleFetchInFlight=false}}
+async function reloadAll(force=false){let seq=++inflight;$('chartTitle').textContent=symbol+' · '+tf;
  const req=await Promise.allSettled([getJSON(`/api/candles?symbol=${symbol}&tf=${tf}&limit=550&refresh=${force}`),getJSON(`/api/analysis?symbol=${symbol}&tf=${tf}&refresh=${force}`),getJSON(`/api/ml-status?symbol=${symbol}`),getJSON(`/api/unified-decision?symbol=${symbol}&tf=${tf}`)]);if(seq!==inflight)return;
- const [c,a,ml,unified]=req;const errors=[];
- if(c.status==='fulfilled'){try{acceptCandleResponse(c.value)}catch(e){markChartUnavailable(e.message);errors.push(e.message)}}else{markChartUnavailable(c.reason.message);errors.push(c.reason.message)}
- if(a.status==='fulfilled'&&chartDataFresh){ana=a.value;updateAnalysis(a.value)}else if(a.status==='rejected'){clearCurrentAnalysis();errors.push('Analiz: '+a.reason.message)}
- if(unified.status==='fulfilled'&&chartDataFresh)updateUnifiedDecision(unified.value);else if(unified.status==='rejected'){errors.push('Karar: '+unified.reason.message);$('k-decision').textContent='BEKLE'}
- if(ml.status==='fulfilled')updateMLStatus(ml.value);else errors.push('ML durumu: '+ml.reason.message);
- firstLoad=false;if(errors.length)showError(errors.join(' · '));
+ const [c,a,ml,unified]=req;
+ if(c.status==='fulfilled'){try{acceptCandleResponse(c.value)}catch(e){markChartUnavailable('Mum verisi doğrulanamadı · '+e.message,true)}}else{const msg=c.reason.message;markChartUnavailable('Mum verisi yenilenemedi · '+msg,msg.includes('Güncel mum verisi doğrulanamadı')||msg.includes('eski veri gösterilmiyor'))}
+ if(a.status==='fulfilled'&&chartDataFresh){ana=a.value;updateAnalysis(a.value)}else if(a.status==='rejected'&&chartDataFresh){$('techCount').textContent='Analiz yenilemesi başarısız · '+a.reason.message}
+ if(unified.status==='fulfilled'&&chartDataFresh)updateUnifiedDecision(unified.value);else if(unified.status==='rejected'&&!chartDataFresh)$('k-decision').textContent='BEKLE';
+ if(ml.status==='fulfilled')updateMLStatus(ml.value);else if($('mlStatusDecision')){$('mlStatusDecision').textContent='BEKLE';setClass('mlStatusDecision',clsDecision('BEKLE'));$('mlStatusAge').textContent='ML durumu alınamadı';$('mlStatusDetail').textContent='ML/araştırma raporu isteği başarısız: '+ml.reason.message}
+ firstLoad=false;
  if(page==='technical')loadMTF();if(page==='altinquant')loadAltinQuant();}
 function updateMLStatus(j){
  if(!$('mlStatusDecision')||!j)return;
@@ -353,22 +361,82 @@ function updateMLStatus(j){
 }
 async function loadMTF(){try{let j=await getJSON('/api/mtf?symbol='+symbol);$('mtfCards').innerHTML=j.rows.map(x=>`<div class="metric row" style="margin:5px 0"><b style="font-size:12px">${x.tf}</b><span class="${clsDecision(x.direction)}">${x.direction}</span><small>RSI ${fmt(x.rsi,1)}</small></div>`).join('')}catch(e){$('mtfCards').textContent=e.message}}
 async function loadHealth(){try{let h=await getJSON('/api/health');$('healthCards').innerHTML=[['Gateway',h.status],['Bitget WS',h.bitget_ws?'BAĞLI':'BAĞLI DEĞİL'],['Fiyat',h.feed_valid?.ticker?'GÜNCEL':'GECİKMELİ'],['Fiyat kaynağı',h.ticker_source],['Emir defteri',h.feed_valid?.book?'GÜNCEL':'GECİKMELİ'],['İşlemler',h.feed_valid?.trades?'GÜNCEL':'GECİKMELİ'],['OANDA',h.spot_configured?'YAPILANDIRILDI':'KAPALI'],['Fiyat yaşı',age(h.feed_age_seconds?.ticker)],['Son olay',h.time_utc]].map(([n,v])=>`<div class="metric"><small>${n}</small><b style="font-size:15px">${escaped(v)}</b></div>`).join('');$('healthRaw').textContent=JSON.stringify(h,null,2)}catch(e){$('healthRaw').textContent=e.message}}
+function setFreqtradeOptions(id,values,selected){const el=$(id);if(!el)return;const safe=[...new Set((values||[]).filter(x=>typeof x==='string'&&x))];el.innerHTML=safe.map(x=>`<option value="${escaped(x)}">${escaped(x)}</option>`).join('')||'<option value="">API paritesi bulunamadı</option>';if(selected&&safe.includes(selected))el.value=selected}
+function ftMetric(label,value){if(value===null||value===undefined)return '';const shown=typeof value==='number'?fmt(value,3):String(value);return `<div class="metric"><small>${escaped(label)}</small><b>${escaped(shown)}</b></div>`}
+function ftTradeCard(t,closed=false){const profit=t.current_profit_pct??(t.current_profit==null?null:Number(t.current_profit)*100)??(t.profit_ratio==null?null:Number(t.profit_ratio)*100),rate=closed?t.close_rate:t.current_rate;return `<article class="ft-trade-row"><div><strong>${escaped(t.pair||'—')}</strong><small>${escaped(t.enter_tag||t.exit_reason||t.open_date||'')}</small></div><div><small>${closed?'Giriş / çıkış':'Giriş'}</small>${escaped(t.open_rate==null?'—':fmt(t.open_rate,4))}${closed&&rate!=null?' / '+escaped(fmt(rate,4)):''}</div><div><small>${closed?'Net PnL':'Anlık PnL'}</small><b class="${Number(profit)>=0?'green':'red'}">${profit==null?escaped(t.profit_abs==null?'—':fmt(t.profit_abs,3)):escaped(fmt(profit,2)+'%')}</b></div><div><small>${closed?'Kapanış':'Miktar'}</small>${escaped(closed?t.close_date||'—':t.amount==null?'—':fmt(t.amount,4))}</div></article>`}
+function ftPeriodCards(periods){const all=[['Günlük',periods.daily||[]],['Haftalık',periods.weekly||[]],['Aylık',periods.monthly||[]]];return all.map(([label,rows])=>`<div class="ft-period-group"><h4>${label}</h4>${rows.slice(0,6).map(x=>{const profit=x.profit_abs??x.abs_profit,ratio=x.profit_ratio??x.rel_profit;return `<div class="ft-period-row"><strong>${escaped(x.date||'—')}</strong><span>${escaped(profit==null?'—':fmt(profit,3))}<small>Net PnL</small></span><span>${escaped(x.trade_count??'—')}<small>İşlem</small></span><span>${escaped(ratio==null?'—':pct(Number(ratio)*100))}<small>Getiri</small></span></div>`}).join('')||'<p class="note">Dönem verisi yok.</p>'}</div>`).join('')}
+function renderFreqtradeOverview(j){
+ freqtradeOverview=j;const status=$('freqtradeStatus'),p=j.profit||{},c=j.count||{},config=j.config||{},v=j.version||{};
+ const live=j.mode==='LIVE';$('freqtradeMode').textContent=`${j.mode==='DRY_RUN'?'DRY-RUN':live?'CANLI İŞLEM':'MOD BİLİNMİYOR'} · ${config.strategy||'Strateji bilgisi yok'} · ${config.timeframe||'—'}`;
+ status.dataset.state=live?'error':'ok';status.innerHTML=`<strong>${live?'⚠ CANLI İŞLEM':'Freqtrade bağlı · '+(j.mode==='DRY_RUN'?'Dry-run':'Mod doğrulanamadı')}</strong><span>API ${escaped(v.version||'—')} · Son sorgu ${escaped(j.fetched_at||'—')}</span>`;
+ const metrics=[['Bot durumu',j.health?.status||'API yanıtlıyor'],['Açık pozisyon',c.current],['Azami pozisyon',c.max],['Kapanan işlem',p.closed_trade_count??p.trade_count],['Kazanç',p.winning_trades],['Kayıp',p.losing_trades],['Toplam PnL',p.profit_all_coin],['Kapanan PnL',p.profit_closed_coin],['Bakiye',j.balance?.total],['Stake para birimi',p.stake_currency||config.stake_currency],['Strateji',config.strategy],['Zaman dilimi',config.timeframe]];
+ $('freqtradeMetrics').innerHTML=metrics.map(([a,b])=>ftMetric(a,b)).join('');
+ const open=Array.isArray(j.open_trades)?j.open_trades:[];$('freqtradeOpenCount').textContent=`${open.length} açık`;$('freqtradeOpenTrades').innerHTML=open.length?open.map(t=>ftTradeCard(t)).join(''):'<p class="note">Açık pozisyon yok.</p>';
+ $('freqtradeHistory').innerHTML=(j.trades||[]).length?j.trades.map(t=>ftTradeCard(t,true)).join(''):'<p class="note">İşlem geçmişi alınmadı veya kayıt yok.</p>';
+ $('freqtradePerformance').innerHTML=(j.performance||[]).map(x=>`<div class="ft-period-row"><strong>${escaped(x.pair||'—')}</strong><span>${escaped(x.trade_count??x.count??'—')}<small>İşlem</small></span><span>${escaped((x.profit_abs??x.profit)==null?'—':fmt(x.profit_abs??x.profit,3))}<small>Net PnL</small></span><span>${escaped(x.profit_ratio==null?'—':pct(Number(x.profit_ratio)*100))}<small>Getiri</small></span></div>`).join('')||'<p class="note">Parite performansı yok.</p>';
+ $('freqtradePeriods').innerHTML=ftPeriodCards(j);
+ const names=(j.strategies||[]).map(x=>x.name||x.strategy||x.class_name).filter(Boolean);if(config.strategy&&!names.includes(config.strategy))names.unshift(config.strategy);
+ const pairs=[...(j.whitelist||[]),...(j.available_pairs||[])];setFreqtradeOptions('freqtradePair',pairs,pairs[0]);setFreqtradeOptions('freqtradeDataPair',pairs,pairs[0]);setFreqtradeOptions('freqtradeStrategy',names,config.strategy);
+ document.querySelectorAll('[data-ft-action]').forEach(b=>b.disabled=!j.configured);
+ if(Object.keys(j.errors||{}).length){const details=Object.entries(j.errors).map(([key,value])=>`${key}: ${value}`).join(' · ');status.insertAdjacentHTML('beforeend',`<p class="note freshness-warning">Eksik API alanları: ${escaped(details)}</p>`)}
+}
 async function loadFreqtrade(){
- const status=$('freqtradeStatus'),metrics=$('freqtradeMetrics'),trades=$('freqtradeTrades');
- if(!status||!metrics||!trades)return;
- status.dataset.state='';status.textContent='Freqtrade API sorgulanıyor…';metrics.innerHTML='';trades.innerHTML='<tr><td colspan="4">Veri yükleniyor…</td></tr>';
+ const auth=$('freqtradeAuth'),app=$('freqtradeApp'),authStatus=$('freqtradeAuthStatus');
+ if(!auth||!app||!authStatus||freqtradeLoadInFlight)return;
+ freqtradeLoadInFlight=true;
+ $('freqtradeRefresh').disabled=true;
  try{
+  const session=await getJSON('/api/freqtrade/session');
+  freqtradeAuthenticated=Boolean(session.authenticated);
+  $('freqtradeSetup').hidden=Boolean(session.password_configured);
+  $('freqtradeUnlockForm').hidden=!session.password_configured||freqtradeAuthenticated;
+  $('freqtradeLogout').hidden=!freqtradeAuthenticated;
+  auth.hidden=freqtradeAuthenticated;app.hidden=!freqtradeAuthenticated;
+  if(!session.password_configured){auth.hidden=false;app.hidden=true;authStatus.textContent='Freqtrade panel kilidi ayarlanmamış; sunucu parolası tanımlanmadan özel bot verisi açılmaz.';return}
+  if(!freqtradeAuthenticated){auth.hidden=false;app.hidden=true;authStatus.textContent='Özel Freqtrade verileri parola ile korunuyor.';return}
+  auth.hidden=true;app.hidden=false;
   const j=await getJSON('/api/freqtrade/overview');
-  if(!j.configured){status.dataset.state='error';status.textContent=j.message;trades.innerHTML='<tr><td colspan="4">Bağlantı yapılandırılmadı.</td></tr>';return}
-  const p=j.profit||{},c=j.count||{},v=j.version||{};
-  status.dataset.state='ok';status.innerHTML=`<strong>Salt okunur bağlantı · ${escaped(v.version||'Sürüm bilgisi yok')}</strong>Son sorgu: ${escaped(j.fetched_at||'—')} · Emir gönderimi kapalı`;
-  const cards=[['Açık pozisyon',c.current],['Azami pozisyon',c.max],['Kapanan işlem',p.closed_trade_count??p.trade_count],['Kazanma',p.winning_trades],['Kaybetme',p.losing_trades],['Toplam net PnL',p.profit_all_coin],['Kapanan PnL',p.profit_closed_coin],['Stake para birimi',p.stake_currency],['Dry-run',p.dry_run],['Toplam stake',c.total_stake]];
-  metrics.innerHTML=cards.filter(([,value])=>value!==undefined&&value!==null).map(([label,value])=>`<div class="metric"><small>${escaped(label)}</small><b>${escaped(typeof value==='number'?fmt(value,3):String(value))}</b></div>`).join('');
-  const rows=Array.isArray(j.trades)?j.trades:[];
-  $('freqtradeOpenCount').textContent=rows.length+' açık';
-  trades.innerHTML=rows.length?rows.map(t=>`<tr class="ft-open-trade"><td>${escaped(t.pair||'—')}</td><td>${escaped(t.open_rate==null?'—':fmt(t.open_rate,4))}</td><td>${escaped(t.current_rate==null?'—':fmt(t.current_rate,4))}</td><td>${escaped(t.current_profit_pct??t.current_profit??'—')}</td></tr>`).join(''):'<tr><td colspan="4">Açık pozisyon yok.</td></tr>';
-  if(Object.keys(j.errors||{}).length){const details=Object.entries(j.errors).map(([key,value])=>`${key}: ${value}`).join(' · ');status.insertAdjacentHTML('beforeend',`<p class="note freshness-warning">Bazı API alanları alınamadı: ${escaped(details)}</p>`)}
- }catch(e){status.dataset.state='error';status.textContent='Freqtrade bağlantı hatası: '+e.message;trades.innerHTML='<tr><td colspan="4">Güncel veri alınamadı.</td></tr>'}
+  if(!j.configured){freqtradeOverview=null;$('freqtradeApiSetup').hidden=false;$('freqtradeStatus').dataset.state='error';$('freqtradeStatus').textContent=j.message||'Freqtrade API bağlantısı Render ortamında yapılandırılmamış.';$('freqtradeMode').textContent='API yapılandırması gerekli';document.querySelectorAll('[data-ft-action]').forEach(b=>b.disabled=true);return}
+  $('freqtradeApiSetup').hidden=true;
+  renderFreqtradeOverview(j);
+ }catch(e){
+  if(e.message.includes('HTTP 401')){freqtradeAuthenticated=false;auth.hidden=false;app.hidden=true;authStatus.textContent='Oturum süresi doldu. Panel parolasını yeniden girin.'}
+  else{auth.hidden=false;app.hidden=true;authStatus.textContent='Freqtrade paneli açılamadı: '+e.message}
+ }finally{freqtradeLoadInFlight=false;$('freqtradeRefresh').disabled=false}
+}
+async function freqtradeAction(action){
+ const labels={start:'BOTU BAŞLAT',pause:'BOTU DURAKLAT',stopbuy:'YENİ GİRİŞLERİ DURDUR',stop:'BOTU DURDUR',reload_config:'AYARLARI YENİDEN YÜKLE'};
+ const live=freqtradeOverview?.mode==='LIVE',startRisk=freqtradeOverview?.mode!=='DRY_RUN';
+ const warning=action==='start'&&startRisk?`\n\n${live?'CANLI MOD':'MOD DOĞRULANAMADI'}: strateji gerçek emirler oluşturabilir.`:action==='stop'?'\n\nAçık pozisyonlar borsada açık kalabilir; bu komut onları kapatmaz.':'';
+ if(!window.confirm(`${labels[action]||action} işlemini Freqtrade botuna gönder?${warning}`))return;
+ $('freqtradeStatus').textContent='Kontrol komutu gönderiliyor…';
+ try{await postJSON('/api/freqtrade/action/'+encodeURIComponent(action),{confirm:true});$('freqtradeStatus').textContent='Komut kabul edildi: '+labels[action];await loadFreqtrade()}
+ catch(e){$('freqtradeStatus').textContent='Kontrol komutu başarısız: '+e.message}
+}
+function ftChartBars(rows){
+ const data=(rows||[]).map(x=>{const timeValue=x.date,unix=typeof timeValue==='number'?timeValue:Math.floor(Date.parse(timeValue)/1000);return {time:unix,open:Number(x.open),high:Number(x.high),low:Number(x.low),close:Number(x.close)}}).filter(x=>Number.isFinite(x.time)&&[x.open,x.high,x.low,x.close].every(Number.isFinite)).sort((a,b)=>a.time-b.time);
+ const unique=[...new Map(data.map(x=>[x.time,x])).values()];const el=$('freqtradeChart');
+ if(!el||!window.LightweightCharts||!unique.length)return;
+ if(!freqtradeDataChart){freqtradeDataChart=window.LightweightCharts.createChart(el,chartOptions());freqtradeCandleSeries=freqtradeDataChart.addSeries(window.LightweightCharts.CandlestickSeries,{upColor:'#20d9b2',downColor:'#fa5f7e',borderVisible:false,wickUpColor:'#28e4ba',wickDownColor:'#fa5f7e'});freqtradeDataChart.timeScale().fitContent()}
+ freqtradeCandleSeries.setData(unique);freqtradeDataChart.timeScale().fitContent();resizeFreqtradeChart()
+}
+function resizeFreqtradeChart(){const el=$('freqtradeChart');if(freqtradeDataChart&&el&&el.clientWidth)freqtradeDataChart.applyOptions({width:el.clientWidth,height:el.clientHeight})}
+function ftBarRows(rows){return (rows||[]).slice().reverse().map(x=>`<article class="ft-bar-row"><strong>${escaped(x.date||'—')}</strong><span>A ${escaped(x.open??'—')} · Y ${escaped(x.high??'—')}</span><span>D ${escaped(x.low??'—')} · K ${escaped(x.close??'—')}</span><small>Hacim ${escaped(x.volume??'—')} · Long ${x.enter_long?'✓':'—'} / Short ${x.enter_short?'✓':'—'}</small></article>`).join('')}
+async function loadFreqtradeMarketData(){
+ const pair=$('freqtradeDataPair').value,timeframe=$('freqtradeDataTimeframe').value,status=$('freqtradeDataStatus');
+ if(!pair){status.textContent='Freqtrade kullanılabilir parite bildirmedi.';return}
+ status.textContent='Botun OHLCV verisi getiriliyor…';$('freqtradeDataRows').innerHTML='';
+ try{const j=await getJSON(`/api/freqtrade/market-data?pair=${encodeURIComponent(pair)}&timeframe=${encodeURIComponent(timeframe)}&limit=250`);status.textContent=`${j.pair} · ${j.timeframe} · ${j.count} mum · ${j.fetched_at}`;$('freqtradeDataRows').innerHTML=ftBarRows(j.candles);ftChartBars(j.candles)}
+ catch(e){status.textContent='Freqtrade mum verisi alınamadı: '+e.message;if(freqtradeCandleSeries)freqtradeCandleSeries.setData([])}
+}
+async function loadFreqtradeStrategyAnalysis(){
+ const pair=$('freqtradePair').value,strategy=$('freqtradeStrategy').value,timeframe=$('freqtradeTimeframe').value,timerange=$('freqtradeTimerange').value.trim(),status=$('freqtradeAnalysisStatus');
+ if(!pair||!strategy){status.textContent='Freqtrade whitelist/strateji listesi boş veya alınamadı.';return}
+ if(timerange&&!/^\d{8}-\d{8}$/.test(timerange)){status.textContent='Tarih YYYYMMDD-YYYYMMDD biçiminde olmalı.';return}
+ status.textContent='Botun pair_history verisinde strateji sinyalleri hesaplanıyor…';$('freqtradeSignals').innerHTML='';$('freqtradeAnalysisRows').innerHTML='';
+ const query=new URLSearchParams({pair,strategy,timeframe,limit:'250'});if(timerange)query.set('timerange',timerange);
+ try{const j=await getJSON('/api/freqtrade/strategy-analysis?'+query);status.textContent=`${j.strategy} · ${j.pair} · ${j.timeframe} · ${j.count} mum · ${j.fetched_at}`;$('freqtradeSignals').innerHTML=Object.entries(j.signals||{}).map(([k,v])=>ftMetric(({enter_long:'Long giriş',exit_long:'Long çıkış',enter_short:'Short giriş',exit_short:'Short çıkış'})[k]||k,v)).join('');$('freqtradeAnalysisRows').innerHTML=ftBarRows(j.candles)}
+ catch(e){status.textContent='Strateji analizi alınamadı: '+e.message}
 }
 async function loadMacro(){let macro=$('macroGrid'),news=$('newsList');macro.innerHTML='<div class="hint">FRED sorgulanıyor...</div>';news.textContent='GDELT sorgulanıyor...';
  let [a,b]=await Promise.allSettled([getJSON('/api/macro'),getJSON('/api/news')]);
@@ -966,7 +1034,10 @@ __goldStartPart('Canlı bağlantı',startSocket);
 __goldStartPart('İlk veri yükleme',reloadAll);
 setInterval(()=>{const clock=document.getElementById('clock');if(clock)clock.textContent=new Date().toLocaleTimeString('tr-TR',{hour12:false})},1000);
 setInterval(()=>{if(document.visibilityState==='visible')__goldStartPart('Mum yenileme',refreshCandles)},5000);
+setInterval(()=>{if(chartDataFresh&&Date.now()-candleUpdatedMs>candleMaxAgeMs())markChartUnavailable('Mum verisi zaman aşımına uğradı; doğrulanmış eski mum ve göstergeler gizlendi.',true)},1000);
 setInterval(()=>{if(document.visibilityState==='visible')__goldStartPart('Yenileme',reloadAll)},15000);
+setInterval(()=>{if(page==='freqtrade'&&freqtradeAuthenticated&&document.visibilityState==='visible')__goldStartPart('Freqtrade güncelleme',loadFreqtrade)},60000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(chartDataFresh&&Date.now()-candleUpdatedMs>candleMaxAgeMs())markChartUnavailable('Mum verisi zaman aşımına uğradı; doğrulanmış eski mum ve göstergeler gizlendi.',true);__goldStartPart('Görünürlük sonrası mum yenileme',refreshCandles)}});
 window.addEventListener('resize',()=>{if(lastBT&&page==='quant')paintEquity(lastBT.equity_curve||[])});
 window.addEventListener('gold-chart-library-ready',()=>{__goldStartPart('Grafik kütüphanesi',()=>{ensureCharts();renderPlots()})});
 console.info('GOLD SCALP PRO',window.__GOLD_BUILD__,'uygulama yüklendi',__bootStatus);

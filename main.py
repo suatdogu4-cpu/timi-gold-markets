@@ -7,10 +7,13 @@ No order placement code exists in this service.
 from __future__ import annotations
 import asyncio
 import csv
+import hashlib
+import hmac
 import io
 import json
 import logging
 import os
+import re
 import time
 import xml.etree.ElementTree as ET
 from collections import deque
@@ -19,10 +22,11 @@ from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import httpx
 import websockets
-from fastapi import Body, FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import Body, FastAPI, HTTPException, Query, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from quant import TF_MIN, STRATEGIES, indicators, smc, flow_metrics, score_signal, quant_stats, backtest, num
@@ -35,6 +39,8 @@ OANDA_BASE='https://api-fxpractice.oanda.com'
 OANDA_TOKEN=os.getenv('OANDA_TOKEN','').strip()
 OANDA_ACCOUNT=os.getenv('OANDA_ACCOUNT_ID','').strip()
 FRED_KEY=os.getenv('FRED_API_KEY','').strip()
+FREQTRADE_UI_PASSWORD=os.getenv('FREQTRADE_UI_PASSWORD','')
+FREQTRADE_SESSION_COOKIE='freqtrade_session'
 TF_OANDA={'1m':'M1','3m':'M3','5m':'M5','15m':'M15','30m':'M30','1H':'H1','4H':'H4','1D':'D'}
 MAX_CANDLES=700
 
@@ -58,6 +64,7 @@ class Market:
         self.depth_bids={};self.depth_asks={};self.book_ts=0;self.book_seq=None
         self.trades=deque(maxlen=6000);self.trade_ids=set();self.trades_ts=0
         self.candles={};self.candle_updated={};self.candle_errors={}
+        self.candle_locks={}
         self.spot_quote={};self.spot_ts=0;self.spot_error='OANDA bağlantısı yapılandırılmadı'
         self.macro_cache={};self.macro_ts=0;self.macro_error=None
         self.last_bitget_rest=0;self.last_spot_rest=0
@@ -233,15 +240,24 @@ class Market:
 
     async def get_candles(self,symbol,tf,limit=500,force=False):
         key=(symbol,tf)
+        requested_ms=nowms()
         cached=self.candles.get(key)
         ttl=5 if symbol=='XAUUSDT' and tf=='1m' else 15
-        if not force and cached and fresh(self.candle_updated.get(key,0),ttl) and len(cached)>=min(limit,100):return cached[-limit:]
-        try:
-            if symbol=='XAUUSD':return (await self.fetch_spot_candles(tf,limit))[-limit:]
-            return (await self.fetch_bitget_candles(tf,limit))[-limit:]
-        except Exception as ex:
-            self.candle_errors[key]=err_text(ex)
-            raise
+        updated=self.candle_updated.get(key,0)
+        enough=bool(cached and len(cached)>=min(limit,100))
+        if enough and fresh(updated,ttl) and (not force or updated>=requested_ms):return cached[-limit:]
+        lock=self.candle_locks.setdefault(key,asyncio.Lock())
+        async with lock:
+            cached=self.candles.get(key)
+            updated=self.candle_updated.get(key,0)
+            enough=bool(cached and len(cached)>=min(limit,100))
+            if enough and fresh(updated,ttl) and (not force or updated>=requested_ms):return cached[-limit:]
+            try:
+                if symbol=='XAUUSD':return (await self.fetch_spot_candles(tf,limit))[-limit:]
+                return (await self.fetch_bitget_candles(tf,limit))[-limit:]
+            except Exception as ex:
+                self.candle_errors[key]=err_text(ex)
+                raise
 
     async def fetch_initial_rest(self):
         if not fresh(self.ticker_ts,5):
@@ -270,7 +286,7 @@ class Market:
             for candle_tf,refresh_seconds in (('1m',5),('5m',15),('15m',30)):
                 key=('XAUUSDT',candle_tf)
                 if fresh(self.candle_updated.get(key,0),refresh_seconds):continue
-                try:await self.fetch_bitget_candles(candle_tf,500)
+                try:await self.get_candles('XAUUSDT',candle_tf,500)
                 except asyncio.CancelledError:raise
                 except Exception as ex:
                     self.candle_errors[key]=err_text(ex)
@@ -518,13 +534,113 @@ async def health():
         'live_external_verified':bool(s['ws_connected'] and s['valid']['ticker'] and s['valid']['book'] and s['valid']['trades'])}
 
 @app.get('/api/freqtrade/overview')
-async def freqtrade_overview():
+async def freqtrade_overview(request:Request):
+    require_freqtrade_session(request)
     from freqtrade_client import FreqtradeClient, FreqtradeError
     client=FreqtradeClient.from_environment()
     if not client.configured:
-        return {'configured':False,'mode':'READ_ONLY','orders_enabled':False,
+        return {'configured':False,'mode':'UNAVAILABLE','orders_enabled':False,
                 'message':'Freqtrade bağlantısı ayarlanmamış. Render Environment bölümünde FREQTRADE_API_URL, FREQTRADE_API_USERNAME ve FREQTRADE_API_PASSWORD tanımlayın.'}
     try:return await client.overview()
+    except FreqtradeError as ex:raise HTTPException(ex.status_code,str(ex)) from ex
+
+def _freqtrade_session_value(expires:int)->str:
+    message=f'freqtrade:{expires}'.encode()
+    signature=hmac.new(FREQTRADE_UI_PASSWORD.encode(),message,hashlib.sha256).hexdigest()
+    return f'{expires}.{signature}'
+
+def _freqtrade_password_configured()->bool:
+    return len(FREQTRADE_UI_PASSWORD)>=16
+
+def _freqtrade_session_valid(request:Request)->bool:
+    if not _freqtrade_password_configured():return False
+    try:
+        expires_text,signature=request.cookies.get(FREQTRADE_SESSION_COOKIE,'').split('.',1)
+        expires=int(expires_text)
+    except (ValueError,TypeError):
+        return False
+    if expires<=int(time.time()):return False
+    expected=_freqtrade_session_value(expires).split('.',1)[1]
+    return hmac.compare_digest(signature,expected)
+
+def require_freqtrade_session(request:Request)->None:
+    if not _freqtrade_password_configured():
+        raise HTTPException(503,'Freqtrade kilidi yapılandırılmamış. Render Environment bölümünde en az 16 karakterli FREQTRADE_UI_PASSWORD tanımlayın.')
+    if not _freqtrade_session_valid(request):
+        raise HTTPException(401,'Freqtrade panelinin kilidini açın.')
+
+def _freqtrade_same_origin(request:Request)->bool:
+    origin=request.headers.get('origin','')
+    parsed=urlsplit(origin)
+    return bool(parsed.scheme in ('http','https') and parsed.netloc.casefold()==request.headers.get('host','').casefold())
+
+@app.get('/api/freqtrade/session')
+async def freqtrade_session_status(request:Request):
+    from freqtrade_client import FreqtradeClient
+    return {'password_configured':_freqtrade_password_configured(),
+            'authenticated':_freqtrade_session_valid(request),
+            'api_configured':FreqtradeClient.from_environment().configured}
+
+@app.post('/api/freqtrade/session')
+async def freqtrade_session_login(request:Request,response:Response,payload:dict=Body(default={})):
+    if not _freqtrade_same_origin(request):raise HTTPException(403,'Aynı kaynak doğrulaması başarısız.')
+    if not _freqtrade_password_configured():
+        raise HTTPException(503,'Freqtrade panel kilidi ayarlanmamış. Render Environment bölümüne en az 16 karakterli FREQTRADE_UI_PASSWORD ekleyin.')
+    supplied=str(payload.get('password',''))
+    if not hmac.compare_digest(supplied,FREQTRADE_UI_PASSWORD):
+        raise HTTPException(401,'Panel parolası hatalı.')
+    expires=int(time.time())+12*60*60
+    response.set_cookie(FREQTRADE_SESSION_COOKIE,_freqtrade_session_value(expires),
+        max_age=12*60*60,httponly=True,secure=request.url.scheme=='https' or request.headers.get('x-forwarded-proto')=='https',
+        samesite='strict',path='/api/freqtrade')
+    return {'authenticated':True}
+
+@app.post('/api/freqtrade/session/logout')
+async def freqtrade_session_logout(request:Request,response:Response):
+    if not _freqtrade_same_origin(request):raise HTTPException(403,'Aynı kaynak doğrulaması başarısız.')
+    response.delete_cookie(FREQTRADE_SESSION_COOKIE,path='/api/freqtrade',httponly=True,
+                           secure=request.url.scheme=='https' or request.headers.get('x-forwarded-proto')=='https',
+                           samesite='strict')
+    return {'authenticated':False}
+
+@app.get('/api/freqtrade/market-data')
+async def freqtrade_market_data(request:Request,pair:str,timeframe:str='5m',limit:int=Query(default=250,ge=50,le=500)):
+    require_freqtrade_session(request)
+    if not re.fullmatch(r'[A-Za-z0-9._:/-]{3,48}',pair):raise HTTPException(400,'Geçersiz Freqtrade paritesi.')
+    if not re.fullmatch(r'\d+[mhdw]',timeframe):raise HTTPException(400,'Geçersiz zaman dilimi.')
+    from freqtrade_client import FreqtradeClient, FreqtradeError
+    client=FreqtradeClient.from_environment()
+    if not client.configured:raise HTTPException(503,'Freqtrade API bağlantısı yapılandırılmamış.')
+    try:return await client.market_data(pair,timeframe,limit)
+    except FreqtradeError as ex:raise HTTPException(ex.status_code,str(ex)) from ex
+
+@app.get('/api/freqtrade/strategy-analysis')
+async def freqtrade_strategy_analysis(request:Request,pair:str,timeframe:str='5m',
+                                      strategy:str=Query(min_length=1,max_length=81),
+                                      timerange:str|None=None,limit:int=Query(default=250,ge=50,le=500)):
+    require_freqtrade_session(request)
+    if not re.fullmatch(r'[A-Za-z0-9._:/-]{3,48}',pair):raise HTTPException(400,'Geçersiz Freqtrade paritesi.')
+    if not re.fullmatch(r'\d+[mhdw]',timeframe):raise HTTPException(400,'Geçersiz zaman dilimi.')
+    if not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]{0,80}',strategy):raise HTTPException(400,'Geçersiz strateji adı.')
+    if timerange is not None and not re.fullmatch(r'\d{8}-\d{8}',timerange):
+        raise HTTPException(400,'Tarih aralığı YYYYMMDD-YYYYMMDD biçiminde olmalı.')
+    from freqtrade_client import FreqtradeClient, FreqtradeError
+    client=FreqtradeClient.from_environment()
+    if not client.configured:raise HTTPException(503,'Freqtrade API bağlantısı yapılandırılmamış.')
+    try:return await client.strategy_analysis(pair,timeframe,strategy,timerange,limit)
+    except FreqtradeError as ex:raise HTTPException(ex.status_code,str(ex)) from ex
+
+@app.post('/api/freqtrade/action/{action}')
+async def freqtrade_action(action:str,request:Request,payload:dict=Body(default={})):
+    require_freqtrade_session(request)
+    if not _freqtrade_same_origin(request):raise HTTPException(403,'Aynı kaynak doğrulaması başarısız.')
+    if action not in {'start','pause','stop','stopbuy','reload_config'}:
+        raise HTTPException(400,'Bu Freqtrade kontrolü uygulamada etkin değil.')
+    if payload.get('confirm') is not True:raise HTTPException(400,'İşlem kullanıcı tarafından onaylanmadı.')
+    from freqtrade_client import FreqtradeClient, FreqtradeError
+    client=FreqtradeClient.from_environment()
+    if not client.configured:raise HTTPException(503,'Freqtrade API bağlantısı yapılandırılmamış.')
+    try:return await client.control(action)
     except FreqtradeError as ex:raise HTTPException(ex.status_code,str(ex)) from ex
 
 @app.get('/api/snapshot')

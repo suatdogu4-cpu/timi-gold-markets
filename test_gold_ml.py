@@ -4,6 +4,7 @@ import math
 from datetime import datetime,date,timedelta,timezone
 from pathlib import Path
 import random
+import pytest
 import tempfile
 import unittest
 from gold_ml_core import session_hours,session_dataset,live_status,clean_bars,train_xgb,predict_probability
@@ -51,6 +52,7 @@ class GoldMLTest(unittest.TestCase):
         self.assertEqual(len(session_dataset(bars,now_s=now)['rows']),0)
 
     def test_train_and_export_verification(self):
+        pytest.importorskip('xgboost',reason='XGBoost training dependencies are installed in the research workflow, not the web runtime')
         bars,now=fake_data(255)
         model,meta=train_xgb(bars,'XAUUSDT')
         self.assertIsNotNone(model)
@@ -59,6 +61,20 @@ class GoldMLTest(unittest.TestCase):
         self.assertFalse(meta['consensus_vote'])
         self.assertLess(meta['portable_export_max_margin_diff'],1e-3)
         self.assertTrue(0<predict_probability(model,[0.2,1,0.2,.2,.1,.1,0,.5])<1)
+
+    def test_missing_xgboost_is_reported_without_crashing(self):
+        bars,now=fake_data(255)
+        from unittest.mock import patch
+        import builtins
+        original_import=builtins.__import__
+        def import_without_xgboost(name,*args,**kwargs):
+            if name=='xgboost':raise ModuleNotFoundError("No module named 'xgboost'")
+            return original_import(name,*args,**kwargs)
+        with patch('builtins.__import__',side_effect=import_without_xgboost):
+            model,meta=train_xgb(bars,'XAUUSDT')
+        self.assertIsNone(model)
+        self.assertEqual(meta['status'],'DEPENDENCY_UNAVAILABLE')
+        self.assertIn('GitHub Actions',meta['reasons'][0])
 
     def test_no_upstream_model_or_bogus_prediction(self):
         bars,now=fake_data(70)

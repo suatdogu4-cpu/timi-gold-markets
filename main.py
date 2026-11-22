@@ -21,7 +21,7 @@ from typing import Any
 
 import httpx
 import websockets
-from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import Body, FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from quant import TF_MIN, STRATEGIES, indicators, smc, flow_metrics, score_signal, quant_stats, backtest, num
 
@@ -380,6 +380,90 @@ async def unified_decision(symbol:str='XAUUSDT',tf:str='5m'):
                                        public,mtf_rows,snap,stats,None)
     except Exception as ex:
         raise HTTPException(503,err_text(ex))
+
+@app.get('/api/unified-evidence')
+async def unified_evidence(symbol:str='XAUUSDT',tf:str='5m'):
+    symbol=valid_symbol(symbol);tf=valid_tf(tf)
+    try:
+        bars=closed_bars(await M.get_candles(symbol,tf,550),tf)
+        ix=indicators(bars)
+        snap=M.snapshot()
+        snap['candles_valid']=bool(bars and len(bars)>=210 and int(time.time())-bars[-1]['t']<=TF_MIN[tf]*60*3+90)
+        from unified_decision import build_unified_decision
+        decision=await asyncio.to_thread(build_unified_decision,ROOT,symbol,tf,bars,
+                                         {'latest':ix['latest'],'count':len(bars)},[],snap,
+                                         quant_stats(bars,tf),None)
+        evidence={
+            'decision':decision['direction'],'probability_up':decision['probability_up'],
+            'confidence':decision['confidence'],'entry':decision['entry_zone'],
+            'stop':decision['stop_zone'],'target':decision['target_zone'],
+            'risk_reward':decision['risk_reward_ratio'],'position_index':decision['position_index_100'],
+            'historical':decision['historical_analysis'],'strategy_learning':decision['strategy_learning'],
+            'technical':ix['latest'],'smc':smc(bars),'flow':snap.get('flow'),
+            'quant':quant_stats(bars,tf),'veto':decision['veto'],
+            'data':{'closed_bars':len(bars),'last_closed':bars[-1]['t'] if bars else None,
+                    'feed_valid':snap.get('valid'),'source':snap.get('source')},
+        }
+        try:
+            from gold_quant_hub import analyze, config_for
+            collected={}
+            for hub_tf in ('1m','3m','5m','15m','1H','1D'):
+                try:collected[hub_tf]=closed_bars(await M.get_candles(symbol,hub_tf,350),hub_tf)
+                except Exception:collected[hub_tf]=[]
+            daily,info=await quant_hub_daily_history(symbol)
+            hub=await asyncio.to_thread(analyze,collected,symbol,config_for(None),
+                                        {'source':'Live + closed candles','daily':info,
+                                         'ticker_fresh':bool(snap.get('valid',{}).get('ticker')),
+                                         'candle_cache_age_seconds':snap.get('age_s',{}),
+                                         'errors':{},'symbol':symbol})
+            evidence['quant_hub']={'consensus':hub.get('consensus'), 'modules':hub.get('modules')}
+        except Exception as ex:
+            evidence['quant_hub']={'status':'ERROR','error':err_text(ex)}
+        return evidence
+    except Exception as ex:
+        raise HTTPException(503,err_text(ex))
+
+@app.post('/api/assistant')
+async def assistant(payload:dict=Body(default={})):
+    question=str(payload.get('question','')).strip()
+    if not question:return {'answer':'Bir grafik, yön, risk veya veri sorusu yazın.'}
+    symbol_name=valid_symbol(str(payload.get('symbol','XAUUSDT')))
+    tf_name=valid_tf(str(payload.get('tf','5m')))
+    try:
+        evidence=await unified_evidence(symbol=symbol_name,tf=tf_name)
+        decision=evidence['decision'];hist=evidence['historical']
+        strategy=evidence['strategy_learning'].get('best_strategy')
+        q=question.lower()
+        if any(k in q for k in ('long','short','yön','direction','pozisyon')):
+            answer=f"Birleşik karar: {decision}. Yukarı olasılığı %{evidence['probability_up']*100:.1f}; güven %{evidence['confidence']*100:.1f}. "
+            if evidence['entry']:answer+=f"Giriş bölgesi {evidence['entry']['low']}–{evidence['entry']['high']}; "
+            if evidence['stop']:answer+=f"stop {evidence['stop']['preferred']}; "
+            if evidence['target']:answer+=f"hedef {evidence['target']['preferred']}."
+            if evidence['veto']:
+                answer+=' Veto: '+'; '.join(evidence['veto'])
+            else:
+                answer+=' Veto bulunmadı.'
+        elif any(k in q for k in ('backtest','geçmiş','tarih','win','başarı','kâr')):
+            answer=f"Geriye dönük örnek: {hist.get('sample_positions',0)} pozisyon, başarı %{hist.get('win_rate_pct') or 0}, profit factor {hist.get('profit_factor') or '—'}, beklenen getiri %{hist.get('expectancy_pct') or 0}, maksimum drawdown %{hist.get('max_drawdown_pct') or 0}. Bu sonuçlar performans garantisi değildir."
+        elif any(k in q for k in ('strateji','öğren','model','makine')):
+            answer='Yeni strateji: '+(f"{strategy['label']} — ileri dönem PnL {strategy['forward_pnl']}, {strategy['forward_trades']} işlem, win %{strategy['forward_win_rate_pct']}" if strategy else 'mevcut veriyle yeterli ileri dönem strateji bulunamadı')+'.'
+        elif any(k in q for k in ('grafik','mum','trend','teknik','rsi','macd','smc','emir')):
+            t=evidence['technical'];answer=f"Son mum yönü için EMA20 {t.get('ema20')}, EMA50 {t.get('ema50')}, RSI14 {t.get('rsi14')}, MACD histogram {t.get('macd_hist')}, ATR14 {t.get('atr14')}. "
+            answer+='SMC olayları: '+str(evidence['smc'].get('events',[])[-3:])
+        elif any(k in q for k in ('quant','konsensüs','motor')):
+            hub=evidence.get('quant_hub',{});cons=hub.get('consensus') or {};answer=f"7 Quant konsensüsü: {cons.get('decision','BEKLE')}. "
+            mods=hub.get('modules') or {}
+            if mods:
+                answer+='Motorlar: '+' | '.join(f"{k}={v.get('direction','BEKLE')}" for k,v in mods.items())
+            else:
+                answer+='Motor raporu henüz hazırlanmadı.'
+        elif any(k in q for k in ('risk','stop','hedef','target')):
+            answer=f"Risk/ödül oranı 1:{evidence['risk_reward'] or '—'}; stop {evidence['stop']['preferred'] if evidence['stop'] else '—'}; hedef {evidence['target']['preferred'] if evidence['target'] else '—'}; pozisyon indeksi {evidence['position_index']}/100."
+        else:
+            answer=f"{decision} kararı; olasılık %{evidence['probability_up']*100:.1f}; veri mumları {evidence['data']['closed_bars']}. Yön, risk, grafik, geçmiş veya 7 Quant motorlarından birini sorabilirsiniz."
+        return {'answer':answer,'evidence':evidence,'symbol':symbol_name,'tf':tf_name,'mode':'LOCAL_CONTEXT_ASSISTANT'}
+    except Exception as ex:
+        return {'answer':'Bu an için yeterli doğrulanmış veri alınamadı: '+err_text(ex),'mode':'LOCAL_CONTEXT_ASSISTANT'}
 
 @app.get('/')
 async def index():return FileResponse(ROOT/'index.html')

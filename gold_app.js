@@ -15,6 +15,28 @@ const escaped=s=>String(s??'').replaceAll('&','&amp;').replaceAll('<','&lt;').re
 const time=x=>{try{return new Date(x).toLocaleTimeString('tr-TR')}catch{return '—'}};
 const date=x=>{try{return new Date(x*1000).toLocaleString('tr-TR',{month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'})}catch{return '—'}};
 async function getJSON(url){let r=await fetch(url,{cache:'no-store'});let j=await r.json().catch(()=>({detail:'Yanıt JSON değil'}));if(!r.ok)throw new Error(j.detail||r.status+' HTTP');return j}
+function initAssistant(){
+ const panel=$('assistantPanel'),fab=$('assistantFab'),close=$('assistantClose'),form=$('assistantForm'),input=$('assistantInput'),messages=$('assistantMessages');
+ if(!panel||!fab||!form)return;
+ fab.onclick=()=>{panel.classList.add('open');panel.setAttribute('aria-hidden','false');setTimeout(()=>input.focus(),80)};
+ close.onclick=()=>{panel.classList.remove('open');panel.setAttribute('aria-hidden','true')};
+ form.onsubmit=async event=>{
+  event.preventDefault();const question=input.value.trim();if(!question)return;
+  messages.insertAdjacentHTML('beforeend',`<div class="assistant-message assistant-user">${escaped(question)}</div>`);
+  input.value='';messages.insertAdjacentHTML('beforeend','<div class="assistant-message assistant-ai">Veriler hesaplanıyor…</div>');
+  messages.scrollTop=messages.scrollHeight;
+  try{
+   const r=await fetch('/api/assistant',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question,symbol,tf})});
+   const j=await r.json();
+   messages.lastElementChild?.remove();
+   messages.insertAdjacentHTML('beforeend',`<div class="assistant-message assistant-ai">${escaped(j.answer||'Yanıt alınamadı.')}</div>`);
+  }catch(error){
+   messages.lastElementChild?.remove();
+   messages.insertAdjacentHTML('beforeend',`<div class="assistant-message assistant-ai">Asistan bağlantısı: ${escaped(error.message)}</div>`);
+  }
+  messages.scrollTop=messages.scrollHeight;
+ };
+}
 function initNav(){ $('nav').innerHTML=navs.map(([k,v])=>`<button data-page="${k}" class="${k==='dashboard'?'active':''}">${v}</button>`).join('');
 $('nav').addEventListener('click',e=>{let b=e.target.closest('[data-page]');if(b)go(b.dataset.page)});
 document.body.addEventListener('click',e=>{let b=e.target.closest('[data-go]');if(b)go(b.dataset.go)});
@@ -28,6 +50,7 @@ $('healthReload').onclick=loadHealth;$('macroReload').onclick=loadMacro;
 $('mtfReload').onclick=loadMTF;
 $('runTest').onclick=runBacktest; $('aqRefresh').onclick=loadAltinQuant; $('aqRiskBtn').onclick=aqRiskCalc;
 $('strategy').innerHTML=Object.entries({'ema_trend':'EMA Trend + RSI','rsi_revert':'RSI Reversal','donchian':'Donchian Breakout','vwap_revert':'VWAP Return','smc_sweep':'Liquidity Sweep','bb_break':'Bollinger Break','momentum':'Price Momentum','macd_cross':'MACD Cross'}).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+ initAssistant();
 }
 function go(k){page=k;document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id==='v-'+k));$('nav').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x.dataset.page===k));
  g32Highlight(k);
@@ -229,6 +252,7 @@ function updateAnalysis(a){ana=a;let ind=a.indicators?.latest||{},q=a.quant||{},
 }
 let unifiedChartLines=[];
 function updateUnifiedChartZones(u){
+ if(!UX.showZones){u=null}
  for(const plot of Object.values(plots)){
   if(!plot?.main)continue;
   for(const line of unifiedChartLines.filter(x=>x.parent===plot.main)){
@@ -279,13 +303,15 @@ function updateUnifiedDecision(u){
  if($('riskReward'))$('riskReward').textContent=u.risk_reward_ratio!=null?`1 : ${fmt(u.risk_reward_ratio,2)}`:'—';
  if($('positionIndex'))$('positionIndex').textContent=u.position_index_100!=null?`${fmt(u.position_index_100,1)} / 100`:'—';
  const h=u.historical_analysis||{};
+ const s=u.strategy_learning?.best_strategy;
  if($('historicalMetrics'))$('historicalMetrics').innerHTML=[
   ['Örnek pozisyon',h.sample_positions??0],
   ['Başarı oranı',h.win_rate_pct!=null?pct(h.win_rate_pct):'—'],
   ['Profit Factor',fmt(h.profit_factor,2)],
   ['Beklenen getiri',h.expectancy_pct!=null?pct(h.expectancy_pct):'—'],
   ['Max geri çekilme',h.max_drawdown_pct!=null?pct(h.max_drawdown_pct):'—'],
-  ['Target / Stop / Time',`${h.target_hits||0} / ${h.stop_hits||0} / ${h.time_exits||0}`]
+  ['Target / Stop / Time',`${h.target_hits||0} / ${h.stop_hits||0} / ${h.time_exits||0}`],
+  ['ML en iyi strateji',s?`${s.label} · PnL ${fmt(s.forward_pnl,2)}`:(u.strategy_learning?.status||'Veri bekleniyor')]
  ].map(([k,v])=>`<div class="metric"><small>${escaped(k)}</small><b>${escaped(v)}</b></div>`).join('');
  updateUnifiedChartZones(u);
 }
@@ -493,7 +519,7 @@ const UX_PRESETS={
 };
 function uxDefault(){
  const inds={};UX_KEYS.forEach((k,idx)=>{inds[k]={enabled:UX_PRESETS.scalp.keys.includes(k),periods:[...UX_LIB[k].periods],colors:UX_PALETTE.slice(idx%UX_PALETTE.length).concat(UX_PALETTE).slice(0,Math.max(3,UX_LIB[k].periods.length)),width:2,height:148,lineEnabled:Array(Math.max(3,UX_LIB[k].periods.length)).fill(true)}});
- return {indicators:inds,chartType:'candlestick',grid:true,crosshair:true,priceLine:true,legend:true,chartHeight:365,preset:'scalp',custom:null,drawings:{},showMark:true,showIndex:false,showSpot:false,alerts:{},panelOrder:UX_KEYS.filter(k=>UX_LIB[k].kind==='panel')};
+ return {indicators:inds,chartType:'candlestick',grid:true,crosshair:true,priceLine:true,legend:true,chartHeight:365,preset:'scalp',custom:null,drawings:{},showMark:true,showIndex:false,showSpot:false,showZones:true,alerts:{},panelOrder:UX_KEYS.filter(k=>UX_LIB[k].kind==='panel')};
 }
 function uxLoad(){const p=uxDefault();try{const v=JSON.parse(localStorage.getItem('gold-ux-v22')||'{}');if(v&&typeof v==='object'){
  for(const key of UX_KEYS){const cfg=v.indicators?.[key];if(!cfg)continue;const cur=p.indicators[key];cur.enabled=!!cfg.enabled;
@@ -505,7 +531,7 @@ function uxLoad(){const p=uxDefault();try{const v=JSON.parse(localStorage.getIte
  if(['candlestick','line','area','heikin'].includes(v.chartType))p.chartType=v.chartType;
  for(let k of ['grid','crosshair','priceLine','legend'])if(typeof v[k]==='boolean')p[k]=v[k];
  p.chartHeight=Math.max(240,Math.min(750,Number(v.chartHeight)||365));p.drawings=v.drawings&&typeof v.drawings==='object'?v.drawings:{};
- p.showMark=typeof v.showMark==='boolean'?v.showMark:true;p.showIndex=typeof v.showIndex==='boolean'?v.showIndex:false;p.showSpot=typeof v.showSpot==='boolean'?v.showSpot:false;
+ p.showMark=typeof v.showMark==='boolean'?v.showMark:true;p.showIndex=typeof v.showIndex==='boolean'?v.showIndex:false;p.showSpot=typeof v.showSpot==='boolean'?v.showSpot:false;p.showZones=typeof v.showZones==='boolean'?v.showZones:true;
  p.alerts=v.alerts&&typeof v.alerts==='object'?v.alerts:{};p.custom=Array.isArray(v.custom)?v.custom.filter(x=>UX_KEYS.includes(x)):null;
  p.panelOrder=Array.isArray(v.panelOrder)?[...new Set(v.panelOrder.filter(x=>UX_LIB[x]?.kind==='panel'))]:p.panelOrder;
  p.preset=typeof v.preset==='string'?v.preset:'custom';
@@ -539,7 +565,7 @@ function uxRenderSheet(name,arg=''){
   uxSheetRender('Grafik Ayarları',`<div class="ux-tile-grid">${[['library','▥','İndikatör'],['draw','✎','Çizim'],['templates','▦','Şablonlar'],['active','☷','Aktif Katmanlar'],['alert','◉','Fiyat Alarmı']].map(([id,ico,n])=>`<button class="ux-tile" data-ux="open-${id}">${ico} ${n}</button>`).join('')}</div><div class="ux-sheet-group">Grafik görünümü</div>`+
    `<div class="ux-input-row"><label for="uxType">Grafik türü</label><select id="uxType"><option value="candlestick">Mum</option><option value="line">Çizgi</option><option value="area">Alan</option><option value="heikin">Heikin Ashi*</option></select></div>`+
    setting('Kılavuz çizgileri','grid',UX.grid)+setting('Artı imleç','crosshair',UX.crosshair)+setting('Son fiyat çizgisi','priceLine',UX.priceLine)+setting('Gösterge etiketleri','legend',UX.legend)+
-   `<div class="ux-sheet-group">Doğrulanmış piyasa fiyat çizgileri</div>`+setting('Mark fiyatını göster','showMark',UX.showMark)+setting('Index fiyatını göster','showIndex',UX.showIndex)+setting('Spot karşılaştırma fiyatı','showSpot',UX.showSpot)+
+   `<div class="ux-sheet-group">Karar ve piyasa fiyat çizgileri</div>`+setting('Giriş / Stop / Hedef bölgelerini göster','showZones',UX.showZones)+setting('Mark fiyatını göster','showMark',UX.showMark)+setting('Index fiyatını göster','showIndex',UX.showIndex)+setting('Spot karşılaştırma fiyatı','showSpot',UX.showSpot)+
    `<div class="ux-input-row"><label for="uxHeight">Ana grafik yüksekliği</label><input id="uxHeight" type="range" min="240" max="650" value="${UX.chartHeight}"><output id="uxHeightLabel">${UX.chartHeight}px</output></div>`+
    `<p class="ux-note">* Heikin Ashi dönüştürülmüş mumdur; gerçek işlem fiyatı değildir. Konum/pozisyon emri çizimi bu read-only uygulamada bulunmaz.</p>`,uxFooter('Kapat','Kaydet'));
   $('uxType').value=UX.chartType;return;
@@ -736,7 +762,7 @@ function uxInit(){
   if(action==='remove-line'&&uxDraft){if(uxDraft.periods.length<=1)return uxToast('En az bir çizgi kalmalı');uxDraft.periods.pop();uxDraft.colors.pop();uxDraft.lineEnabled.pop();uxRenderSheet('edit',k);return}
   if(action==='width'&&uxDraft){uxDraft.width=uxDraft.width%4+1;document.querySelectorAll('.ux-width').forEach(b=>b.textContent=uxDraft.width+'px');return}
   if(action==='save-ind'&&uxDraft){UX.indicators[k]=uxDraft;UX.preset='custom';uxSave();uxUpdateIndicators();uxClose();uxToast(UX_LIB[k].short+' ayarları kaydedildi');return}
-  if(action==='sheet-save'&&uxSheetName==='settings'){UX.chartType=$('uxType').value;for(let x of ['grid','crosshair','priceLine','legend','showMark','showIndex','showSpot'])UX[x]=$('ux-setting-'+x).checked;UX.chartHeight=Number($('uxHeight').value);uxSave();uxUpdateIndicators();uxClose();uxToast('Grafik ayarları kaydedildi');return}
+  if(action==='sheet-save'&&uxSheetName==='settings'){UX.chartType=$('uxType').value;for(let x of ['grid','crosshair','priceLine','legend','showZones','showMark','showIndex','showSpot'])UX[x]=$('ux-setting-'+x).checked;UX.chartHeight=Number($('uxHeight').value);uxSave();uxUpdateIndicators();updateUnifiedChartZones(window.unifiedDecisionResult);uxClose();uxToast('Grafik ayarları kaydedildi');return}
   if(action==='sheet-save'&&uxSheetName==='alert'){const price=Number($('uxAlertPrice').value);if(!Number.isFinite(price)||price<=0)return uxToast('Geçerli pozitif fiyat gir');UX.alerts[symbol]={price,direction:$('uxAlertDirection').value,active:$('uxAlertEnabled').checked,triggered:false};uxSave();uxClose();uxToast('Alarm kaydedildi (yalnız uygulama açıkken)');return}
   if(action==='preset'){uxApplyPreset(k);return}
   if(action==='save-template'){UX.custom=UX_KEYS.filter(x=>UX.indicators[x].enabled);uxSave();uxToast('Kişisel şablon saklandı');return}

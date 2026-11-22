@@ -11,7 +11,7 @@
 })();</script>
 
 <link rel="stylesheet" href="gold_style.css?v=3200">
-<link rel="stylesheet" href="gold_redesign.css?v=3300">
+<link rel="stylesheet" href="gold_redesign.css?v=3302">
 <link rel="stylesheet" href="gold_quant_hub.css?v=3100">
 </head><body>
 <div class="wrap">
@@ -210,6 +210,12 @@
 </section>
 
 <section class="view" id="v-settings"><div class="sectiontop"><h2>Kaynaklar, Ayarlar, Açık Proje</h2></div><div class="twocol"><div class="card"><div class="cardhead"><h3>Bağlantı ve mod</h3></div><div class="body"><p>Geliştirici: <strong>Suat DOĞU</strong></p><p>Bitget: UTA v3, public WS + REST, API anahtarı gerekmez.</p><p>XAUUSD spot: OANDA v20 practice hesabı/erişimi gerekir; token sadece Render ortam değişkenidir.</p><p><span class="badge-locked">GERÇEK EMİR GÖNDERİMİ YOK</span></p><p>Grafik ayarları bu telefonda saklanır; API anahtarı tarayıcıya kaydedilmez.</p><p><button class="btn" id="resetPrefs">Grafik tercihlerini sıfırla</button></p></div></div><div class="card"><div class="cardhead"><h3>Açık kaynak araştırma / atıf</h3></div><div class="body source-list" id="repoList"></div></div></div><div class="hint">Bu paket, araştırılan projelerin tüm kodlarını doğrudan içinde barındırmaz. Bu çalışma özgün yeniden uygulamadır; her proje yalnız kendi lisansı ve doğrulanan kabiliyeti doğrultusunda entegre edilebilir. Kullanılan grafik kütüphanesinin TradingView atfı korunur.</div></section>
+<button type="button" id="assistantFab" class="assistant-fab" aria-label="AI grafik asistanını aç">✦ <span>Asistan</span></button>
+<aside id="assistantPanel" class="assistant-panel" aria-hidden="true">
+  <div class="assistant-head"><div><small>GOLD CONTEXT AI</small><strong>Grafik & Piyasa Asistanı</strong></div><button type="button" id="assistantClose" aria-label="Kapat">×</button></div>
+  <div id="assistantMessages" class="assistant-messages"><div class="assistant-message assistant-ai">Grafiği, yönü, geri dönük sonucu veya 7 Quant motorlarını sorabilirsiniz.</div></div>
+  <form id="assistantForm" class="assistant-form"><input id="assistantInput" autocomplete="off" placeholder="Örn: Bu grafik için yön ve risk ne?"><button type="submit">Sor</button></form>
+</aside>
 <nav class="mobile-dock" id="uxMobileNav" aria-label="Mobil ana menü">
   <button class="ux-dock-btn active" data-uxnav="dashboard"><span aria-hidden="true">⌂</span>Özet</button>
   <button class="ux-dock-btn" data-uxnav="chart"><span aria-hidden="true">▥</span>Grafik</button>
@@ -227,7 +233,7 @@
 </div>
 
 <script async src="https://cdn.jsdelivr.net/npm/lightweight-charts@5.1.0/dist/lightweight-charts.standalone.production.js" onload="window.dispatchEvent(new Event('gold-chart-library-ready'))"></script>
-<script defer src="gold_app.js?v=3301"></script>
+<script defer src="gold_app.js?v=3302"></script>
 <script defer src="gold_quant_hub.js?v=3701"></script>
 <script>
 (function(){

@@ -15,7 +15,7 @@ from contextlib import closing
 from pathlib import Path
 from typing import Any
 
-from quant import indicators
+from quant import STRATEGIES, backtest, indicators
 
 
 VERSION = "1.0.0"
@@ -383,6 +383,50 @@ def settle_pending(store: UnifiedDecisionStore, symbol: str, tf: str, bars: list
             store.settle(record, float(candidates[0]["c"]))
 
 
+def strategy_discovery(bars: list[dict], tf: str) -> dict:
+    """Chronological walk-forward discovery for the built-in strategy set."""
+    if len(bars) < 300:
+        return {"status":"INSUFFICIENT_DATA","best_strategy":None,"results":[]}
+    split = int(len(bars)*0.70)
+    train = bars[:split]
+    forward = bars[split:]
+    if len(forward) < 90:
+        return {"status":"INSUFFICIENT_DATA","best_strategy":None,"results":[]}
+
+    eligible = []
+    for strategy in STRATEGIES:
+        try:
+            train_result = backtest(train, strategy, fee_bps=4.0, slippage_bps=1.0)
+            forward_result = backtest(forward, strategy, fee_bps=4.0, slippage_bps=1.0)
+        except (ValueError, KeyError, IndexError, TypeError):
+            continue
+        forward_trades = forward_result.get("trades_count") or 0
+        forward_pnl = forward_result.get("net_pnl_usd_ref")
+        forward_dd = forward_result.get("max_drawdown_pct")
+        forward_pf = forward_result.get("profit_factor")
+        if forward_trades < 8:
+            continue
+        if not isinstance(forward_pnl, (int,float)):
+            continue
+        score = forward_pnl - abs(forward_dd or 0)*20
+        eligible.append({
+            "strategy":strategy,"label":STRATEGIES[strategy],
+            "forward_trades":forward_trades,"forward_pnl":forward_pnl,
+            "forward_profit_factor":forward_pf,"forward_win_rate_pct":forward_result.get("win_rate_pct"),
+            "forward_max_drawdown_pct":forward_dd,"train_trades":train_result.get("trades_count"),
+            "score":round(score,4),
+        })
+    eligible.sort(key=lambda x:x["score"],reverse=True)
+    best = eligible[0] if eligible else None
+    return {
+        "status":"READY" if best else "NO_VALID_FORWARD_STRATEGY",
+        "best_strategy":best,
+        "results":eligible[:8],
+        "method":"70% chronology / 30% forward, 4 bps fee and 1 bps slippage",
+        "tf":tf,"sample_bars":len(bars),
+    }
+
+
 def build_unified_decision(root: Path, symbol: str, tf: str, bars: list[dict],
                            indicators: dict, mtf: list[dict], snapshot: dict,
                            quant_stats: dict, quant_hub: dict | None = None) -> dict:
@@ -467,6 +511,7 @@ def build_unified_decision(root: Path, symbol: str, tf: str, bars: list[dict],
     )
 
     historical = historical_condition_analysis(bars, tf)
+    strategy_learning = strategy_discovery(bars, tf)
     confidence = abs(probability-0.5)*2.0
 
     if direction == "LONG" and c is not None and atr is not None:
@@ -533,6 +578,7 @@ def build_unified_decision(root: Path, symbol: str, tf: str, bars: list[dict],
             "max_research_leverage_limit": 100,
         },
         "historical_analysis": historical,
+        "strategy_learning": strategy_learning,
         "veto": veto,
         "reasons": [
             "Kapanmış mum ve zamanlama kontrollü tek otorite",

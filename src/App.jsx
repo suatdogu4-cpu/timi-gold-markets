@@ -99,43 +99,55 @@ function GoldChart({ candles, symbol, tf, zones }) {
   const chart = useRef(null)
   useEffect(() => {
     if (!host.current) return
-    chart.current?.remove()
-    const instance = createChart(host.current, {
-      width: host.current.clientWidth,
-      height: host.current.clientHeight,
-      layout: { background: { color: '#0b1017' }, textColor: '#7d8998', fontFamily: 'Inter, sans-serif' },
-      grid: { vertLines: { color: '#171e27' }, horzLines: { color: '#171e27' } },
-      rightPriceScale: { borderColor: '#202936' },
-      timeScale: { borderColor: '#202936', timeVisible: tf !== '1D', secondsVisible: false },
-      crosshair: { vertLine: { color: '#9b8a61', labelBackgroundColor: '#4a4332' }, horzLine: { color: '#9b8a61' } },
-      localization: { locale: 'tr-TR', priceFormatter: value => fmt(value, 2) },
-    })
-    chart.current = instance
-    const series = instance.addSeries(CandlestickSeries, {
-      upColor: '#4ecba2', downColor: '#df6a78',
-      borderUpColor: '#4ecba2', borderDownColor: '#df6a78',
-      wickUpColor: '#4ecba2', wickDownColor: '#df6a78',
-    })
-    const data = (candles || []).filter(x => x.t && x.c > 0).map(x => ({
-      time: x.t, open: x.o, high: x.h, low: x.l, close: x.c,
-    }))
-    series.setData(data)
-    for (const [price, title, color] of [
-      [zones?.stop_zone?.preferred, 'STOP', '#df6a78'],
-      [zones?.entry_zone?.preferred, 'GİRİŞ', '#c9ad73'],
-      [zones?.target_zone?.preferred, 'HEDEF', '#4ecba2'],
-    ]) {
-      if (Number.isFinite(Number(price))) {
-        series.createPriceLine({ price: Number(price), color, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title })
+    let instance = null
+    let observer = null
+    try {
+      instance = createChart(host.current, {
+        width: host.current.clientWidth,
+        height: host.current.clientHeight,
+        layout: { background: { color: '#0b1017' }, textColor: '#7d8998', fontFamily: 'Inter, sans-serif' },
+        grid: { vertLines: { color: '#171e27' }, horzLines: { color: '#171e27' } },
+        rightPriceScale: { borderColor: '#202936' },
+        timeScale: { borderColor: '#202936', timeVisible: tf !== '1D', secondsVisible: false },
+        crosshair: { vertLine: { color: '#9b8a61', labelBackgroundColor: '#4a4332' }, horzLine: { color: '#9b8a61' } },
+        localization: { locale: 'tr-TR', priceFormatter: value => fmt(value, 2) },
+      })
+      chart.current = instance
+      const series = instance.addSeries(CandlestickSeries, {
+        upColor: '#4ecba2', downColor: '#df6a78',
+        borderUpColor: '#4ecba2', borderDownColor: '#df6a78',
+        wickUpColor: '#4ecba2', wickDownColor: '#df6a78',
+      })
+      const data = (candles || []).filter(x => x.t && x.c > 0).map(x => ({
+        time: x.t, open: x.o, high: x.h, low: x.l, close: x.c,
+      }))
+      if (data.length) series.setData(data)
+      for (const [price, title, color] of [
+        [zones?.stop_zone?.preferred, 'STOP', '#df6a78'],
+        [zones?.entry_zone?.preferred, 'GİRİŞ', '#c9ad73'],
+        [zones?.target_zone?.preferred, 'HEDEF', '#4ecba2'],
+      ]) {
+        if (Number.isFinite(Number(price))) {
+          series.createPriceLine({ price: Number(price), color, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title })
+        }
+      }
+      instance.timeScale().fitContent()
+      observer = new ResizeObserver(entries => {
+        if (!chart.current || chart.current !== instance) return
+        const { width, height } = entries[0].contentRect
+        if (width > 0 && height > 0) instance.applyOptions({ width, height })
+      })
+      observer.observe(host.current)
+    } catch (error) {
+      console.error('Gold chart initialization failed', error)
+    }
+    return () => {
+      observer?.disconnect()
+      chart.current = null
+      if (instance) {
+        try { instance.remove() } catch (_) {}
       }
     }
-    instance.timeScale().fitContent()
-    const observer = new ResizeObserver(entries => {
-      const { width, height } = entries[0].contentRect
-      instance.applyOptions({ width, height })
-    })
-    observer.observe(host.current)
-    return () => { observer.disconnect(); instance.remove() }
   }, [candles, tf, zones])
   return <div className="chartHost" ref={host} />
 }

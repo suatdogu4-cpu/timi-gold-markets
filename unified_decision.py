@@ -283,15 +283,16 @@ def historical_condition_analysis(bars: list[dict], tf: str) -> dict:
     equity = 0.0
     max_drawdown = 0.0
 
+    market_indicators = indicators(bars)
+    raw = market_indicators["_raw"]
+    close_series = [b["c"] for b in bars]
     for i in range(210, len(bars)-horizon):
-        slice_bars = bars[:i+1]
-        latest = indicators(slice_bars)["latest"]
-        close = _number(latest.get("close"))
-        ema20 = _number(latest.get("ema20"))
-        ema50 = _number(latest.get("ema50"))
-        rsi = _number(latest.get("rsi14"))
-        macd = _number(latest.get("macd_hist"))
-        atr = _number(latest.get("atr14"))
+        close = _number(close_series[i])
+        ema20 = _number(raw["ema20"][i])
+        ema50 = _number(raw["ema50"][i])
+        rsi = _number(raw["rsi14"][i])
+        macd = _number(raw["macd_hist"][i])
+        atr = _number(raw["atr14"][i])
         if None in (close, ema20, ema50, rsi, macd, atr) or atr <= 0:
             continue
 

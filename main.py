@@ -390,6 +390,10 @@ async def index():return FileResponse(ROOT/'index.html')
 async def gold_style_asset():
     return FileResponse(ROOT / 'gold_style.css', media_type='text/css')
 
+@app.get('/gold_redesign.css', include_in_schema=False)
+async def gold_redesign_asset():
+    return FileResponse(ROOT / 'gold_redesign.css', media_type='text/css')
+
 @app.get('/gold_app.js', include_in_schema=False)
 async def gold_app_asset():
     return FileResponse(ROOT / 'gold_app.js', media_type='application/javascript')

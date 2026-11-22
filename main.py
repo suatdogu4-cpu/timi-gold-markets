@@ -24,6 +24,7 @@ import httpx
 import websockets
 from fastapi import Body, FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from quant import TF_MIN, STRATEGIES, indicators, smc, flow_metrics, score_signal, quant_stats, backtest, num
 
 LOG=logging.getLogger('gold');logging.basicConfig(level=logging.INFO)
@@ -360,6 +361,9 @@ async def lifespan(app):
     finally:await M.stop()
 
 app=FastAPI(title='GOLD SCALP PRO',version='1.0.0',lifespan=lifespan)
+DIST=ROOT/'dist'
+if (DIST/'assets').is_dir():
+    app.mount('/assets',StaticFiles(directory=DIST/'assets'),name='react-assets')
 
 @app.get('/api/unified-decision')
 async def unified_decision(symbol:str='XAUUSDT',tf:str='5m'):
@@ -467,7 +471,10 @@ async def assistant(payload:dict=Body(default={})):
         return {'answer':'Bu an için yeterli doğrulanmış veri alınamadı: '+err_text(ex),'mode':'LOCAL_CONTEXT_ASSISTANT'}
 
 @app.get('/')
-async def index():return FileResponse(ROOT/'index.html')
+async def index():
+    if (DIST/'index.html').is_file():
+        return FileResponse(DIST/'index.html')
+    return FileResponse(ROOT/'index.legacy.html')
 
 # V2.2.3: Serve the existing modular front-end assets directly.
 # The legacy API, WebSocket and analysis paths are unchanged.
@@ -721,9 +728,8 @@ async def news():
     if len(items)<6:
         try:
             import urllib.parse
-            q=urllib.parse.quote('gold price OR XAUUSD OR gold futures')
             resp=await M.client.get('https://news.google.com/rss/search',
-                                    params={'q':q,'hl':'en-US','gl':'US','ceid':'US:en'},
+                                    params={'q':'gold price OR XAUUSD OR gold futures','hl':'en-US','gl':'US','ceid':'US:en'},
                                     timeout=12,follow_redirects=True)
             resp.raise_for_status()
             root=ET.fromstring(resp.text)
@@ -739,6 +745,25 @@ async def news():
             rss_error=err_text(ex)
         else:
             rss_error=None
+    if len(items)<6:
+        try:
+            yahoo=await M.client.get(
+                'https://feeds.finance.yahoo.com/rss/2.0/headline',
+                params={'s':'GC=F','region':'US','lang':'en-US'},
+                timeout=12,follow_redirects=True)
+            yahoo.raise_for_status()
+            root=ET.fromstring(yahoo.text)
+            for node in root.findall('.//item')[:12]:
+                title=(node.findtext('title') or '').strip()
+                link=(node.findtext('link') or '').strip()
+                pub=(node.findtext('pubDate') or '').strip()
+                if title and link.startswith(('https://','http://')):
+                    items.append({'title':title[:180],'url':link,'domain':'Yahoo Finance',
+                                  'time':pub,'source':'YAHOO_FINANCE'})
+        except Exception as ex:
+            yahoo_error=err_text(ex)
+        else:
+            yahoo_error=None
     dedup={};dedup_items=[]
     for item in items:
         key=item['url']
@@ -750,6 +775,51 @@ async def news():
     if not dedup_items:
         result['error']=gdelt_error if 'gdelt_error' in locals() else None
     return result
+
+@app.get('/api/economic-calendar')
+async def economic_calendar():
+    """Live economic-calendar discovery feed. It returns source-linked articles,
+    never fabricated release values or meeting times."""
+    queries=[
+        'Federal Reserve decision OR CPI OR jobs report OR PCE gold',
+        'US economic calendar unemployment inflation PMI',
+        'ECB Fed BoE interest rate decision gold',
+    ]
+    events=[]
+    for query in queries:
+        try:
+            resp=await M.client.get(
+                'https://news.google.com/rss/search',
+                params={'q':query,'hl':'en-US','gl':'US','ceid':'US:en'},
+                timeout=12,follow_redirects=True)
+            resp.raise_for_status()
+            root=ET.fromstring(resp.text)
+            for node in root.findall('.//item')[:8]:
+                title=(node.findtext('title') or '').strip()
+                link=(node.findtext('link') or '').strip()
+                pub=(node.findtext('pubDate') or '').strip()
+                source_name=(node.findtext('source') or 'Google News')
+                if not title or not link.startswith(('https://','http://')):
+                    continue
+                events.append({
+                    'title':title[:180],'date':pub,'time':pub,
+                    'country':'ABD / Küresel','impact':'EKONOMİ',
+                    'url':link,'source':source_name,
+                })
+        except Exception:
+            continue
+    seen=set();unique=[]
+    for event in events:
+        key=event['url']
+        if key not in seen:
+            seen.add(key);unique.append(event)
+    return {
+        'events':unique[:24],
+        'source':'Google News RSS - economic and central-bank feed',
+        'mode':'SOURCE_LINKED_DISCOVERY',
+        'notice':'Bu takvim gerçeğin kesin yayın saatlerini/sürpriz değerlerini değil, canlı kaynaklı ekonomi haberlerini listeler.',
+        'updated_ms':nowms(),
+    }
 
 # ============================================================
 # ALTIN QUANT v2 SHADOW INTEGRATION

@@ -52,6 +52,8 @@ class UnifiedDecisionTests(unittest.TestCase):
             self.assertFalse(result["live_execution_enabled"])
             self.assertGreaterEqual(result["probability_up"], 0.0)
             self.assertLessEqual(result["probability_up"], 1.0)
+            self.assertIn("historical_analysis", result)
+            self.assertIn("position_index_100", result)
 
 
 if __name__=="__main__":

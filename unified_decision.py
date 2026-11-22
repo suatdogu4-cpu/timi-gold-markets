@@ -15,6 +15,8 @@ from contextlib import closing
 from pathlib import Path
 from typing import Any
 
+from quant import indicators
+
 
 VERSION = "1.0.0"
 MIN_TRAIN_OUTCOMES = 100
@@ -250,6 +252,113 @@ def _online_train(store: UnifiedDecisionStore, symbol: str, tf: str):
     return weights, bias, meta
 
 
+def historical_condition_analysis(bars: list[dict], tf: str) -> dict:
+    """Walk-forward analysis of the same closed-candle setup conditions.
+
+    Each trade starts on a strictly later bar and lasts up to 12 bars.
+    It includes only bars available before entry and never uses future values
+    to construct the setup. This is a shadow research statistic, not PnL.
+    """
+    if len(bars) < 260:
+        return {
+            "status": "INSUFFICIENT_DATA", "sample_positions": 0,
+            "win_rate_pct": None, "profit_factor": None,
+            "max_drawdown_pct": None, "expectancy_pct": None,
+            "average_return_pct": None,
+        }
+
+    horizon = 12
+    fees_slippage_pct = 0.05
+    trades = []
+    peak = 0.0
+    equity = 0.0
+    max_drawdown = 0.0
+
+    for i in range(210, len(bars)-horizon):
+        slice_bars = bars[:i+1]
+        latest = indicators(slice_bars)["latest"]
+        close = _number(latest.get("close"))
+        ema20 = _number(latest.get("ema20"))
+        ema50 = _number(latest.get("ema50"))
+        rsi = _number(latest.get("rsi14"))
+        macd = _number(latest.get("macd_hist"))
+        atr = _number(latest.get("atr14"))
+        if None in (close, ema20, ema50, rsi, macd, atr) or atr <= 0:
+            continue
+
+        long_score = int(close > ema20) + int(ema20 > ema50) + int(rsi >= 55) + int(macd > 0)
+        short_score = int(close < ema20) + int(ema20 < ema50) + int(rsi <= 45) + int(macd < 0)
+        direction = "LONG" if long_score >= 3 and long_score-short_score >= 1 else (
+            "SHORT" if short_score >= 3 and short_score-long_score >= 1 else None
+        )
+        if direction is None:
+            continue
+
+        entry = float(bars[i+1]["o"])
+        stop = entry-1.5*atr if direction == "LONG" else entry+1.5*atr
+        target = entry+2.25*atr if direction == "LONG" else entry-2.25*atr
+        exit_price = float(bars[min(i+horizon, len(bars)-1)]["c"])
+        exit_reason = "TIME"
+        for bar in bars[i+1:min(i+horizon+1, len(bars))]:
+            if direction == "LONG":
+                if float(bar["l"]) <= stop:
+                    exit_price, exit_reason = stop, "STOP"
+                    break
+                if float(bar["h"]) >= target:
+                    exit_price, exit_reason = target, "TARGET"
+                    break
+            else:
+                if float(bar["h"]) >= stop:
+                    exit_price, exit_reason = stop, "STOP"
+                    break
+                if float(bar["l"]) <= target:
+                    exit_price, exit_reason = target, "TARGET"
+                    break
+
+        gross_return = ((exit_price/entry)-1)*100 if direction == "LONG" else ((entry/exit_price)-1)*100
+        net_return = gross_return-fees_slippage_pct
+        equity += net_return
+        peak = max(peak, equity)
+        max_drawdown = min(max_drawdown, equity-peak)
+        trades.append({
+            "direction": direction,
+            "return_pct": net_return,
+            "win": net_return > 0,
+            "exit_reason": exit_reason,
+        })
+
+    if not trades:
+        return {
+            "status": "NO_MATCHING_POSITIONS", "sample_positions": 0,
+            "win_rate_pct": None, "profit_factor": None,
+            "max_drawdown_pct": None, "expectancy_pct": None,
+            "average_return_pct": None,
+        }
+
+    returns = [trade["return_pct"] for trade in trades]
+    winners = [value for value in returns if value > 0]
+    losers = [abs(value) for value in returns if value < 0]
+    win_rate = 100*len(winners)/len(trades)
+    profit_factor = (sum(winners)/sum(losers)) if losers else (None if not winners else 999.0)
+    return {
+        "status": "READY",
+        "sample_positions": len(trades),
+        "wins": len(winners),
+        "losses": len(losers),
+        "win_rate_pct": round(win_rate, 2),
+        "profit_factor": round(profit_factor, 3) if profit_factor is not None and profit_factor < 999 else profit_factor,
+        "max_drawdown_pct": round(max_drawdown, 3),
+        "expectancy_pct": round(statistics.mean(returns), 4),
+        "average_return_pct": round(statistics.mean(returns), 4),
+        "target_hits": sum(trade["exit_reason"] == "TARGET" for trade in trades),
+        "stop_hits": sum(trade["exit_reason"] == "STOP" for trade in trades),
+        "time_exits": sum(trade["exit_reason"] == "TIME" for trade in trades),
+        "fee_slippage_assumption_pct": fees_slippage_pct,
+        "horizon_bars": horizon,
+        "note": "Geriye dönük koşul istatistiği; gelecek getiri garantisi değildir.",
+    }
+
+
 def settle_pending(store: UnifiedDecisionStore, symbol: str, tf: str, bars: list[dict]):
     now = int(time.time())
     for record in store.pending(symbol, tf):
@@ -272,6 +381,10 @@ def build_unified_decision(root: Path, symbol: str, tf: str, bars: list[dict],
     atr = _number(latest.get("atr14"))
     valid = snapshot.get("valid", {}) if isinstance(snapshot, dict) else {}
     flow = snapshot.get("flow", {}) if isinstance(snapshot, dict) else {}
+    if not isinstance(valid, dict):
+        valid = {}
+    if not isinstance(flow, dict):
+        flow = {}
 
     values, named_features = features_from_market(
         bars, indicators, mtf, flow, quant_stats, symbol
@@ -339,6 +452,42 @@ def build_unified_decision(root: Path, symbol: str, tf: str, bars: list[dict],
         c - 2.25*atr if direction == "SHORT" and c is not None and atr is not None else None
     )
 
+    historical = historical_condition_analysis(bars, tf)
+    confidence = abs(probability-0.5)*2.0
+
+    if direction == "LONG" and c is not None and atr is not None:
+        entry_zone = {"low": round(c-0.25*atr, 5), "high": round(c+0.15*atr, 5),
+                      "preferred": round(c, 5)}
+        stop_zone = {"low": round(stop-0.15*atr, 5), "high": round(stop+0.10*atr, 5),
+                     "preferred": round(stop, 5)}
+        target_zone = {"low": round(target-0.25*atr, 5), "high": round(target+0.25*atr, 5),
+                       "preferred": round(target, 5)}
+    elif direction == "SHORT" and c is not None and atr is not None:
+        entry_zone = {"low": round(c-0.15*atr, 5), "high": round(c+0.25*atr, 5),
+                      "preferred": round(c, 5)}
+        stop_zone = {"low": round(stop-0.10*atr, 5), "high": round(stop+0.15*atr, 5),
+                     "preferred": round(stop, 5)}
+        target_zone = {"low": round(target-0.25*atr, 5), "high": round(target+0.25*atr, 5),
+                       "preferred": round(target, 5)}
+    else:
+        entry_zone = stop_zone = target_zone = None
+
+    win_rate = historical.get("win_rate_pct")
+    sample_positions = historical.get("sample_positions", 0)
+    confidence_score = confidence*100
+    if isinstance(win_rate, (int, float)):
+        sample_factor = min(sample_positions/300, 1.0)
+        win_factor = max(0.0, min(win_rate/65.0, 1.0))
+        leverage_index = 100*_clamp(
+            0.55*confidence_score/100 + 0.30*win_factor + 0.15*sample_factor,
+            0.0, 1.0,
+        )
+    else:
+        leverage_index = 0.0
+    if veto or direction == "BEKLE":
+        leverage_index = 0.0
+    risk_reward = (abs(target-c)/abs(c-stop)) if direction in ("LONG","SHORT") and c and stop and target and abs(c-stop)>0 else None
+
     return {
         "engine": "GOLD UNIFIED DECISION ENGINE",
         "version": VERSION,
@@ -358,6 +507,18 @@ def build_unified_decision(root: Path, symbol: str, tf: str, bars: list[dict],
         "thresholds": {"long": LONG_THRESHOLD, "short": SHORT_THRESHOLD},
         "stop": round(stop, 5) if stop is not None else None,
         "target": round(target, 5) if target is not None else None,
+        "entry_zone": entry_zone,
+        "stop_zone": stop_zone,
+        "target_zone": target_zone,
+        "risk_reward_ratio": round(risk_reward, 3) if risk_reward is not None else None,
+        "position_index_100": round(leverage_index, 1),
+        "leverage_index_100": round(leverage_index, 1),
+        "position_scale": {
+            "scale_0_100": round(leverage_index, 1),
+            "meaning": "Risk / gölge pozisyon yoğunluk indeksi; gerçek kaldıraç veya emir değildir",
+            "max_research_leverage_limit": 100,
+        },
+        "historical_analysis": historical,
         "veto": veto,
         "reasons": [
             "Kapanmış mum ve zamanlama kontrollü tek otorite",

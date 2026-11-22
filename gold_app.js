@@ -227,8 +227,40 @@ function updateAnalysis(a){ana=a;let ind=a.indicators?.latest||{},q=a.quant||{},
  heatBox('overviewVar',heatN(q.var95_1bar_pct)===null?null:q.var95_1bar_pct/.3*100,'caution');
  renderPlots();
 }
+let unifiedChartLines=[];
+function updateUnifiedChartZones(u){
+ for(const plot of Object.values(plots)){
+  if(!plot?.main)continue;
+  for(const line of unifiedChartLines.filter(x=>x.parent===plot.main)){
+   try{plot.main.removePriceLine(line.line)}catch(e){}
+  }
+ }
+ unifiedChartLines=[];
+ if(!u||!u.entry_zone||!u.stop_zone||!u.target_zone)return;
+ const levels=[
+  [u.entry_zone.low,'ENTRY LOW','#42b8ff','GİRİŞ ALT'],
+  [u.entry_zone.high,'ENTRY HIGH','#42b8ff','GİRİŞ ÜST'],
+  [u.stop_zone.preferred,'STOP','#fa5f7e','STOP'],
+  [u.target_zone.low,'TARGET LOW','#20d9b2','HEDEF ALT'],
+  [u.target_zone.high,'TARGET HIGH','#20d9b2','HEDEF ÜST'],
+ ];
+ for(const plot of Object.values(plots)){
+  if(!plot?.main)continue;
+  for(const [price,key,color,title] of levels){
+   if(!Number.isFinite(Number(price)))continue;
+   try{
+    const line=plot.main.createPriceLine({
+     price:Number(price),color,lineWidth:1,
+     lineStyle:key==='STOP'?2:0,axisLabelVisible:true,title
+    });
+    unifiedChartLines.push({parent:plot.main,line});
+   }catch(e){}
+  }
+ }
+}
 function updateUnifiedDecision(u){
  if(!u)return;
+ window.unifiedDecisionResult=u;
  const direction=u.direction||'BEKLE';
  if($('k-decision')){$('k-decision').textContent=direction;setClass('k-decision',clsDecision(direction))}
  if($('k-risk'))$('k-risk').textContent=u.model_approved?'ML doğrulama geçti':'Gölge öğrenme / doğrulama';
@@ -242,6 +274,20 @@ function updateUnifiedDecision(u){
  if($('target'))$('target').textContent=u.target!=null?Number(u.target).toFixed(2):'—';
  if($('reasonList'))$('reasonList').innerHTML=(u.reasons||[]).map(x=>`<div>• ${escaped(x)}</div>`).join('')||'—';
  if($('vetoList'))$('vetoList').innerHTML=(u.veto||[]).map(x=>`<div class="red">• ${escaped(x)}</div>`).join('')||'<div class="green">Veto yok · emir yetkisi kapalı</div>';
+ if($('entryZone'))$('entryZone').textContent=u.entry_zone?`${fmt(u.entry_zone.low)} – ${fmt(u.entry_zone.high)}`:'—';
+ if($('targetZone'))$('targetZone').textContent=u.target_zone?`${fmt(u.target_zone.low)} – ${fmt(u.target_zone.high)}`:'—';
+ if($('riskReward'))$('riskReward').textContent=u.risk_reward_ratio!=null?`1 : ${fmt(u.risk_reward_ratio,2)}`:'—';
+ if($('positionIndex'))$('positionIndex').textContent=u.position_index_100!=null?`${fmt(u.position_index_100,1)} / 100`:'—';
+ const h=u.historical_analysis||{};
+ if($('historicalMetrics'))$('historicalMetrics').innerHTML=[
+  ['Örnek pozisyon',h.sample_positions??0],
+  ['Başarı oranı',h.win_rate_pct!=null?pct(h.win_rate_pct):'—'],
+  ['Profit Factor',fmt(h.profit_factor,2)],
+  ['Beklenen getiri',h.expectancy_pct!=null?pct(h.expectancy_pct):'—'],
+  ['Max geri çekilme',h.max_drawdown_pct!=null?pct(h.max_drawdown_pct):'—'],
+  ['Target / Stop / Time',`${h.target_hits||0} / ${h.stop_hits||0} / ${h.time_exits||0}`]
+ ].map(([k,v])=>`<div class="metric"><small>${escaped(k)}</small><b>${escaped(v)}</b></div>`).join('');
+ updateUnifiedChartZones(u);
 }
 async function reloadAll(force=false){let seq=++inflight;showError('');$('chartTitle').textContent=symbol+' · '+tf;
  try{let [c,a,ml,unified]=await Promise.all([getJSON(`/api/candles?symbol=${symbol}&tf=${tf}&limit=550&refresh=${force}`),getJSON(`/api/analysis?symbol=${symbol}&tf=${tf}&refresh=${force}`),getJSON(`/api/ml-status?symbol=${symbol}`),getJSON(`/api/unified-decision?symbol=${symbol}&tf=${tf}`)]);if(seq!==inflight)return;

@@ -654,15 +654,19 @@ async def candles(symbol:str='XAUUSDT',tf:str='1m',limit:int=Query(default=350,g
         updated_ms=M.candle_updated.get((symbol,tf))
         update_age=age(updated_ms)
         step=TF_MIN[tf]*60
-        bar_age=max(0,time.time()-bars[-1]['t']) if bars else None
+        # A successful fetch is not proof that the returned market bar is current.
+        # Historical bars may be shown, but never marked as a live trading signal.
+        bar_age=(time.time()-bars[-1]['t']) if bars else None
         update_limit=8 if symbol=='XAUUSDT' and tf=='1m' else 20 if symbol=='XAUUSD' else 15
         fresh_data=bool(bars and update_age is not None and update_age<=update_limit and
-                        bar_age is not None and bar_age<=step*2)
-        if not fresh_data:
-            raise HTTPException(503,'Güncel mum verisi doğrulanamadı; eski veri gösterilmiyor.')
+                        bar_age is not None and -30<=bar_age<=step*2)
         return {'symbol':symbol,'tf':tf,'bars':bars,'source':'Bitget UTA' if symbol=='XAUUSDT' else 'OANDA v20',
-                'updated_ms':updated_ms,'age_s':update_age,'bar_age_s':bar_age,'fresh':True,
-                'closed_count':len(closed_bars(bars,tf)), 'warning':'Son mum halen oluşuyor olabilir.'}
+                'updated_ms':updated_ms,'age_s':update_age,'bar_age_s':bar_age,
+                'last_bar_utc':datetime.fromtimestamp(bars[-1]['t'],timezone.utc).isoformat() if bars else None,
+                'fresh':fresh_data,'status':'LIVE' if fresh_data else 'HISTORICAL',
+                'closed_count':len(closed_bars(bars,tf)),
+                'warning':'Son mum halen oluşuyor olabilir.' if fresh_data else
+                          'Mum verisi güncel değil; grafik tarihsel amaçlıdır. LONG/SHORT kullanılmamalı.'}
     except HTTPException:raise
     except Exception as ex:raise HTTPException(503,err_text(ex))
 

@@ -42,8 +42,8 @@ $('v-strategies')?.remove();
 $('nav').addEventListener('click',e=>{let b=e.target.closest('[data-page]');if(b)go(b.dataset.page)});
 document.body.addEventListener('click',e=>{let b=e.target.closest('[data-go]');if(b)go(b.dataset.go)});
 $('tfbar').innerHTML=tfs.map(x=>`<button data-tf="${x}" class="${x===tf?'active':''}">${x}</button>`).join('');
-$('tfbar').onclick=e=>{let b=e.target.closest('[data-tf]');if(b){tf=b.dataset.tf; $('tfbar').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));markChartUnavailable('Yeni zaman dilimi için güncel mumlar yükleniyor…',true);reloadAll()}};
-$('symbol').onchange=e=>{symbol=e.target.value;markChartUnavailable('Yeni parite için güncel mumlar yükleniyor…',true);reloadAll()};$('reload').onclick=()=>reloadAll(true);
+$('tfbar').onclick=e=>{let b=e.target.closest('[data-tf]');if(b){tf=b.dataset.tf; $('tfbar').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));markChartUnavailable('Yeni zaman dilimi için güncel mumlar yükleniyor…',true,true);reloadAll()}};
+$('symbol').onchange=e=>{symbol=e.target.value;markChartUnavailable('Yeni parite için güncel mumlar yükleniyor…',true,true);reloadAll()};$('reload').onclick=()=>reloadAll(true);
 for(let id of ['toggles','toggles-detail']){$(id).innerHTML=togglesConfig.map(([lab,k])=>`<label class="switch"><input data-opt="${k}" type="checkbox" ${opts[k]?'checked':''}>${lab}</label>`).join('');$(id).onchange=e=>{if(!e.target.dataset.opt)return;let k=e.target.dataset.opt;opts[k]=e.target.checked;localStorage.setItem('gold-'+k,String(opts[k]));document.querySelectorAll(`[data-opt="${k}"]`).forEach(x=>x.checked=opts[k]);renderPlots()}}
 $('repoList').innerHTML=repoLinks.map(([name,u])=>`<a href="${u}" target="_blank" rel="noopener noreferrer">${escaped(name)}</a>`).join('');
 $('resetPrefs').onclick=()=>{for(let k in opts)localStorage.removeItem('gold-'+k);location.reload()};
@@ -86,12 +86,12 @@ function ensureCharts(){if(!window.LightweightCharts){$('empty-home').textConten
  if(!osc.rsi)osc.rsi=createOsc('osc-rsi',['rsi14']);if(!osc.stoch)osc.stoch=createOsc('osc-stoch',['stoch_k','stoch_d']);
 }
 function drawLines(lines,serie){if(!ana?.indicators?.series)return;for(let [key,s] of Object.entries(lines)){const set=ana.indicators.series[key]||[];const vis=key.startsWith('bb_')?opts.bb:opts[key]??true;s.applyOptions({visible:vis});if(vis)s.setData(set.filter(x=>x.v!==null&&Number.isFinite(x.v)).map(x=>({time:x.t,value:x.v})))}}
-function renderPlots(){ensureCharts();if(!chartDataFresh||!candleData.length){for(let p of Object.values(plots)){if(!p)continue;try{p.main.setData([]);for(const s of Object.values(p.lines||{}))s.setData([])}catch(e){}}for(let o of Object.values(osc)){if(!o)continue;for(const s of Object.values(o.lines||{}))try{s.setData([])}catch(e){}}for(let id of ['empty-home','empty-detail']){if($(id)){$(id).style.display='grid';$(id).textContent='Güncel veri yok · gecikmeli grafik ve göstergeler gizlendi'}}return}let b=candleData.filter(x=>x.t&&x.c>0).map(x=>({time:x.t,open:x.o,high:x.h,low:x.l,close:x.c}));
+function renderPlots(){ensureCharts();if(!candleData.length){for(let p of Object.values(plots)){if(!p)continue;try{p.main.setData([]);for(const s of Object.values(p.lines||{}))s.setData([])}catch(e){}}for(let o of Object.values(osc)){if(!o)continue;for(const s of Object.values(o.lines||{}))try{s.setData([])}catch(e){}}for(let id of ['empty-home','empty-detail']){if($(id)){$(id).style.display='grid';$(id).textContent='Güncel veri yok · gecikmeli grafik ve göstergeler gizlendi'}}return}let b=candleData.filter(x=>x.t&&x.c>0).map(x=>({time:x.t,open:x.o,high:x.h,low:x.l,close:x.c}));
  for(let key of Object.keys(plots)){let p=plots[key];if(!p)continue;try{p.main.setData(b);drawLines(p.lines);(key==='home'||!window.__uxZoomTouched)&&p.chart.timeScale().fitContent()}catch(ex){console.warn('price chart',ex)}}
  for(let [name,ob] of Object.entries(osc)){if(!ob||!ana?.indicators?.series)continue;for(let [k,series] of Object.entries(ob.lines)){let d=ana.indicators.series[k]||[];try{series.setData(d.filter(x=>x.v!==null).map(x=>({time:x.t,value:x.v,color:k==='macd_hist'?(x.v>=0?'#1bb78f':'#da6073'):undefined})));}catch(ex){console.warn('oscillator',ex)}}}
  $('empty-home').style.display='none';$('empty-detail').style.display='none';
 }
-function tickPlot(price,ms){if(!price||symbol!=='XAUUSDT'||!candleData.length)return;let step={'1m':60,'3m':180,'5m':300,'15m':900,'30m':1800,'1H':3600,'4H':14400,'1D':86400}[tf];let sec=Math.floor(ms/1000),start=Math.floor(sec/step)*step,last=candleData[candleData.length-1];if(start<last.t)return;
+function tickPlot(price,ms){if(!chartDataFresh||!price||symbol!=='XAUUSDT'||!candleData.length)return;let step={'1m':60,'3m':180,'5m':300,'15m':900,'30m':1800,'1H':3600,'4H':14400,'1D':86400}[tf];let sec=Math.floor(ms/1000),start=Math.floor(sec/step)*step,last=candleData[candleData.length-1];if(start<last.t)return;
  if(start>last.t){if(lastRollRefresh!==start){lastRollRefresh=start;reloadAll(true)}return;}
  else{last.h=Math.max(last.h,price);last.l=Math.min(last.l,price);last.c=price}
  let x=candleData[candleData.length-1],data={time:x.t,open:x.o,high:x.h,low:x.l,close:x.c};
@@ -331,8 +331,48 @@ function updateUnifiedDecision(u){
  updateUnifiedChartZones(u);
 }
 function clearCurrentAnalysis(){ana=null;$('techTable').innerHTML='';$('techCount').textContent='Güncel analiz yok';$('quantMetrics').innerHTML='';$('g32-tech-summary').textContent='Güncel teknik veri yok.';$('g32-quant-summary').textContent='Güncel Quant verisi yok.';$('overviewSMC').textContent='Güncel mum verisi yok.';$('smcEvents').textContent='Güncel mum verisi yok.';$('swingHi').textContent='—';$('swingLo').textContent='—';$('swingMid').textContent='—';$('overviewAtr').textContent='—';$('overviewBB').textContent='—';$('overviewZ').textContent='—';$('overviewVar').textContent='—';$('regimeName').textContent='Veri gecikmeli';$('mtfCards').textContent='Güncel mum verisi yok.';$('aqStamp').textContent='GÜNCEL VERİ YOK';$('aqLegacy').textContent='—';$('aqNew').textContent='—';$('aqLong').textContent='—';$('aqShort').textContent='—';$('aqStats').textContent='Güncel veri yok.';$('aqSetup').textContent='Güncel veri yok.';$('decisionData').textContent='Güncel analiz yok · karar gizlendi';$('bigDecision').textContent='BEKLE';$('k-decision').textContent='BEKLE';$('longScore').textContent='—';$('shortScore').textContent='—';$('netScore').textContent='—';$('stop').textContent='—';$('target').textContent='—';$('entryZone').textContent='—';$('targetZone').textContent='—';$('riskReward').textContent='—';$('positionIndex').textContent='—';$('reasonList').textContent='Güncel veri yok';$('vetoList').textContent='—';for(let p of Object.values(plots)){if(!p)continue;for(const s of Object.values(p.lines||{}))try{s.setData([])}catch(e){}}for(let o of Object.values(osc))if(o)for(const s of Object.values(o.lines||{}))try{s.setData([])}catch(e){}}
-function markChartUnavailable(message,force=false){if(!force&&chartDataFresh&&Date.now()-candleUpdatedMs<=candleMaxAgeMs()){$('chartUpdated').textContent=`Mum yenilemesi bekleniyor · son veri ${age((Date.now()-candleUpdatedMs)/1000)}`;return false}chartDataFresh=false;candleData=[];candleUpdatedMs=0;clearCurrentAnalysis();renderPlots();$('chartUpdated').textContent=message||'GÜNCEL VERİ YOK';if($('uxFeedStatus'))$('uxFeedStatus').textContent='GÜNCEL VERİ YOK';return true}
-function acceptCandleResponse(c){if(!c?.fresh||!Array.isArray(c.bars)||!c.bars.length)throw Error('Mum verisi güncelliği doğrulanamadı');candleData=c.bars;candleUpdatedMs=Number(c.updated_ms)||Date.now();chartDataFresh=true;$('chartUpdated').textContent='Mum verisi · '+age(c.age_s)+' önce';if($('uxFeedStatus'))$('uxFeedStatus').textContent='MUM GÜNCEL · '+age(c.age_s);renderPlots()}
+function markChartUnavailable(message,force=false,reset=false){
+ if(!force&&chartDataFresh&&Date.now()-candleUpdatedMs<=candleMaxAgeMs()){
+  $('chartUpdated').textContent='Mum yenilemesi bekleniyor · mevcut doğrulanmış veri korunuyor';return false;
+ }
+ chartDataFresh=false;
+ if(reset){candleData=[];candleUpdatedMs=0;}
+ clearCurrentAnalysis();
+ window.unifiedDecisionResult=null;
+ updateUnifiedChartZones(null);
+ renderPlots();
+ const last=candleData.length?candleData[candleData.length-1]:null;
+ $('chartUpdated').textContent=(last?'GECİKMELİ · son mum '+date(last.t)+' · ':'VERİ YOK · ')+(message||'Yeni mum bekleniyor');
+ if($('uxFeedStatus'))$('uxFeedStatus').textContent='GECİKMELİ · KARAR BEKLE';
+ return true;
+}
+function acceptCandleResponse(c){
+ if(!Array.isArray(c?.bars)||!c.bars.length)throw Error('Mum verisi bulunamadı');
+ const bars=c.bars,last=bars[bars.length-1],lastTime=Number(last.t);
+ const step=({'1m':60,'3m':180,'5m':300,'15m':900,'30m':1800,'1H':3600,'4H':14400,'1D':86400})[tf]||60;
+ const actualAge=Date.now()/1000-lastTime;
+ const verified=c.fresh===true&&Number.isFinite(actualAge)&&actualAge>=-30&&actualAge<=step*2+15;
+ if(!verified){
+  const previousTime=Number(candleData[candleData.length-1]?.t)||0;
+  if(previousTime>lastTime){
+   markChartUnavailable('Kaynak daha eski mum gönderdi; son doğrulanmış grafik korundu',true);
+   return;
+  }
+ }
+ candleData=bars;
+ if(!verified){
+  chartDataFresh=false;candleUpdatedMs=0;
+  clearCurrentAnalysis();window.unifiedDecisionResult=null;updateUnifiedChartZones(null);
+  renderPlots();
+  $('chartUpdated').textContent='TARİHSEL GRAFİK · son mum '+date(lastTime)+' · sinyaller kapalı';
+  if($('uxFeedStatus'))$('uxFeedStatus').textContent='GECİKMELİ · KARAR BEKLE';
+  return;
+ }
+ candleUpdatedMs=Date.now();chartDataFresh=true;
+ $('chartUpdated').textContent='Mum verisi · '+age(c.age_s)+' önce';
+ if($('uxFeedStatus'))$('uxFeedStatus').textContent='MUM GÜNCEL · '+age(c.age_s);
+ renderPlots();
+}
 async function refreshCandles(){if(candleFetchInFlight||document.visibilityState!=='visible')return;candleFetchInFlight=true;const wantedSymbol=symbol,wantedTf=tf;try{const c=await getJSON(`/api/candles?symbol=${wantedSymbol}&tf=${wantedTf}&limit=550`);if(wantedSymbol!==symbol||wantedTf!==tf)return;acceptCandleResponse(c)}catch(e){if(wantedSymbol===symbol&&wantedTf===tf){const stale=e.message.includes('Güncel mum verisi doğrulanamadı')||e.message.includes('eski veri gösterilmiyor');markChartUnavailable('Mum verisi yenilenemedi · '+e.message,stale)}}finally{candleFetchInFlight=false}}
 async function reloadAll(force=false){let seq=++inflight;$('chartTitle').textContent=symbol+' · '+tf;
  const req=await Promise.allSettled([getJSON(`/api/candles?symbol=${symbol}&tf=${tf}&limit=550&refresh=${force}`),getJSON(`/api/analysis?symbol=${symbol}&tf=${tf}&refresh=${force}`),getJSON(`/api/ml-status?symbol=${symbol}`),getJSON(`/api/unified-decision?symbol=${symbol}&tf=${tf}`)]);if(seq!==inflight)return;
@@ -711,7 +751,7 @@ function uxRenderSheet(name,arg=''){
  }
 }
 function uxUpdateDock(k){document.body.dataset.uxPage=k;const group=k==='dashboard'?'dashboard':k==='chart'?'chart':['technical','smc','flow','depth','quant','freqtrade','altinquant','quanthub','decision'].includes(k)?'analysis':'more';document.querySelectorAll('[data-uxnav]').forEach(x=>{let active=x.dataset.uxnav===group;x.classList.toggle('active',active);if(active)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});}
-function uxSetTf(v){if(!tfs.includes(v))return;tf=v;$('tfbar').querySelectorAll('[data-tf]').forEach(x=>x.classList.toggle('active',x.dataset.tf===v));document.querySelectorAll('[data-uxtf]').forEach(x=>x.classList.toggle('active',x.dataset.uxtf===v));uxToast(v+' zaman dilimi');uxLastBarsKey='';reloadAll()}
+function uxSetTf(v){if(!tfs.includes(v))return;tf=v;markChartUnavailable('Yeni zaman dilimi yükleniyor…',true,true);$('tfbar').querySelectorAll('[data-tf]').forEach(x=>x.classList.toggle('active',x.dataset.tf===v));document.querySelectorAll('[data-uxtf]').forEach(x=>x.classList.toggle('active',x.dataset.uxtf===v));uxToast(v+' zaman dilimi');uxLastBarsKey='';reloadAll()}
 function uxApplyPreset(k){if(!UX_PRESETS[k])return;UX_KEYS.forEach(id=>{UX.indicators[id].enabled=UX_PRESETS[k].keys.includes(id)});UX.preset=k;uxSave();uxUpdateIndicators();uxRenderSheet('templates');uxToast(UX_PRESETS[k].label+' şablonu uygulandı')}
 function uxToggle(k,open){if(!UX_LIB[k])return;UX.indicators[k].enabled=typeof open==='boolean'?open:!UX.indicators[k].enabled;UX.preset='custom';uxSave();uxUpdateIndicators();if(uxSheetName==='library'||uxSheetName==='active')uxRenderSheet(uxSheetName);uxToast(`${UX_LIB[k].short} ${UX.indicators[k].enabled?'açıldı':'kapatıldı'}`)}
 function uxUpdateIndicators(){uxRenderQuick();uxUpdateActiveTags();uxRenderDetail()}
@@ -841,7 +881,7 @@ function uxCheckAlert(){const a=UX.alerts[symbol];if(!a?.active||a.triggered||!s
  if(!fresh||!Number.isFinite(value))return;
  if(a.direction==='above'?value>=a.price:value<=a.price){a.triggered=true;a.active=false;uxSave();uxToast('FİYAT ALARMI: '+symbol+' '+uxV(value,2));}
 }
-function uxUpdateTop(){uxUpdatePriceGuides();uxCheckAlert();let el=$('uxTopPrice');if(!el)return;const p=symbol==='XAUUSDT'?snap?.price?.last:snap?.spot?.last;el.textContent=Number.isFinite(Number(p))?uxV(p,2):'—';const price=$('uxChartPrice');if(price)price.textContent=el.textContent;const name=$('uxTopSymbol');if(name)name.textContent=symbol;const status=$('uxFeedStatus');if(status)status.textContent=snap?.valid?.ticker?(snap?.ws_connected?'CANLI':'GECİKMELİ'):'VERİ EKSİK'}
+function uxUpdateTop(){uxUpdatePriceGuides();uxCheckAlert();let el=$('uxTopPrice');if(!el)return;const p=symbol==='XAUUSDT'?snap?.price?.last:snap?.spot?.last;el.textContent=Number.isFinite(Number(p))?uxV(p,2):'—';const price=$('uxChartPrice');if(price)price.textContent=el.textContent;const name=$('uxTopSymbol');if(name)name.textContent=symbol;const status=$('uxFeedStatus');if(status)status.textContent=!chartDataFresh?'GECİKMELİ · KARAR BEKLE':snap?.valid?.ticker?(snap?.ws_connected?'CANLI':'GECİKMELİ'):'VERİ EKSİK'}
 function uxInit(){
  uxUpdateDock(page);uxRenderQuick();uxUpdateActiveTags();$('uxTfrow').innerHTML=tfs.map(x=>`<button class="ux-time ${x===tf?'active':''}" data-uxtf="${x}">${x}</button>`).join('');
  $('uxMobileNav').addEventListener('click',e=>{const b=e.target.closest('[data-uxnav]');if(!b)return;const k=b.dataset.uxnav;if(k==='analysis'||k==='more')uxOpen(k==='analysis'?'analysis-menu':'more-menu');else go(k==='quant'?'quant':k)});
@@ -1028,7 +1068,7 @@ __goldStartPart('Mobil arayüz',uxInit);
 __goldStartPart('Yüzdelik renk gösterimi',heatSetupToggle);
 __goldStartPart('Skor filtreleri',g32InitFilters);
 // The boot watchdog confirms that the complete application script executed.
-window.__GOLD_APP_READY__=true;window.__GOLD_BUILD__='3.2.0';
+window.__GOLD_APP_READY__=true;window.__GOLD_BUILD__='3.2.1';
 __goldStartPart('Grafik',ensureCharts);
 __goldStartPart('Canlı bağlantı',startSocket);
 __goldStartPart('İlk veri yükleme',reloadAll);

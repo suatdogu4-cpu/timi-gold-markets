@@ -472,8 +472,6 @@ async def assistant(payload:dict=Body(default={})):
 
 @app.get('/')
 async def index():
-    if (DIST/'index.html').is_file():
-        return FileResponse(DIST/'index.html')
     return FileResponse(ROOT/'index.legacy.html')
 
 # V2.2.3: Serve the existing modular front-end assets directly.
@@ -499,6 +497,13 @@ async def quant_hub_css():
 @app.get('/gold_quant_hub.js',include_in_schema=False)
 async def quant_hub_js():
     return FileResponse(ROOT / 'gold_quant_hub.js', media_type='application/javascript')
+
+@app.get('/vendor/lightweight-charts.standalone.production.js', include_in_schema=False)
+async def lightweight_charts_asset():
+    chart_library = ROOT / 'node_modules' / 'lightweight-charts' / 'dist' / 'lightweight-charts.standalone.production.js'
+    if not chart_library.is_file():
+        raise HTTPException(503, 'Lightweight Charts dependency is not installed')
+    return FileResponse(chart_library, media_type='application/javascript')
 
 @app.get('/api/health')
 async def health():

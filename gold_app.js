@@ -38,6 +38,7 @@ function initAssistant(){
  };
 }
 function initNav(){ $('nav').innerHTML=navs.map(([k,v])=>`<button data-page="${k}" class="${k==='dashboard'?'active':''}">${v}</button>`).join('');
+$('v-strategies')?.remove();
 $('nav').addEventListener('click',e=>{let b=e.target.closest('[data-page]');if(b)go(b.dataset.page)});
 document.body.addEventListener('click',e=>{let b=e.target.closest('[data-go]');if(b)go(b.dataset.go)});
 $('tfbar').innerHTML=tfs.map(x=>`<button data-tf="${x}" class="${x===tf?'active':''}">${x}</button>`).join('');

@@ -373,16 +373,6 @@ async def unified_decision(symbol:str='XAUUSDT',tf:str='5m'):
         public={'latest':ind.get('latest',{}),'count':len(bars)}
         stats=quant_stats(bars,tf)
         mtf_rows=[]
-        if symbol=='XAUUSDT':
-            async def mtf_one(mtf_tf):
-                try:
-                    mtf_bars=closed_bars(await M.get_candles(symbol,mtf_tf,300),mtf_tf)
-                    mtf_ind=indicators(mtf_bars)['latest']
-                    direction='LONG' if mtf_ind.get('close',0)>mtf_ind.get('ema20',0)>mtf_ind.get('ema50',0) and mtf_ind.get('rsi14',50)>=50 else 'SHORT' if mtf_ind.get('close',float('inf'))<mtf_ind.get('ema20',0)<mtf_ind.get('ema50',0) and mtf_ind.get('rsi14',50)<=50 else 'KARIŞIK'
-                    return {'tf':mtf_tf,'direction':direction}
-                except Exception:
-                    return {'tf':mtf_tf,'direction':'VERİ YOK'}
-            mtf_rows=await asyncio.gather(*(mtf_one(x) for x in ('1m','3m','5m','15m','1H')))
         snap=M.snapshot()
         snap['candles_valid']=bool(bars and len(bars)>=210 and int(time.time())-bars[-1]['t']<=TF_MIN[tf]*60*3+90)
         from unified_decision import build_unified_decision

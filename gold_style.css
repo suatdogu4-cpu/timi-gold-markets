@@ -161,3 +161,11 @@ html.heat-off .heat-reason{background:#11243b!important;border-color:#39789a!imp
  .g32-mobile-heat{display:block;margin-top:4px}
  .g32-mobile-heat .heat-table-badge{display:inline-flex;margin:0}
 }
+/* Freqtrade read-only bridge */
+.ft-status{padding:14px;border:1px solid var(--stroke);border-radius:9px;background:var(--panel2)}
+.ft-status[data-state="ok"]{border-color:#176252}
+.ft-status[data-state="error"]{border-color:#782e47}
+.ft-status strong{display:block;font-size:15px;margin-bottom:4px}
+.ft-open-trade{font-variant-numeric:tabular-nums}
+.freshness-warning{color:var(--gold)}
+@media(max-width:760px){#v-freqtrade .metricgrid{grid-template-columns:repeat(2,minmax(0,1fr))}#v-freqtrade .twocol{grid-template-columns:1fr}}

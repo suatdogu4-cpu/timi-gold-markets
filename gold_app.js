@@ -1,9 +1,9 @@
 'use strict';
 const $=id=>document.getElementById(id);
-const navs=[['dashboard','◈ Kokpit'],['chart','▤ Grafik'],['technical','▧ Teknik'],['smc','◇ SMC / ICT'],['flow','⇄ Order Flow'],['depth','▥ DOM'],['derivatives','◉ Vadeli'],['macro','◎ Makro & Haber'],['quant','∑ Quant / Altın Quant'],['quanthub','◈ 7 Quant + Konsensüs'],['decision','✦ Karar Motoru'],['performance','▱ Performans'],['health','● Veri Sağlığı'],['settings','⚙ Ayarlar']];
+const navs=[['dashboard','◈ Kokpit'],['chart','▤ Grafik'],['technical','▧ Teknik'],['smc','◇ SMC / ICT'],['flow','⇄ Order Flow'],['depth','▥ DOM'],['derivatives','◉ Vadeli'],['macro','◎ Makro & Haber'],['quant','∑ Quant / Altın Quant'],['freqtrade','◉ Freqtrade'],['quanthub','◈ 7 Quant + Konsensüs'],['decision','✦ Karar Motoru'],['performance','▱ Performans'],['health','● Veri Sağlığı'],['settings','⚙ Ayarlar']];
 const tfs=['1m','3m','5m','15m','30m','1H','4H','1D'];
 const repoLinks=[['order-flow-platform','https://github.com/justaksi7/order-flow-platform'],['Gold-Dashboard','https://github.com/Econ-G/Gold-Dashboard'],['gold-sweep-backtester','https://github.com/baturdenada/gold-sweep-backtester'],['smc-backtester','https://github.com/Yousuf6273/smc-backtester'],['GoldBot','https://github.com/shrijeet-lokhande/GoldBot'],['aurum-intelligence','https://github.com/Pestador/aurum-intelligence'],['PickleChart','https://github.com/ikarisz/PickleChart'],['dukascopy-tools','https://github.com/Tradelyy/dukascopy-tools'],['lightweight-charts','https://github.com/tradingview/lightweight-charts'],['TA-Lib','https://github.com/TA-Lib/ta-lib'],['vectorbt','https://github.com/polakowo/vectorbt'],['quantstats','https://github.com/ranaroussi/quantstats']];
-let symbol='XAUUSDT',tf='1m',page='dashboard',snap=null,ana=null,candleData=[],plots={},osc={},clientWs=null,retryMs=1200,lastBT=null,inflight=0,firstLoad=true,lastRollRefresh=0;
+let symbol='XAUUSDT',tf='1m',page='dashboard',snap=null,ana=null,candleData=[],plots={},osc={},clientWs=null,retryMs=1200,lastBT=null,inflight=0,firstLoad=true,lastRollRefresh=0,chartDataFresh=false,candleFetchInFlight=false,candleUpdatedMs=0;
 const togglesConfig=[['EMA20','ema20',true],['EMA50','ema50',true],['EMA200','ema200',false],['BB','bb',true],['VWAP50','vwap50',false],['SUPERTREND','supertrend',false]];
 const opts=Object.fromEntries(togglesConfig.map(x=>[x[1],localStorage.getItem('gold-'+x[1])===null?x[2]:localStorage.getItem('gold-'+x[1])==='true']));
 const fmt=(x,d=2)=>x===null||x===undefined||!Number.isFinite(Number(x))?'—':Number(x).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -48,6 +48,7 @@ for(let id of ['toggles','toggles-detail']){$(id).innerHTML=togglesConfig.map(([
 $('repoList').innerHTML=repoLinks.map(([name,u])=>`<a href="${u}" target="_blank" rel="noopener noreferrer">${escaped(name)}</a>`).join('');
 $('resetPrefs').onclick=()=>{for(let k in opts)localStorage.removeItem('gold-'+k);location.reload()};
 $('healthReload').onclick=loadHealth;$('macroReload').onclick=loadMacro;
+$('freqtradeRefresh').onclick=loadFreqtrade;
 $('mtfReload').onclick=loadMTF;
  if($('aqRefresh'))$('aqRefresh').onclick=loadAltinQuant;
  if($('aqRiskBtn'))$('aqRiskBtn').onclick=aqRiskCalc;
@@ -58,7 +59,7 @@ $('mtfReload').onclick=loadMTF;
 function go(k){page=k;document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id==='v-'+k));$('nav').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x.dataset.page===k));
  g32Highlight(k);
  if(['dashboard','chart'].includes(k)){setTimeout(()=>{ensureCharts();renderPlots()},70)}
- if(k==='health')loadHealth();if(k==='macro')loadMacro();if(k==='altinquant')loadAltinQuant();if(k==='technical')loadMTF();if(k==='strategies'&&lastBT)renderBT(lastBT); if(k==='quanthub')window.dispatchEvent(new Event('gold-quant-hub-open'));
+ if(k==='health')loadHealth();if(k==='macro')loadMacro();if(k==='altinquant')loadAltinQuant();if(k==='technical')loadMTF();if(k==='strategies'&&lastBT)renderBT(lastBT); if(k==='quanthub')window.dispatchEvent(new Event('gold-quant-hub-open'));if(k==='freqtrade')loadFreqtrade();
  window.scrollTo({top:0,behavior:'instant'});
 }
 function chartOptions(){return {autoSize:true,layout:{background:{type:'solid',color:'#0d172b'},textColor:'#92aacb',fontFamily:'system-ui',fontSize:11,attributionLogo:false},
@@ -73,13 +74,13 @@ function createOsc(id,keys){const L=window.LightweightCharts;if(!L)return null;c
  const colors={'macd':'#5fb6ff','macd_signal':'#e9a363','macd_hist':'#17d6a0','rsi14':'#ab78f6','stoch_k':'#6bacfd','stoch_d':'#e2a470'};
  let lines={};for(let k of keys)lines[k]=chart.addSeries(k==='macd_hist'?L.HistogramSeries:L.LineSeries,{color:colors[k],lineWidth:2,priceLineVisible:false,lastValueVisible:false});
  return {chart,lines};}
-function ensureCharts(){if(!window.LightweightCharts){$('empty-home').textContent='Grafik kütüphanesi yüklenemedi (CDN bağlantısını kontrol edin).';$('empty-detail').textContent='Grafik CDN erişilemiyor';return}
+function ensureCharts(){if(!window.LightweightCharts){$('empty-home').textContent='Grafik kütüphanesi yüklenemedi. Sayfayı yenileyin veya destekle iletişime geçin.';$('empty-detail').textContent='Grafik kütüphanesi yüklenemedi';return}
  if(!plots.home)plots.home=createPrice('plot-home');if(!plots.detail&&$('v-chart').classList.contains('active'))plots.detail=createPrice('plot-detail');
  if(!osc.macd)osc.macd=createOsc('osc-macd',['macd','macd_signal','macd_hist']);
  if(!osc.rsi)osc.rsi=createOsc('osc-rsi',['rsi14']);if(!osc.stoch)osc.stoch=createOsc('osc-stoch',['stoch_k','stoch_d']);
 }
 function drawLines(lines,serie){if(!ana?.indicators?.series)return;for(let [key,s] of Object.entries(lines)){const set=ana.indicators.series[key]||[];const vis=key.startsWith('bb_')?opts.bb:opts[key]??true;s.applyOptions({visible:vis});if(vis)s.setData(set.filter(x=>x.v!==null&&Number.isFinite(x.v)).map(x=>({time:x.t,value:x.v})))}}
-function renderPlots(){if(!candleData.length)return;ensureCharts();let b=candleData.filter(x=>x.t&&x.c>0).map(x=>({time:x.t,open:x.o,high:x.h,low:x.l,close:x.c}));
+function renderPlots(){ensureCharts();if(!chartDataFresh||!candleData.length){for(let p of Object.values(plots)){if(!p)continue;try{p.main.setData([]);for(const s of Object.values(p.lines||{}))s.setData([])}catch(e){}}for(let o of Object.values(osc)){if(!o)continue;for(const s of Object.values(o.lines||{}))try{s.setData([])}catch(e){}}for(let id of ['empty-home','empty-detail']){if($(id)){$(id).style.display='grid';$(id).textContent='Güncel veri yok · gecikmeli grafik ve göstergeler gizlendi'}}return}let b=candleData.filter(x=>x.t&&x.c>0).map(x=>({time:x.t,open:x.o,high:x.h,low:x.l,close:x.c}));
  for(let key of Object.keys(plots)){let p=plots[key];if(!p)continue;try{p.main.setData(b);drawLines(p.lines);(key==='home'||!window.__uxZoomTouched)&&p.chart.timeScale().fitContent()}catch(ex){console.warn('price chart',ex)}}
  for(let [name,ob] of Object.entries(osc)){if(!ob||!ana?.indicators?.series)continue;for(let [k,series] of Object.entries(ob.lines)){let d=ana.indicators.series[k]||[];try{series.setData(d.filter(x=>x.v!==null).map(x=>({time:x.t,value:x.v,color:k==='macd_hist'?(x.v>=0?'#1bb78f':'#da6073'):undefined})));}catch(ex){console.warn('oscillator',ex)}}}
  $('empty-home').style.display='none';$('empty-detail').style.display='none';
@@ -164,8 +165,8 @@ function heatSetupToggle(){
  }
 }
 
-function updateSnap(s){snap=s;let valid=s.valid||{},price=s.price,spot=s.spot,fl=s.flow;
- $('conn').textContent=valid.ticker&&s.ws_connected?'CANLI WS':valid.ticker?'REST / SINIRLI':'VERİ GECİKMELİ';$('led').className='dot '+(valid.ticker?(s.ws_connected?'ok':''):'bad');
+function updateSnap(s){snap=s;if(chartDataFresh&&Date.now()-candleUpdatedMs>(symbol==='XAUUSD'?20000:tf==='1m'?8000:15000))markChartUnavailable('Mum verisi zaman aşımına uğradı; eski gösterge ve mumlar gizlendi.');let valid=s.valid||{},price=s.price,spot=s.spot,fl=s.flow;
+ $('conn').textContent=valid.ticker?(s.ticker_source==='websocket'?'CANLI WS':'CANLI REST · ≤5 sn'):'VERİ GECİKMELİ';$('led').className='dot '+(valid.ticker?(s.ticker_source==='websocket'?'ok':''):'bad');
  if(symbol==='XAUUSD'){$('k-price').textContent=spot?fmt(spot.last):'—';$('k-change').textContent='OANDA Spot · 15 sn REST';} else {$('k-price').textContent=price?fmt(price.last):'—';$('k-change').textContent=price?`24s ${pct(price.change24_pct)}`:'Fiyat doğrulanmadı'}
  $('k-spot').textContent=spot?fmt(spot.last):'—';$('k-spot-sub').textContent=s.spot_status+' · '+age(s.spot_age_s);
  $('k-mark').textContent=price&&price.mark?fmt(price.mark):'—';$('k-index').textContent='INDEX '+(price&&price.index?fmt(price.index):'—');
@@ -179,7 +180,7 @@ function updateSnap(s){snap=s;let valid=s.valid||{},price=s.price,spot=s.spot,fl
  $('donutTxt').textContent=fl?fmt(percent,0)+'%':'—';$('flowBuy').textContent=fl?short(buy):'—';$('flowSell').textContent=fl?short(sell):'—';$('flowDelta').textContent=fl?short(fl.delta60):'—';
  $('basis').textContent=(price&&spot)?fmt(price.last-spot.last,3):'—';$('basisNote').textContent=(price&&spot)?'XAUUSDT − XAUUSD, anlık kaynak farkı':'OANDA spot bağlantısı yok';
  $('overviewHealth').innerHTML=`<p>${valid.ticker?'🟢':'🔴'} Fiyat: ${age(s.age_s.ticker)}</p><p>${valid.book?'🟢':'🔴'} Derinlik: ${age(s.age_s.book)}</p><p>${valid.trades?'🟢':'🔴'} İşlemler: ${age(s.age_s.trades)}</p>`;
- updateOrderBook(s);updateTrades(s);updateDerivatives(s);updateFlow(s);g32FlowUpdate(s);$('chartUpdated').textContent=valid.ticker?'Fiyat güncel · '+age(s.age_s.ticker):'Fiyat gecikmeli';
+ updateOrderBook(s);updateTrades(s);updateDerivatives(s);updateFlow(s);g32FlowUpdate(s);$('chartUpdated').textContent=chartDataFresh?'Mum güncel · '+age((Date.now()-candleUpdatedMs)/1000):'Mum verisi gecikmeli';
  if(price&&valid.ticker&&symbol==='XAUUSDT')tickPlot(price.last,s.server_time);
  if(symbol==='XAUUSD'&&!spot&&ana)$('k-decision').textContent='BEKLE';
 }
@@ -321,12 +322,19 @@ function updateUnifiedDecision(u){
  ].map(([k,v])=>`<div class="metric"><small>${escaped(k)}</small><b>${escaped(v)}</b></div>`).join('');
  updateUnifiedChartZones(u);
 }
+function clearCurrentAnalysis(){ana=null;$('techTable').innerHTML='';$('techCount').textContent='Güncel analiz yok';$('quantMetrics').innerHTML='';$('g32-tech-summary').textContent='Güncel teknik veri yok.';$('g32-quant-summary').textContent='Güncel Quant verisi yok.';$('overviewSMC').textContent='Güncel mum verisi yok.';$('smcEvents').textContent='Güncel mum verisi yok.';$('swingHi').textContent='—';$('swingLo').textContent='—';$('swingMid').textContent='—';$('overviewAtr').textContent='—';$('overviewBB').textContent='—';$('overviewZ').textContent='—';$('overviewVar').textContent='—';$('regimeName').textContent='Veri gecikmeli';$('mtfCards').textContent='Güncel mum verisi yok.';$('aqStamp').textContent='GÜNCEL VERİ YOK';$('aqLegacy').textContent='—';$('aqNew').textContent='—';$('aqLong').textContent='—';$('aqShort').textContent='—';$('aqStats').textContent='Güncel veri yok.';$('aqSetup').textContent='Güncel veri yok.';$('decisionData').textContent='Güncel analiz yok · karar gizlendi';$('bigDecision').textContent='BEKLE';$('k-decision').textContent='BEKLE';$('longScore').textContent='—';$('shortScore').textContent='—';$('netScore').textContent='—';$('stop').textContent='—';$('target').textContent='—';$('entryZone').textContent='—';$('targetZone').textContent='—';$('riskReward').textContent='—';$('positionIndex').textContent='—';$('reasonList').textContent='Güncel veri yok';$('vetoList').textContent='—';for(let p of Object.values(plots)){if(!p)continue;for(const s of Object.values(p.lines||{}))try{s.setData([])}catch(e){}}for(let o of Object.values(osc))if(o)for(const s of Object.values(o.lines||{}))try{s.setData([])}catch(e){}}
+function markChartUnavailable(message){chartDataFresh=false;candleData=[];candleUpdatedMs=0;clearCurrentAnalysis();renderPlots();$('chartUpdated').textContent='GÜNCEL VERİ YOK';if($('uxFeedStatus'))$('uxFeedStatus').textContent='GÜNCEL VERİ YOK';if(message)showError(message)}
+function acceptCandleResponse(c){if(!c?.fresh||!Array.isArray(c.bars)||!c.bars.length)throw Error('Mum verisi güncelliği doğrulanamadı');candleData=c.bars;candleUpdatedMs=Number(c.updated_ms)||Date.now();chartDataFresh=true;$('chartUpdated').textContent='Mum verisi · '+age(c.age_s)+' önce';if($('uxFeedStatus'))$('uxFeedStatus').textContent='MUM GÜNCEL · '+age(c.age_s);renderPlots()}
+async function refreshCandles(){if(candleFetchInFlight||document.visibilityState!=='visible')return;candleFetchInFlight=true;const wantedSymbol=symbol,wantedTf=tf;try{const c=await getJSON(`/api/candles?symbol=${wantedSymbol}&tf=${wantedTf}&limit=550`);if(wantedSymbol!==symbol||wantedTf!==tf)return;acceptCandleResponse(c)}catch(e){if(wantedSymbol===symbol&&wantedTf===tf)markChartUnavailable('Güncel mum verisi alınamadı: '+e.message)}finally{candleFetchInFlight=false}}
 async function reloadAll(force=false){let seq=++inflight;showError('');$('chartTitle').textContent=symbol+' · '+tf;
- try{let [c,a,ml,unified]=await Promise.all([getJSON(`/api/candles?symbol=${symbol}&tf=${tf}&limit=550&refresh=${force}`),getJSON(`/api/analysis?symbol=${symbol}&tf=${tf}&refresh=${force}`),getJSON(`/api/ml-status?symbol=${symbol}`),getJSON(`/api/unified-decision?symbol=${symbol}&tf=${tf}`)]);if(seq!==inflight)return;
- candleData=c.bars||[];ana=a;updateAnalysis(a);updateUnifiedDecision(unified);firstLoad=false;
- updateMLStatus(ml);
- }catch(e){if(seq!==inflight)return;showError(symbol+': '+e.message);if(symbol==='XAUUSD')showError('XAUUSD spot için OANDA erişimi gerekiyor: '+e.message);candleData=[];ana=null;for(let e of ['empty-home','empty-detail']){$(e).style.display='grid';$(e).textContent='Doğrulanmış mum verisi yok'}
- }if(page==='technical')loadMTF(); if(page==='altinquant')loadAltinQuant();}
+ const req=await Promise.allSettled([getJSON(`/api/candles?symbol=${symbol}&tf=${tf}&limit=550&refresh=${force}`),getJSON(`/api/analysis?symbol=${symbol}&tf=${tf}&refresh=${force}`),getJSON(`/api/ml-status?symbol=${symbol}`),getJSON(`/api/unified-decision?symbol=${symbol}&tf=${tf}`)]);if(seq!==inflight)return;
+ const [c,a,ml,unified]=req;const errors=[];
+ if(c.status==='fulfilled'){try{acceptCandleResponse(c.value)}catch(e){markChartUnavailable(e.message);errors.push(e.message)}}else{markChartUnavailable(c.reason.message);errors.push(c.reason.message)}
+ if(a.status==='fulfilled'&&chartDataFresh){ana=a.value;updateAnalysis(a.value)}else if(a.status==='rejected'){clearCurrentAnalysis();errors.push('Analiz: '+a.reason.message)}
+ if(unified.status==='fulfilled'&&chartDataFresh)updateUnifiedDecision(unified.value);else if(unified.status==='rejected'){errors.push('Karar: '+unified.reason.message);$('k-decision').textContent='BEKLE'}
+ if(ml.status==='fulfilled')updateMLStatus(ml.value);else errors.push('ML durumu: '+ml.reason.message);
+ firstLoad=false;if(errors.length)showError(errors.join(' · '));
+ if(page==='technical')loadMTF();if(page==='altinquant')loadAltinQuant();}
 function updateMLStatus(j){
  if(!$('mlStatusDecision')||!j)return;
  $('mlStatusDecision').textContent=j.trade_decision||'BEKLE';
@@ -344,7 +352,24 @@ function updateMLStatus(j){
  ].join('');
 }
 async function loadMTF(){try{let j=await getJSON('/api/mtf?symbol='+symbol);$('mtfCards').innerHTML=j.rows.map(x=>`<div class="metric row" style="margin:5px 0"><b style="font-size:12px">${x.tf}</b><span class="${clsDecision(x.direction)}">${x.direction}</span><small>RSI ${fmt(x.rsi,1)}</small></div>`).join('')}catch(e){$('mtfCards').textContent=e.message}}
-async function loadHealth(){try{let h=await getJSON('/api/health');$('healthCards').innerHTML=[['Gateway',h.status],['Bitget WS',h.bitget_ws?'BAĞLI':'BAĞLI DEĞİL'],['Fiyat',h.feed_valid?.ticker?'GÜNCEL':'GECİKMELİ'],['Emir defteri',h.feed_valid?.book?'GÜNCEL':'GECİKMELİ'],['İşlemler',h.feed_valid?.trades?'GÜNCEL':'GECİKMELİ'],['OANDA',h.spot_configured?'YAPILANDIRILDI':'KAPALI'],['WS son fiyat',age(h.feed_age_seconds?.ticker)],['Son olay',h.time_utc]].map(([n,v])=>`<div class="metric"><small>${n}</small><b style="font-size:15px">${escaped(v)}</b></div>`).join('');$('healthRaw').textContent=JSON.stringify(h,null,2)}catch(e){$('healthRaw').textContent=e.message}}
+async function loadHealth(){try{let h=await getJSON('/api/health');$('healthCards').innerHTML=[['Gateway',h.status],['Bitget WS',h.bitget_ws?'BAĞLI':'BAĞLI DEĞİL'],['Fiyat',h.feed_valid?.ticker?'GÜNCEL':'GECİKMELİ'],['Fiyat kaynağı',h.ticker_source],['Emir defteri',h.feed_valid?.book?'GÜNCEL':'GECİKMELİ'],['İşlemler',h.feed_valid?.trades?'GÜNCEL':'GECİKMELİ'],['OANDA',h.spot_configured?'YAPILANDIRILDI':'KAPALI'],['Fiyat yaşı',age(h.feed_age_seconds?.ticker)],['Son olay',h.time_utc]].map(([n,v])=>`<div class="metric"><small>${n}</small><b style="font-size:15px">${escaped(v)}</b></div>`).join('');$('healthRaw').textContent=JSON.stringify(h,null,2)}catch(e){$('healthRaw').textContent=e.message}}
+async function loadFreqtrade(){
+ const status=$('freqtradeStatus'),metrics=$('freqtradeMetrics'),trades=$('freqtradeTrades');
+ if(!status||!metrics||!trades)return;
+ status.dataset.state='';status.textContent='Freqtrade API sorgulanıyor…';metrics.innerHTML='';trades.innerHTML='<tr><td colspan="4">Veri yükleniyor…</td></tr>';
+ try{
+  const j=await getJSON('/api/freqtrade/overview');
+  if(!j.configured){status.dataset.state='error';status.textContent=j.message;trades.innerHTML='<tr><td colspan="4">Bağlantı yapılandırılmadı.</td></tr>';return}
+  const p=j.profit||{},c=j.count||{},v=j.version||{};
+  status.dataset.state='ok';status.innerHTML=`<strong>Salt okunur bağlantı · ${escaped(v.version||'Sürüm bilgisi yok')}</strong>Son sorgu: ${escaped(j.fetched_at||'—')} · Emir gönderimi kapalı`;
+  const cards=[['Açık pozisyon',c.current],['Azami pozisyon',c.max],['Kapanan işlem',p.closed_trade_count??p.trade_count],['Kazanma',p.winning_trades],['Kaybetme',p.losing_trades],['Toplam net PnL',p.profit_all_coin],['Kapanan PnL',p.profit_closed_coin],['Stake para birimi',p.stake_currency],['Dry-run',p.dry_run],['Toplam stake',c.total_stake]];
+  metrics.innerHTML=cards.filter(([,value])=>value!==undefined&&value!==null).map(([label,value])=>`<div class="metric"><small>${escaped(label)}</small><b>${escaped(typeof value==='number'?fmt(value,3):String(value))}</b></div>`).join('');
+  const rows=Array.isArray(j.trades)?j.trades:[];
+  $('freqtradeOpenCount').textContent=rows.length+' açık';
+  trades.innerHTML=rows.length?rows.map(t=>`<tr class="ft-open-trade"><td>${escaped(t.pair||'—')}</td><td>${escaped(t.open_rate==null?'—':fmt(t.open_rate,4))}</td><td>${escaped(t.current_rate==null?'—':fmt(t.current_rate,4))}</td><td>${escaped(t.current_profit_pct??t.current_profit??'—')}</td></tr>`).join(''):'<tr><td colspan="4">Açık pozisyon yok.</td></tr>';
+  if(Object.keys(j.errors||{}).length){const details=Object.entries(j.errors).map(([key,value])=>`${key}: ${value}`).join(' · ');status.insertAdjacentHTML('beforeend',`<p class="note freshness-warning">Bazı API alanları alınamadı: ${escaped(details)}</p>`)}
+ }catch(e){status.dataset.state='error';status.textContent='Freqtrade bağlantı hatası: '+e.message;trades.innerHTML='<tr><td colspan="4">Güncel veri alınamadı.</td></tr>'}
+}
 async function loadMacro(){let macro=$('macroGrid'),news=$('newsList');macro.innerHTML='<div class="hint">FRED sorgulanıyor...</div>';news.textContent='GDELT sorgulanıyor...';
  let [a,b]=await Promise.allSettled([getJSON('/api/macro'),getJSON('/api/news')]);
  if(a.status==='fulfilled'){macro.innerHTML=Object.entries(a.value.data||{}).map(([k,x])=>{
@@ -608,16 +633,16 @@ function uxRenderSheet(name,arg=''){
   `<div class="ux-tile-grid"><button class="ux-tile ${uxDrawTool==='horizontal'?'active':''}" data-ux="tool" data-id="horizontal">━ Yatay fiyat çizgisi</button><button class="ux-tile ${uxDrawTool==='trend'?'active':''}" data-ux="tool" data-id="trend">╱ İki nokta trend çizgisi</button><button class="ux-tile" data-ux="draw-undo">↶ Son çizimi geri al</button><button class="ux-tile" data-ux="draw-clear">⌫ Tüm çizimleri temizle</button></div><p class="ux-note">Çizim sırasında grafiğe dokun. Tam görünür alana göre konumlar güncellenir.</p>`);return;
  }
  if(name==='analysis-menu'||name==='more-menu'){
-  const menus=name==='analysis-menu'?[['technical','▧','Teknik Göstergeler'],['smc','◇','SMC / ICT'],['flow','⇄','Order Flow'],['depth','▥','Emir Defteri DOM'],['quant','Σ','Quant İstatistik'],['altinquant','✦','ALTIN QUANT v2'],['quanthub','◈','7 Quant + Konsensüs'],['decision','◎','Karar Motoru']]:[['derivatives','◉','Vadeli / OI / Funding'],['macro','☼','Makro ve Haber'],['performance','▤','Performans'],['health','●','Veri Sağlığı'],['settings','⚙','Ayarlar']];
+  const menus=name==='analysis-menu'?[['technical','▧','Teknik Göstergeler'],['smc','◇','SMC / ICT'],['flow','⇄','Order Flow'],['depth','▥','Emir Defteri DOM'],['quant','Σ','Quant İstatistik'],['freqtrade','◉','Freqtrade'],['altinquant','✦','ALTIN QUANT v2'],['quanthub','◈','7 Quant + Konsensüs'],['decision','◎','Karar Motoru']]:[['derivatives','◉','Vadeli / OI / Funding'],['macro','☼','Makro ve Haber'],['performance','▤','Performans'],['health','●','Veri Sağlığı'],['settings','⚙','Ayarlar']];
   if(name==='analysis-menu'){
-   const groups=[['Hızlı analiz',['technical','flow','smc']],['Matematik & Quant',['quant','altinquant','quanthub']],['Doğrulama ve derinlik',['decision','depth']]];
+   const groups=[['Hızlı analiz',['technical','flow','smc']],['Matematik & Quant',['quant','freqtrade','altinquant','quanthub']],['Doğrulama ve derinlik',['decision','depth']]];
    uxSheetRender('Analiz merkezi',`<p class="ux-sheet-sub">Aynı kategoriye ait bilgiler aynı bölümde. Günlük karar için Özet, ayrıntı için ilgili analiz ekranını aç.</p>`+
     groups.map(([title,ids])=>`<div class="g32-menu-group"><h3>${title}</h3><div class="ux-tile-grid">${ids.map(id=>{const m=menus.find(x=>x[0]===id);return `<button class="ux-tile" data-go="${id}">${m[1]} ${m[2]}</button>`}).join('')}</div></div>`).join(''));return;
   }
   uxSheetRender('Diğer Bölümler',`<p class="ux-sheet-sub">Vadeli, haberler, performans ve sistem ayarları.</p><div class="ux-tile-grid">${menus.map(([k,icon,label])=>`<button class="ux-tile" data-go="${k}">${icon} ${label}</button>`).join('')}</div>`);return;
  }
 }
-function uxUpdateDock(k){document.body.dataset.uxPage=k;const group=k==='dashboard'?'dashboard':k==='chart'?'chart':['technical','smc','flow','depth','quant','altinquant','quanthub','decision'].includes(k)?'analysis':'more';document.querySelectorAll('[data-uxnav]').forEach(x=>{let active=x.dataset.uxnav===group;x.classList.toggle('active',active);if(active)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});}
+function uxUpdateDock(k){document.body.dataset.uxPage=k;const group=k==='dashboard'?'dashboard':k==='chart'?'chart':['technical','smc','flow','depth','quant','freqtrade','altinquant','quanthub','decision'].includes(k)?'analysis':'more';document.querySelectorAll('[data-uxnav]').forEach(x=>{let active=x.dataset.uxnav===group;x.classList.toggle('active',active);if(active)x.setAttribute('aria-current','page');else x.removeAttribute('aria-current')});}
 function uxSetTf(v){if(!tfs.includes(v))return;tf=v;$('tfbar').querySelectorAll('[data-tf]').forEach(x=>x.classList.toggle('active',x.dataset.tf===v));document.querySelectorAll('[data-uxtf]').forEach(x=>x.classList.toggle('active',x.dataset.uxtf===v));uxToast(v+' zaman dilimi');uxLastBarsKey='';reloadAll()}
 function uxApplyPreset(k){if(!UX_PRESETS[k])return;UX_KEYS.forEach(id=>{UX.indicators[id].enabled=UX_PRESETS[k].keys.includes(id)});UX.preset=k;uxSave();uxUpdateIndicators();uxRenderSheet('templates');uxToast(UX_PRESETS[k].label+' şablonu uygulandı')}
 function uxToggle(k,open){if(!UX_LIB[k])return;UX.indicators[k].enabled=typeof open==='boolean'?open:!UX.indicators[k].enabled;UX.preset='custom';uxSave();uxUpdateIndicators();if(uxSheetName==='library'||uxSheetName==='active')uxRenderSheet(uxSheetName);uxToast(`${UX_LIB[k].short} ${UX.indicators[k].enabled?'açıldı':'kapatıldı'}`)}
@@ -940,7 +965,8 @@ __goldStartPart('Grafik',ensureCharts);
 __goldStartPart('Canlı bağlantı',startSocket);
 __goldStartPart('İlk veri yükleme',reloadAll);
 setInterval(()=>{const clock=document.getElementById('clock');if(clock)clock.textContent=new Date().toLocaleTimeString('tr-TR',{hour12:false})},1000);
-setInterval(()=>{if(document.visibilityState==='visible')__goldStartPart('Yenileme',reloadAll)},45000);
+setInterval(()=>{if(document.visibilityState==='visible')__goldStartPart('Mum yenileme',refreshCandles)},5000);
+setInterval(()=>{if(document.visibilityState==='visible')__goldStartPart('Yenileme',reloadAll)},15000);
 window.addEventListener('resize',()=>{if(lastBT&&page==='quant')paintEquity(lastBT.equity_curve||[])});
 window.addEventListener('gold-chart-library-ready',()=>{__goldStartPart('Grafik kütüphanesi',()=>{ensureCharts();renderPlots()})});
 console.info('GOLD SCALP PRO',window.__GOLD_BUILD__,'uygulama yüklendi',__bootStatus);

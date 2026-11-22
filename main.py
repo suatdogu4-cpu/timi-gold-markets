@@ -54,7 +54,7 @@ class Market:
         self.ws_error='Henüz bağlanmadı'
         self.last_ws=0
         self.last_pong=0
-        self.ticker={};self.ticker_ts=0
+        self.ticker={};self.ticker_ts=0;self.ticker_source='unavailable'
         self.depth_bids={};self.depth_asks={};self.book_ts=0;self.book_seq=None
         self.trades=deque(maxlen=6000);self.trade_ids=set();self.trades_ts=0
         self.candles={};self.candle_updated={};self.candle_errors={}
@@ -145,6 +145,7 @@ class Market:
                         "index":num(d.get('indexPrice')),"funding":num(d.get('fundingRate')),
                         "oi":num(d.get('openInterest')), "nextFunding":d.get('nextFundingTime')}
                     self.ticker_ts=nowms()
+                    self.ticker_source='websocket'
         if topic=='publicTrade':
             if j.get('action')=='snapshot':
                 # Preserve fill history but do not count duplicate initial snapshot as new trades
@@ -233,27 +234,26 @@ class Market:
     async def get_candles(self,symbol,tf,limit=500,force=False):
         key=(symbol,tf)
         cached=self.candles.get(key)
-        ttl=max(12,TF_MIN[tf]*25) if symbol=='XAUUSDT' else max(25,TF_MIN[tf]*45)
+        ttl=5 if symbol=='XAUUSDT' and tf=='1m' else 15
         if not force and cached and fresh(self.candle_updated.get(key,0),ttl) and len(cached)>=min(limit,100):return cached[-limit:]
         try:
             if symbol=='XAUUSD':return (await self.fetch_spot_candles(tf,limit))[-limit:]
             return (await self.fetch_bitget_candles(tf,limit))[-limit:]
         except Exception as ex:
             self.candle_errors[key]=err_text(ex)
-            if cached and fresh(self.candle_updated.get(key,0),max(120,TF_MIN[tf]*180)):return cached[-limit:]
             raise
 
     async def fetch_initial_rest(self):
-        # REST bootstrap only when WebSocket has not delivered a fresher ticker/book.
-        data=await self.bitget('/api/v3/market/tickers',{'category':'USDT-FUTURES','symbol':'XAUUSDT'})
-        entries=data if isinstance(data,list) else [data]
-        if entries and not fresh(self.ticker_ts,15):
-            self.on_message({'arg':{'symbol':'XAUUSDT','topic':'ticker'},'data':entries})
-            # REST is a fallback, not a WS claim
-            self.last_ws=0
-        if not fresh(self.book_ts,15):
+        if not fresh(self.ticker_ts,5):
+            data=await self.bitget('/api/v3/market/tickers',{'category':'USDT-FUTURES','symbol':'XAUUSDT'})
+            entries=data if isinstance(data,list) else [data]
+            if entries and not fresh(self.ticker_ts,5):
+                self.on_message({'arg':{'symbol':'XAUUSDT','topic':'ticker'},'data':entries})
+                self.ticker_source='rest'
+                self.last_ws=0
+        if not fresh(self.book_ts,5):
             d=await self.bitget('/api/v3/market/orderbook',{'category':'USDT-FUTURES','symbol':'XAUUSDT','limit':50})
-            if d and not fresh(self.book_ts,15):
+            if d and not fresh(self.book_ts,5):
                 self.depth_bids={num(p):num(q) for p,q in d.get('b',[]) if num(p)>0 and num(q)>0}
                 self.depth_asks={num(p):num(q) for p,q in d.get('a',[]) if num(p)>0 and num(q)>0}
                 # No sequence provided by REST; NEVER apply incremental books50 to REST book.
@@ -264,15 +264,18 @@ class Market:
         await asyncio.sleep(1)
         while True:
             try:
-                if not fresh(self.ticker_ts,30) or not fresh(self.book_ts,30):
-                    await self.fetch_initial_rest()
-                # Pre-cache 1m, 5m and 15m. Others fetched on demand.
-                await self.get_candles('XAUUSDT','1m',500,force=True)
-                await self.get_candles('XAUUSDT','5m',500,force=True)
-                await self.get_candles('XAUUSDT','15m',500,force=True)
+                await self.fetch_initial_rest()
             except asyncio.CancelledError:raise
-            except Exception as ex:LOG.warning('REST bootstrap/candles: %s',err_text(ex))
-            await asyncio.sleep(45)
+            except Exception as ex:LOG.warning('REST market fallback: %s',err_text(ex))
+            for candle_tf,refresh_seconds in (('1m',5),('5m',15),('15m',30)):
+                key=('XAUUSDT',candle_tf)
+                if fresh(self.candle_updated.get(key,0),refresh_seconds):continue
+                try:await self.fetch_bitget_candles(candle_tf,500)
+                except asyncio.CancelledError:raise
+                except Exception as ex:
+                    self.candle_errors[key]=err_text(ex)
+                    LOG.warning('REST %s candles: %s',candle_tf,err_text(ex))
+            await asyncio.sleep(5)
 
     async def run_spot(self):
         if not OANDA_TOKEN or not OANDA_ACCOUNT:return
@@ -323,15 +326,15 @@ class Market:
         asks=sorted(self.depth_asks.items())[:50]
         recent=[x for x in self.trades if 0<=ts-x['t']<=120000]
         flow=flow_metrics(bids,asks,recent,ts)
-        validity={'ticker':fresh(self.ticker_ts,12),'book':fresh(self.book_ts,12),
+        validity={'ticker':fresh(self.ticker_ts,8),'book':fresh(self.book_ts,8),
                   'trades':fresh(self.trades_ts,25)}
-        spot_valid=fresh(self.spot_ts,45)
+        spot_valid=fresh(self.spot_ts,20)
         return {'server_time':ts,'symbol':'XAUUSDT','price':self.ticker if validity['ticker'] else None,
             'spot':self.spot_quote if spot_valid else None,'spot_age_s':age(self.spot_ts),
             'spot_status':('CANLI (15 sn REST)' if spot_valid else 'YAPILANDIRILMADI' if not OANDA_TOKEN else 'GECİKMELİ'),
             'source':'Bitget UTA v3 public + optional OANDA v20 practice',
             'age_s':{'ticker':age(self.ticker_ts),'book':age(self.book_ts),'trades':age(self.trades_ts)},
-            'valid':validity,'ws_connected':self.ws_online,'ws_error':self.ws_error,
+            'valid':validity,'ticker_source':self.ticker_source,'ws_connected':self.ws_online,'ws_error':self.ws_error,
             'channels':self.channels,'bids':bids if validity['book'] else [],'asks':asks if validity['book'] else [],
             'trades':recent[-60:] if validity['trades'] else [],'flow':flow if validity['book'] and validity['trades'] else None,
             'errors':{f'{k[0]}/{k[1]}':v for k,v in self.candle_errors.items()},
@@ -509,10 +512,20 @@ async def lightweight_charts_asset():
 async def health():
     s=M.snapshot();return {'app':'GOLD SCALP PRO','version':'1.0.0','status':'online',
         'time_utc':datetime.now(timezone.utc).isoformat(),'bitget_ws':s['ws_connected'],
-        'symbol':'XAUUSDT','feed_valid':s['valid'],'feed_age_seconds':s['age_s'],
+        'symbol':'XAUUSDT','ticker_source':s['ticker_source'],'feed_valid':s['valid'],'feed_age_seconds':s['age_s'],
         'spot_configured':bool(OANDA_TOKEN and OANDA_ACCOUNT),'spot_age_s':s['spot_age_s'],
         'last_errors':{'ws':s['ws_error'],'spot':M.spot_error,'candles':s['errors']},
         'live_external_verified':bool(s['ws_connected'] and s['valid']['ticker'] and s['valid']['book'] and s['valid']['trades'])}
+
+@app.get('/api/freqtrade/overview')
+async def freqtrade_overview():
+    from freqtrade_client import FreqtradeClient, FreqtradeError
+    client=FreqtradeClient.from_environment()
+    if not client.configured:
+        return {'configured':False,'mode':'READ_ONLY','orders_enabled':False,
+                'message':'Freqtrade bağlantısı ayarlanmamış. Render Environment bölümünde FREQTRADE_API_URL, FREQTRADE_API_USERNAME ve FREQTRADE_API_PASSWORD tanımlayın.'}
+    try:return await client.overview()
+    except FreqtradeError as ex:raise HTTPException(ex.status_code,str(ex)) from ex
 
 @app.get('/api/snapshot')
 async def snapshot():return M.snapshot()
@@ -522,9 +535,19 @@ async def candles(symbol:str='XAUUSDT',tf:str='1m',limit:int=Query(default=350,g
     symbol=valid_symbol(symbol);tf=valid_tf(tf)
     try:
         bars=await M.get_candles(symbol,tf,limit,force=refresh)
+        updated_ms=M.candle_updated.get((symbol,tf))
+        update_age=age(updated_ms)
+        step=TF_MIN[tf]*60
+        bar_age=max(0,time.time()-bars[-1]['t']) if bars else None
+        update_limit=8 if symbol=='XAUUSDT' and tf=='1m' else 20 if symbol=='XAUUSD' else 15
+        fresh_data=bool(bars and update_age is not None and update_age<=update_limit and
+                        bar_age is not None and bar_age<=step*2)
+        if not fresh_data:
+            raise HTTPException(503,'Güncel mum verisi doğrulanamadı; eski veri gösterilmiyor.')
         return {'symbol':symbol,'tf':tf,'bars':bars,'source':'Bitget UTA' if symbol=='XAUUSDT' else 'OANDA v20',
-                'updated_ms':M.candle_updated.get((symbol,tf)),
+                'updated_ms':updated_ms,'age_s':update_age,'bar_age_s':bar_age,'fresh':True,
                 'closed_count':len(closed_bars(bars,tf)), 'warning':'Son mum halen oluşuyor olabilir.'}
+    except HTTPException:raise
     except Exception as ex:raise HTTPException(503,err_text(ex))
 
 def session_info():

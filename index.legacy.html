@@ -10,7 +10,7 @@
  window.addEventListener('load',function(){setTimeout(function(){if(!window.__GOLD_APP_READY__)warn('Başlangıç kodu eksik ya da çalışmadı')},3500)});
 })();</script>
 
-<link rel="stylesheet" href="gold_style.css?v=3200">
+<link rel="stylesheet" href="gold_style.css?v=3201">
 <link rel="stylesheet" href="gold_redesign.css?v=3305">
 <link rel="stylesheet" href="gold_quant_hub.css?v=3100">
 </head><body>
@@ -132,11 +132,34 @@
   <button type="button" data-go="technical">Teknik</button>
   <button type="button" data-go="flow">Order Flow</button>
   <button type="button" data-go="quant">Quant</button>
+  <button type="button" data-go="freqtrade">Freqtrade</button>
   <button type="button" data-go="smc">SMC</button>
   <button type="button" data-go="quanthub">7 Quant</button>
 </nav><div class="sectiontop"><h2>Quant · Matematiksel piyasa ölçümleri</h2><span class="chip">Şeffaf varsayımlar</span></div><section id="g32-quant-summary" class="g32-summary" aria-label="Quant istatistik ve risk skorları" aria-live="polite"><p class="g32-loading">Yeterli kapanmış mum bekleniyor…</p></section>
 <div class="metricgrid" id="quantMetrics"></div><details class="g32-research"><summary>Matematiksel yöntemler ve risk notları</summary><div class="card" style="margin-top:10px"><div class="cardhead"><h3>İstatistiksel analiz / risk notları</h3></div><div class="body"><p>Log getiri: <code>r(t) = ln[P(t) / P(t-1)]</code>. Gerçekleşmiş volatilite: <code>sigma = std(r) × sqrt(yıllık bar sayısı)</code>. %95 parametrik VaR: <code>-(ortalama - 1.645 × sigma)</code>.</p><p>İstatistiksel modeller varsayım içerir; VaR maksimum zarar değildir. Platformda işlem kâr olasılığı sayı uydurularak sunulmaz.</p><div id="quantExtra" class="note"></div></div></div></details></section>
 
+<section class="view" id="v-freqtrade">
+ <nav class="g32-subnav" aria-label="Matematik ve Quant bölümleri">
+  <button type="button" data-go="quant">Quant İstatistik</button>
+  <button type="button" data-go="altinquant">Altın Quant v2</button>
+  <button type="button" data-go="quanthub">7 Quant + Konsensüs</button>
+  <button type="button" data-go="freqtrade" aria-current="page">Freqtrade</button>
+ </nav>
+ <div class="sectiontop"><h2>Freqtrade · Bot ve portföy özeti</h2><button class="btn" id="freqtradeRefresh">↻ Yenile</button></div>
+ <div class="hint warn">Resmi Freqtrade REST API bağlantısı · yalnızca okuma. Bu panel emir göndermez; botu başlatıp durdurmaz, strateji değiştirmez. Freqtrade’in kendi uygulama arayüzü/kodu kopyalanmamıştır.</div>
+ <div class="card"><div class="body" id="freqtradeStatus" role="status" aria-live="polite">Bağlantı durumu kontrol ediliyor…</div></div>
+ <div class="metricgrid" id="freqtradeMetrics" style="margin-top:10px"></div>
+ <div class="twocol" style="margin-top:10px">
+  <div class="card"><div class="cardhead"><h3>Açık pozisyonlar</h3><small id="freqtradeOpenCount">—</small></div><div class="table-scroll"><table><thead><tr><th>Parite</th><th>Giriş</th><th>Güncel</th><th>PnL</th></tr></thead><tbody id="freqtradeTrades"><tr><td colspan="4">Veri bekleniyor…</td></tr></tbody></table></div></div>
+  <div class="card"><div class="cardhead"><h3>Bağlantı kurulumu</h3></div><div class="body">
+   <p>Freqtrade’i ayrı bir sunucuda çalıştırın ve REST API’yi yalnızca HTTPS, VPN veya güvenli tünel üzerinden erişilebilir yapın.</p>
+   <p>Render Environment değişkenleri:</p>
+   <ul class="list"><li><code>FREQTRADE_API_URL</code></li><li><code>FREQTRADE_API_USERNAME</code></li><li><code>FREQTRADE_API_PASSWORD</code></li></ul>
+   <p>Kimlik bilgileri tarayıcıya gönderilmez. Bağlantı yalnızca token, sürüm, pozisyon sayısı ve kâr özeti okur.</p>
+   <p><a href="https://www.freqtrade.io/en/stable/rest-api/" target="_blank" rel="noopener noreferrer">Resmi Freqtrade REST API belgeleri</a></p>
+  </div></div>
+ </div>
+</section>
 
 <section class="view" id="v-altinquant">
  <div class="sectiontop"><h2>ALTIN QUANT · GOLD SCALP PRO v2</h2><button class="btn" id="aqRefresh">↻ Yeniden analiz et</button></div>
@@ -234,7 +257,7 @@
 </div>
 
 <script async src="/vendor/lightweight-charts.standalone.production.js" onload="window.dispatchEvent(new Event('gold-chart-library-ready'))"></script>
-<script defer src="gold_app.js?v=3305"></script>
+<script defer src="gold_app.js?v=3306"></script>
 <script defer src="gold_quant_hub.js?v=3701"></script>
 <script>
 (function(){

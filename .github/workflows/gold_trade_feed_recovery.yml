@@ -1,0 +1,46 @@
+name: Gold Public Trade Recovery
+'on':
+  workflow_dispatch: null
+permissions:
+  contents: write
+jobs:
+  recover-public-trades:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+    - name: Apply read-only public-trades recovery
+      run: "python - <<'PYTHON'\n#!/usr/bin/env python3\n\"\"\"Read-only XAUUSDT publicTrade REST bootstrap + diagnostics.\n\nStrict replacements: abort if repository has changed unexpectedly.\nNo trading endpoints, strategy modifications or synthetic trades.\n\"\"\"\nfrom pathlib import Path\n\n\ndef\
+        \ change(s, old, new, label):\n    matches = s.count(old)\n    if matches != 1:\n        raise RuntimeError(f\"{label}: expected one exact match, found {matches}; aborting\")\n    return s.replace(old, new, 1)\n\nmain_path = Path('main.py')\njs_path = Path('gold_app.js')\nhtml_path = Path('index.legacy.html')\n\
+        main = main_path.read_text(encoding='utf-8')\njs = js_path.read_text(encoding='utf-8')\nhtml = html_path.read_text(encoding='utf-8')\nif 'self.trade_rest_last_attempt=0' in main:\n    print('Public trade patch already installed; no changes')\n    raise SystemExit(0)\n\nmain = change(main,\n'''\
+        \        self.channels={}\n        self.bg=[]''',\n'''        self.channels={}\n        # Public trades are event-driven. REST fills can bootstrap after reconnects.\n        self.trade_rest_last_attempt=0\n        self.trade_rest_last_success=0\n        self.trade_rest_error=''\n        self.trade_rest_recent_count=0\n\
+        \        self.trade_rest_latest_trade_ts=0\n        self.trade_ws_last_event=0\n        self.bg=[]''',\n'initialize publicTrade diagnostics')\n\nmain = change(main,\n'''\"id\":str(t.get('i') or t.get('tradeId') or '')}''',\n'''\"id\":str(t.get('i') or t.get('tradeId') or t.get('execId') or '')}''',\n\
+        'REST execution ID normalization')\n\nmain = change(main,\n'''            self.trades.append(trade);self.trades_ts=nowms()''',\n'''            # An old REST trade must not acquire the freshness of its HTTP fetch.\n            event_time=int(trade['t'])\n            if event_time<=0 or event_time>nowms()+5000:return\n\
+        \            self.trades.append(trade);self.trades_ts=max(self.trades_ts,min(event_time,nowms()))''',\n'event time freshness')\n\nmain = change(main,\n'''        if j.get('event'):\n            if j.get('event')=='error':\n                arg=j.get('arg',{});self.channels[arg.get('topic','unknown')]=str(j.get('msg')\
+        \ or j.get('code'))\n                self.ws_error=f'Abonelik hatası: {self.channels}'\n                LOG.warning('Bitget subscription error: %s',self.ws_error)\n            return''',\n'''        if j.get('event'):\n            evt=j.get('event');arg=j.get('arg') or {};topic=str(arg.get('topic')\
+        \ or 'unknown')\n            if evt=='subscribe':self.channels[topic]='SUBSCRIBED'\n            elif evt=='unsubscribe':self.channels[topic]='UNSUBSCRIBED'\n            elif evt=='error':\n                self.channels[topic]=str(j.get('msg') or j.get('code'))\n                self.ws_error=f'Abonelik\
+        \ hatası: {self.channels}'\n                LOG.warning('Bitget subscription error: %s',self.ws_error)\n            return''',\n'channel acknowledgement diagnostics')\n\nmain = change(main,\n'''        if topic=='publicTrade':\n            if j.get('action')=='snapshot':''',\n'''        if topic=='publicTrade':\n\
+        \            self.trade_ws_last_event=nowms()\n            if j.get('action')=='snapshot':''',\n'publicTrade message timestamp')\n\nmain = change(main,\n'''                self.ws_online=False\n                async with websockets.connect(WS,ping_interval=20''',\n'''                self.ws_online=False\n\
+        \                self.channels={}\n                async with websockets.connect(WS,ping_interval=20''',\n'reset subscriptions on reconnect')\n\nnew_rest = '''    async def fetch_recent_public_fills(self):\n        \"\"\"Read-only recovery for 2026-11 Bitget v3 publicTrade snapshot change.\n\n\
+        \        Does not turn old trades into live ones, and never synthesizes a trade.\n        \"\"\"\n        self.trade_rest_last_attempt=nowms()  # throttle even on HTTP errors\n        rows=await self.bitget('/api/v3/market/fills',\n                              {'category':'USDT-FUTURES','symbol':'XAUUSDT','limit':100})\n\
+        \        if not isinstance(rows,list):raise ValueError('Bitget public fills beklenmeyen yanit')\n        now=nowms();valid_rows=[x for x in rows if isinstance(x,dict)]\n        valid_rows.sort(key=lambda x:int(x.get('ts') or 0))\n        newest=0;recent_count=0\n        for row in valid_rows:\n\
+        \            try:ts=int(row.get('ts') or 0)\n            except (TypeError,ValueError):continue\n            newest=max(newest,ts)\n            if 0<=now-ts<=120000:\n                recent_count+=1\n                self.feed_trade(row)  # WS and REST share a deduped execution-ID set.\n      \
+        \  self.trade_rest_latest_trade_ts=newest\n        self.trade_rest_recent_count=recent_count\n        self.trade_rest_last_success=nowms()\n        self.trade_rest_error=''\n\n'''\nmain = change(main,\n'''    async def fetch_initial_rest(self):''',\nnew_rest + '''    async def fetch_initial_rest(self):''',\n\
+        'add Bitget recent fills fallback')\n\nmain = change(main,\n'''            except Exception as ex:LOG.warning('REST market fallback: %s',err_text(ex))\n            for candle_tf,refresh_seconds in''',\n'''            except Exception as ex:LOG.warning('REST market fallback: %s',err_text(ex))\n\
+        \            if not fresh(self.trades_ts,25) and not fresh(self.trade_rest_last_attempt,15):\n                try:await self.fetch_recent_public_fills()\n                except asyncio.CancelledError:raise\n                except Exception as ex:\n                    self.trade_rest_error=err_text(ex)\n\
+        \                    LOG.warning('REST public fills fallback: %s',self.trade_rest_error)\n            for candle_tf,refresh_seconds in''',\n'wire REST fills fallback with throttle')\n\nmain = change(main,\n'''        'last_errors':{'ws':s['ws_error'],'spot':M.spot_error,'candles':s['errors']},\n\
+        \        'live_external_verified':''',\n'''        'last_errors':{'ws':s['ws_error'],'spot':M.spot_error,'candles':s['errors']},\n        'trade_channel':{'ws_subscription':M.channels.get('publicTrade','UNKNOWN'),\n            'ws_last_push_age_s':age(M.trade_ws_last_event),\n            'rest_last_check_age_s':age(M.trade_rest_last_attempt),\n\
+        \            'rest_last_success_age_s':age(M.trade_rest_last_success),\n            'rest_last_market_trade_age_s':age(M.trade_rest_latest_trade_ts),\n            'rest_fills_last_120s':M.trade_rest_recent_count,\n            'rest_error':M.trade_rest_error},\n        'live_external_verified':''',\n\
+        'expose safe public trade diagnostics')\n\njs = change(js,\n'''['İşlemler',h.feed_valid?.trades?'GÜNCEL':'GECİKMELİ'],['OANDA',''',\n'''['İşlemler',h.feed_valid?.trades?'GÜNCEL':'GECİKMELİ'],\n ['Trade kanalı',h.trade_channel?.ws_subscription||'BİLİNMİYOR'],\n ['Son WS işlemi',age(h.trade_channel?.ws_last_push_age_s)],\n\
+        \ ['REST işlem sorgusu',h.trade_channel?.rest_last_success_age_s!=null?'ÇALIŞTI':h.trade_channel?.rest_error?'HATA':'BEKLİYOR'],\n ['REST son işlem yaşı',age(h.trade_channel?.rest_last_market_trade_age_s)],\n ['REST son hata',h.trade_channel?.rest_error||'—'],\n ['OANDA',''',\n'show channel breakdown\
+        \ in data health')\nhtml = change(html,\n'''<script defer src=\"gold_app.js?v=3309\"></script>''',\n'''<script defer src=\"gold_app.js?v=3310\"></script>''',\n'bust JS browser cache')\n\n# Validate Python without writing if transforms failed.\ncompile(main,str(main_path),'exec')\nmain_path.write_text(main,encoding='utf-8')\n\
+        js_path.write_text(js,encoding='utf-8')\nhtml_path.write_text(html,encoding='utf-8')\nprint('Updated main.py, gold_app.js, index.legacy.html; REST backfill, true-time freshness and diagnostics')\n\nPYTHON"
+    - name: Syntax and whitespace checks
+      run: 'python -m py_compile main.py
+
+        node --check gold_app.js
+
+        git diff --check'
+    - name: Commit validated changes
+      run: "git config user.name \"github-actions[bot]\"\ngit config user.email \"41898282+github-actions[bot]@users.noreply.github.com\"\ngit add main.py gold_app.js index.legacy.html\nif ! git diff --cached --quiet; then\n  git commit -m \"fix: Bitget publicTrade REST backfill and freshness diagnostics\"\
+        \n  git push\nelse\n  echo \"Already applied, no changes\"\nfi"

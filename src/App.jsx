@@ -70,7 +70,7 @@ function Sidebar({ active, setActive, mobileOpen, setMobileOpen }) {
       <button className="mobileClose" onClick={() => setMobileOpen(false)}><X size={18} /></button>
       <nav>
         {nav.map(({ id, label, icon: Icon }) =>
-          <button key={id} className={active === id ? 'active' : ''} onClick={() => { setActive(id); setMobileOpen(false) }}>
+          <button key={id} type="button" className={active === id ? 'active' : ''} aria-current={active === id ? 'page' : undefined} onClick={() => { setActive(id); setMobileOpen(false); window.history.replaceState(null, '', `#${id}`) }}>
             <Icon size={18} /><span>{label}</span>
           </button>
         )}
@@ -284,7 +284,8 @@ function Assistant({ open, setOpen }) {
 }
 
 export default function App() {
-  const [active, setActive] = useState('overview')
+  const hashView = typeof window !== 'undefined' ? window.location.hash.replace('#', '') : ''
+  const [active, setActive] = useState(nav.some(item => item.id === hashView) ? hashView : 'overview')
   const [symbol, setSymbol] = useState('XAUUSDT')
   const [tf, setTf] = useState('5m')
   const [snapshot, setSnapshot] = useState(null)
@@ -294,6 +295,25 @@ export default function App() {
   const [health, setHealth] = useState(null)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [assistantOpen, setAssistantOpen] = useState(false)
+
+  useEffect(() => {
+    const syncHash = () => {
+      const next = window.location.hash.replace('#', '')
+      if (nav.some(item => item.id === next)) setActive(next)
+    }
+    const closeOnEscape = event => {
+      if (event.key === 'Escape') {
+        setMobileOpen(false)
+        setAssistantOpen(false)
+      }
+    }
+    window.addEventListener('hashchange', syncHash)
+    window.addEventListener('keydown', closeOnEscape)
+    return () => {
+      window.removeEventListener('hashchange', syncHash)
+      window.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false

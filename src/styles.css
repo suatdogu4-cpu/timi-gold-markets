@@ -35,6 +35,11 @@ button { cursor: pointer; }
 .mobileClose, .menuButton { display: none; }
 
 .appShell main { min-width: 0; }
+@media (max-width:900px) {
+  .sidebar.open { z-index: 120 !important; }
+  .sidebar.open:after { content:""; position:fixed; inset:0 0 0 220px; background:rgba(3,6,10,.58); backdrop-filter:blur(2px); z-index:-1; }
+  .sidebar nav button { touch-action:manipulation; }
+}
 .topbar { height: 64px; position: sticky; top: 0; z-index: 30; display: grid; grid-template-columns: 210px 155px minmax(260px, 1fr) auto; align-items: center; gap: 12px; border-bottom: 1px solid #1b2430; background: rgba(9,13,18,.96); backdrop-filter: blur(14px); padding: 0 20px; }
 .brand { display: flex; align-items: center; gap: 9px; }
 .brandMark { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid #5b5038; border-radius: 7px; color: #dbc38a; background: #171b20; font-size: 10px; font-weight: 800; letter-spacing: .5px; }

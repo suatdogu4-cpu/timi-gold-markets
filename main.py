@@ -360,6 +360,37 @@ async def lifespan(app):
 
 app=FastAPI(title='GOLD SCALP PRO',version='1.0.0',lifespan=lifespan)
 
+@app.get('/api/unified-decision')
+async def unified_decision(symbol:str='XAUUSDT',tf:str='5m'):
+    symbol=valid_symbol(symbol);tf=valid_tf(tf)
+    try:
+        raw_bars=await M.get_candles(symbol,tf,550)
+        bars=closed_bars(raw_bars,tf)
+        if len(bars)<210:
+            ind={'latest':{},'count':len(bars)}
+        else:
+            ind=indicators(bars)
+        public={'latest':ind.get('latest',{}),'count':len(bars)}
+        stats=quant_stats(bars,tf)
+        mtf_rows=[]
+        if symbol=='XAUUSDT':
+            async def mtf_one(mtf_tf):
+                try:
+                    mtf_bars=closed_bars(await M.get_candles(symbol,mtf_tf,300),mtf_tf)
+                    mtf_ind=indicators(mtf_bars)['latest']
+                    direction='LONG' if mtf_ind.get('close',0)>mtf_ind.get('ema20',0)>mtf_ind.get('ema50',0) and mtf_ind.get('rsi14',50)>=50 else 'SHORT' if mtf_ind.get('close',float('inf'))<mtf_ind.get('ema20',0)<mtf_ind.get('ema50',0) and mtf_ind.get('rsi14',50)<=50 else 'KARIŞIK'
+                    return {'tf':mtf_tf,'direction':direction}
+                except Exception:
+                    return {'tf':mtf_tf,'direction':'VERİ YOK'}
+            mtf_rows=await asyncio.gather(*(mtf_one(x) for x in ('1m','3m','5m','15m','1H')))
+        snap=M.snapshot()
+        snap['candles_valid']=bool(bars and len(bars)>=210 and int(time.time())-bars[-1]['t']<=TF_MIN[tf]*60*3+90)
+        from unified_decision import build_unified_decision
+        return await asyncio.to_thread(build_unified_decision,ROOT,symbol,tf,bars,
+                                       public,mtf_rows,snap,stats,None)
+    except Exception as ex:
+        raise HTTPException(503,err_text(ex))
+
 @app.get('/')
 async def index():return FileResponse(ROOT/'index.html')
 
@@ -504,6 +535,66 @@ async def ws_stream(websocket:WebSocket):
             await asyncio.sleep(1)
     except (WebSocketDisconnect,RuntimeError,OSError):pass
     finally:M.clients.discard(websocket)
+
+@app.get('/api/ml-status')
+async def ml_status(symbol:str='XAUUSDT'):
+    symbol=valid_symbol(symbol)
+    snap=M.snapshot()
+    try:
+        bars=closed_bars(await M.get_candles(symbol,'1H',550), '1H')
+    except Exception as ex:
+        bars=[]
+        candle_error=err_text(ex)
+    else:
+        candle_error=None
+
+    ml_v1=None
+    ml_v3=None
+    shadow=None
+    scalp_v6=None
+    try:
+        from gold_ml_core import live_status
+        ml_v1=await asyncio.to_thread(live_status,bars,symbol,ROOT)
+    except Exception as ex:
+        ml_v1={'status':'ERROR','prediction':None,'reason':err_text(ex),'orders_enabled':False,'consensus_vote':False}
+    try:
+        from gold_ml_v3 import report_for_symbol
+        ml_v3=await asyncio.to_thread(report_for_symbol,symbol,ROOT)
+    except Exception as ex:
+        ml_v3={'status':'ERROR','prediction':None,'reason':err_text(ex),'orders_enabled':False,'consensus_vote':False}
+    try:
+        from gold_shadow_v5 import public_status
+        shadow=await asyncio.to_thread(public_status,symbol,ROOT)
+    except Exception as ex:
+        shadow={'status':'ERROR','live_trade_signal':False,'reason':err_text(ex),'orders_enabled':False}
+    try:
+        from gold_scalp_v6_view import read_research
+        scalp_v6=await asyncio.to_thread(read_research,ROOT,symbol)
+    except Exception as ex:
+        scalp_v6={'status':'ERROR','live_signal':False,'trade_decision':'BEKLE','reason':err_text(ex),'no_orders':True}
+
+    feed_fresh=bool(snap.get('valid',{}).get('ticker')) if symbol=='XAUUSDT' else bool(snap.get('spot'))
+    approved=bool(
+        ml_v1 and ml_v1.get('model_approved') and ml_v1.get('status')=='VALIDATED_RESEARCH'
+        and ml_v1.get('prediction') in ('LONG','SHORT')
+    )
+    return {
+        'symbol':symbol,
+        'timeframe':'1H',
+        'feed_fresh':feed_fresh,
+        'candles_closed':len(bars),
+        'candle_error':candle_error,
+        'live_trade_signals_enabled':False,
+        'live_order_execution_enabled':False,
+        'trade_decision':'BEKLE',
+        'approved_live_prediction':approved,
+        'ml_v1':ml_v1,
+        'ml_v3':ml_v3,
+        'shadow_v5':shadow,
+        'scalp_v6':scalp_v6,
+        'safety_policy':'No ML output is accepted as an AL/SAT instruction until it passes prospective forward validation.',
+        'timestamp_ms':nowms(),
+    }
 
 @app.get('/api/correlation')
 async def correlation(tf:str='15m'):

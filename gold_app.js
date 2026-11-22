@@ -227,11 +227,44 @@ function updateAnalysis(a){ana=a;let ind=a.indicators?.latest||{},q=a.quant||{},
  heatBox('overviewVar',heatN(q.var95_1bar_pct)===null?null:q.var95_1bar_pct/.3*100,'caution');
  renderPlots();
 }
+function updateUnifiedDecision(u){
+ if(!u)return;
+ const direction=u.direction||'BEKLE';
+ if($('k-decision')){$('k-decision').textContent=direction;setClass('k-decision',clsDecision(direction))}
+ if($('k-risk'))$('k-risk').textContent=u.model_approved?'ML doğrulama geçti':'Gölge öğrenme / doğrulama';
+ if($('bigDecision')){$('bigDecision').textContent=direction;setClass('bigDecision',clsDecision(direction))}
+ if($('decisionTF'))$('decisionTF').textContent=u.tf||tf;
+ if($('decisionData'))$('decisionData').textContent=`${u.mode||'GÖLGE'} · ${u.learning?.samples||0} ileri kapanış`;
+ if($('longScore'))$('longScore').textContent=u.probability_up!=null?((u.probability_up*100).toFixed(1)+'%'):'—';
+ if($('shortScore'))$('shortScore').textContent=u.probability_up!=null?(((1-u.probability_up)*100).toFixed(1)+'%'):'—';
+ if($('netScore'))$('netScore').textContent=direction;
+ if($('stop'))$('stop').textContent=u.stop!=null?Number(u.stop).toFixed(2):'—';
+ if($('target'))$('target').textContent=u.target!=null?Number(u.target).toFixed(2):'—';
+ if($('reasonList'))$('reasonList').innerHTML=(u.reasons||[]).map(x=>`<div>• ${escaped(x)}</div>`).join('')||'—';
+ if($('vetoList'))$('vetoList').innerHTML=(u.veto||[]).map(x=>`<div class="red">• ${escaped(x)}</div>`).join('')||'<div class="green">Veto yok · emir yetkisi kapalı</div>';
+}
 async function reloadAll(force=false){let seq=++inflight;showError('');$('chartTitle').textContent=symbol+' · '+tf;
- try{let [c,a]=await Promise.all([getJSON(`/api/candles?symbol=${symbol}&tf=${tf}&limit=550&refresh=${force}`),getJSON(`/api/analysis?symbol=${symbol}&tf=${tf}&refresh=${force}`)]);if(seq!==inflight)return;
- candleData=c.bars||[];ana=a;updateAnalysis(a);firstLoad=false;
+ try{let [c,a,ml,unified]=await Promise.all([getJSON(`/api/candles?symbol=${symbol}&tf=${tf}&limit=550&refresh=${force}`),getJSON(`/api/analysis?symbol=${symbol}&tf=${tf}&refresh=${force}`),getJSON(`/api/ml-status?symbol=${symbol}`),getJSON(`/api/unified-decision?symbol=${symbol}&tf=${tf}`)]);if(seq!==inflight)return;
+ candleData=c.bars||[];ana=a;updateAnalysis(a);updateUnifiedDecision(unified);firstLoad=false;
+ updateMLStatus(ml);
  }catch(e){if(seq!==inflight)return;showError(symbol+': '+e.message);if(symbol==='XAUUSD')showError('XAUUSD spot için OANDA erişimi gerekiyor: '+e.message);candleData=[];ana=null;for(let e of ['empty-home','empty-detail']){$(e).style.display='grid';$(e).textContent='Doğrulanmış mum verisi yok'}
  }if(page==='technical')loadMTF(); if(page==='altinquant')loadAltinQuant();}
+function updateMLStatus(j){
+ if(!$('mlStatusDecision')||!j)return;
+ $('mlStatusDecision').textContent=j.trade_decision||'BEKLE';
+ setClass('mlStatusDecision',clsDecision(j.trade_decision||'BEKLE'));
+ $('mlStatusAge').textContent=j.feed_fresh?'Canlı veri · '+(j.candles_closed||0)+' mum':'Veri gecikmeli';
+ const v1=j.ml_v1||{},v3=j.ml_v3||{},v5=j.shadow_v5||{},v6=j.scalp_v6||{};
+ const status=v1.status||'BİLİNMİYOR';
+ const reason=v1.reason||v3.reason||'Güncel model / geriye dönük doğrulama sonucu bekleniyor.';
+ $('mlStatusDetail').innerHTML=[
+  `<p><b>V1:</b> ${escaped(status)} · ${escaped(reason)}</p>`,
+  `<p><b>V3:</b> ${escaped(v3.status||'NO_REPORT')} · canlı tahmin kapalı</p>`,
+  `<p><b>V5:</b> ${escaped(v5.status||'SHADOW_RESEARCH_ONLY')} · emre dönüştürülmez</p>`,
+  `<p><b>V6:</b> ${escaped(v6.status||'NO_REPORT')} · canlı sinyal ${v6.live_signal?'açık':'kapalı'}</p>`,
+  '<p class="note">Araştırma/ML çıktısı yatırım emri değildir.</p>'
+ ].join('');
+}
 async function loadMTF(){try{let j=await getJSON('/api/mtf?symbol='+symbol);$('mtfCards').innerHTML=j.rows.map(x=>`<div class="metric row" style="margin:5px 0"><b style="font-size:12px">${x.tf}</b><span class="${clsDecision(x.direction)}">${x.direction}</span><small>RSI ${fmt(x.rsi,1)}</small></div>`).join('')}catch(e){$('mtfCards').textContent=e.message}}
 async function loadHealth(){try{let h=await getJSON('/api/health');$('healthCards').innerHTML=[['Gateway',h.status],['Bitget WS',h.bitget_ws?'BAĞLI':'BAĞLI DEĞİL'],['Fiyat',h.feed_valid?.ticker?'GÜNCEL':'GECİKMELİ'],['Emir defteri',h.feed_valid?.book?'GÜNCEL':'GECİKMELİ'],['İşlemler',h.feed_valid?.trades?'GÜNCEL':'GECİKMELİ'],['OANDA',h.spot_configured?'YAPILANDIRILDI':'KAPALI'],['WS son fiyat',age(h.feed_age_seconds?.ticker)],['Son olay',h.time_utc]].map(([n,v])=>`<div class="metric"><small>${n}</small><b style="font-size:15px">${escaped(v)}</b></div>`).join('');$('healthRaw').textContent=JSON.stringify(h,null,2)}catch(e){$('healthRaw').textContent=e.message}}
 async function loadMacro(){let macro=$('macroGrid'),news=$('newsList');macro.innerHTML='<div class="hint">FRED sorgulanıyor...</div>';news.textContent='GDELT sorgulanıyor...';

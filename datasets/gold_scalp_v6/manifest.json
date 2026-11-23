@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-11-20T19:09:57.586122+00:00",
+  "generated_at_utc": "2026-11-23T10:39:25.954863+00:00",
   "market": "XAUUSDT",
   "no_orders": true,
   "sources": {
@@ -7,37 +7,37 @@
       "source_key": "binance",
       "source_id": "binance_usdm_futures_trade_1m",
       "symbol": "XAUUSDT",
-      "bars": 115200,
+      "bars": 119520,
       "first_utc": "2026-09-01T00:00:00+00:00",
-      "last_utc": "2026-11-19T23:59:00+00:00",
-      "sha256_gzip": "202cb7bf181cbbe3b4d6a5eebf46d6d5d2147dfddb9e97871e29d27970188ea0",
-      "bytes_gzip": 1689086,
-      "packages_seen": 21,
-      "verified": 21,
+      "last_utc": "2026-11-22T23:59:00+00:00",
+      "sha256_gzip": "b0564cfb690428f3965d29f65fe73e544e5dcc8d4efe2baa53e9ab309eaa237d",
+      "bytes_gzip": 1754834,
+      "packages_seen": 24,
+      "verified": 24,
       "unpublished": 0,
       "errors": [],
       "status": "OK",
       "missing_minutes_between_extremes": 0,
       "first": "2026-09-01T00:00:00+00:00",
-      "last": "2026-11-19T23:59:00+00:00"
+      "last": "2026-11-22T23:59:00+00:00"
     },
     "bitget": {
       "source_key": "bitget",
       "source_id": "bitget_usdt_futures_trade_1m",
       "symbol": "XAUUSDT",
-      "bars": 48000,
-      "first_utc": "2026-10-18T03:11:00+00:00",
-      "last_utc": "2026-11-20T19:09:00+00:00",
-      "sha256_gzip": "5f45ab810669025502c7fc9262af2cf4d0ad5a3131259bc3c926c6c07f3df253",
-      "bytes_gzip": 641494,
+      "bars": 82574,
+      "first_utc": "2026-09-24T10:39:00+00:00",
+      "last_utc": "2026-11-23T10:38:00+00:00",
+      "sha256_gzip": "d3d314d4265eb6364c5cd6c1c5798506d4d7b886135cdf1a37ce35e4b10113ff",
+      "bytes_gzip": 1069002,
       "status": "OK",
-      "pages": 480,
-      "added": 48000,
-      "mode": "initial",
+      "pages": 346,
+      "added": 34574,
+      "mode": "backfill",
       "error": null,
-      "missing_minutes_between_extremes": 479,
-      "first": "2026-10-18T03:11:00+00:00",
-      "last": "2026-11-20T19:09:00+00:00"
+      "missing_minutes_between_extremes": 3826,
+      "first": "2026-09-24T10:39:00+00:00",
+      "last": "2026-11-23T10:38:00+00:00"
     }
   }
 }

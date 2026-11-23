@@ -283,6 +283,32 @@
 <section class="view" id="v-health"><div class="sectiontop"><h2>Veri Sağlığı / Kaynak Denetimi</h2><button class="btn" id="healthReload">Tekrar sorgula</button></div><div class="healthgrid" id="healthCards"></div><div class="card" style="margin-top:11px"><div class="cardhead"><h3>Gateway hata / açıklama detayları</h3></div><div class="body"><pre style="white-space:pre-wrap;word-break:break-word;color:#96abc8" id="healthRaw">—</pre></div></div></section>
 
 
+
+<section class="view" id="v-projection" aria-label="Fiyat Projeksiyonu">
+  <div class="sectiontop"><h2>↗ Fiyat Projeksiyonu</h2><span class="chip">5–120 dk · fiyat / yüzde / zaman</span></div>
+  <p class="hint">Projeksiyon artık ana uygulamanın içinde açılır. Kesikli çizgiler geçmiş fiyat dağılımlarından türetilmiştir; gerçek gelecekteki hareket değildir.</p>
+  <iframe id="projectionFrame" title="Altın fiyat ve zaman projeksiyon analizi" src="/gold-projection?embed=1"
+          loading="lazy" style="display:block;width:100%;height:2200px;min-height:900px;border:0;border-radius:14px;background:#070e1a"></iframe>
+</section>
+<script>
+(function(){
+  var f=document.getElementById('projectionFrame');if(!f)return;
+  f.addEventListener('load',function(){
+    try{
+      var d=f.contentDocument;
+      if(!d||!d.body)return;
+      var resize=function(){
+        var h=Math.max(d.documentElement.scrollHeight,d.body.scrollHeight);
+        if(Number.isFinite(h)&&h>0)f.style.height=Math.max(850,Math.min(10000,h+24))+'px';
+      };
+      resize();
+      if(window.ResizeObserver){var observer=new ResizeObserver(resize);observer.observe(d.body);f._projectionObserver=observer;}
+      f.contentWindow.addEventListener('resize',resize);
+    }catch(e){f.style.height='2200px';}
+  });
+})();
+</script>
+
 <section class="view" id="v-quanthub">
  <div class="sectiontop"><h2>GOLD QUANT HUB · 7 Araştırma Motoru</h2><span class="chip">GÖLGE MOD · EMİR YOK</span></div>
  <div class="hint">Her projeye ait bağımsız analiz sekmesi, ayarlanabilir parametreler ve ortak Konsensüs kararı. <strong>Motorlar açık kaynak yaklaşımlarına dayanan özgün uygulamalardır; orijinal ML modelleri ve ağır kütüphaneler doğrudan kurulmuş değildir.</strong></div>

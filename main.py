@@ -1349,3 +1349,8 @@ async def quant_hub_analyze(payload:dict=Body(default={})):
                     'live_signal':False,'trade_decision':'BEKLE','no_orders':True}
     out['requested_at_ms']=nowms()
     return out
+
+
+# GOLD 30G QUANT v1.0 — isolated research page and API.
+from gold30_quant import register as register_gold30
+register_gold30(app, M, closed_bars, quant_hub_daily_history)

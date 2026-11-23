@@ -1,0 +1,43 @@
+name: Install Projection Inside App
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install-projection-tab:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate installer
+        run: |
+          python -m py_compile install_gold_projection_tab.py test_gold_projection_tab.py
+          python -m unittest -v test_gold_projection_tab.py
+      - name: Install internal projection tab and mobile menu
+        run: |
+          python install_gold_projection_tab.py
+          python install_gold_projection_tab.py
+          python -m py_compile main.py
+          node --check gold_app.js
+      - name: Commit safe UI updates
+        run: |
+          if [[ -n "$(git status --porcelain -- gold_app.js index.legacy.html gold_projection.html)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add gold_app.js index.legacy.html gold_projection.html
+            git commit -m "Embed gold projection inside Analysis mobile tab"
+            git push
+          else
+            echo "Projection is already embedded; no changes."
+          fi

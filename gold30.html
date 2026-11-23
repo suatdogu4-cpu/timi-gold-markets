@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#070e19"><title>GOLD SCALP PRO | 30 Günlük Quant</title>
+<style>
+:root{color-scheme:dark;font:14px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;background:#070e19;color:#e2ecf7}
+*{box-sizing:border-box}body{margin:0;padding:12px}a{color:#80ccf7}h1{margin:0 0 3px;font-size:1.38rem}h2{font-size:1.07rem;margin:0}small,.muted{color:#9eb0c9}
+header{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:12px}.brand small{display:block}
+.controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}button,select{background:#14233b;color:#fff;border:1px solid #405777;border-radius:9px;padding:10px 12px;font:inherit}button{cursor:pointer}button:hover{background:#1b3557}
+.card{background:linear-gradient(135deg,#101c30,#0d1626);border:1px solid #273d5c;border-radius:13px;padding:14px;min-width:0}.head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:10px 0}.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:10px 0}
+.metric{display:flex;flex-direction:column;gap:3px}.metric b{font-size:1.3rem;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.metric span{font-size:.83rem;color:#9eb0c9}
+.up{color:#38d5aa}.down{color:#ff788d}.gold{color:#ffce78}.pill{border:1px solid #4d6080;border-radius:24px;padding:3px 9px;font-size:12px;font-weight:650;white-space:nowrap}.note{background:#0a192a;border-left:3px solid #5379aa;padding:9px 11px;border-radius:5px;margin:10px 0}
+.bar{height:9px;background:#482432;border-radius:10px;overflow:hidden;margin-top:10px}.fill{height:100%;background:linear-gradient(90deg,#ff788d,#ffc96b,#38d5aa);width:0;transition:width .3s}
+svg{display:block;width:100%;height:auto}.tablebox{overflow:auto}table{width:100%;border-collapse:collapse;white-space:nowrap}th,td{padding:10px 8px;border-bottom:1px solid #22324a;text-align:right;font-variant-numeric:tabular-nums}th:first-child,td:first-child{text-align:left}td:nth-child(2){font-weight:700}th{font-size:.78rem;color:#a5b8d4}
+footer{color:#94a6bd;line-height:1.6;padding:15px 0 5px}.error{border:1px solid #ad455d;background:#351a29;color:#ffdce0;border-radius:8px;padding:12px;margin:10px 0}
+@media(max-width:800px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2{grid-template-columns:1fr}}
+@media(max-width:360px){.grid{grid-template-columns:1fr 1fr}button,select{padding:8px}}
+</style></head>
+<body>
+<header><div class="brand"><h1>◈ GOLD 30G · Fiyat–Zaman Quant</h1><small>GOLD SCALP PRO · geliştirici Suat DOĞU · bağımsız araştırma</small></div><div class="controls"><select id="symbol" aria-label="Piyasa"><option value="XAUUSDT">XAUUSDT · Bitget Futures</option><option value="XAUUSD">XAUUSD · OANDA Spot</option></select><button id="refresh">↻ Analiz Et</button><a href="/">Ana kokpit</a></div></header>
+<div id="status" class="note" role="status">Tarihsel mumlar ve canlı fiyat doğrulanıyor. İlk 30 günlük veri toplama biraz sürebilir.</div>
+<main id="content" hidden>
+<div class="grid" id="headline"></div>
+<div class="grid2">
+ <section class="card"><div class="head"><h2>Son 30 gün · Dip / Tepe</h2><span id="coverage" class="pill">—</span></div>
+   <div id="graph"></div><div class="bar"><div class="fill" id="position"></div></div>
+   <p class="muted" id="rangeNote"></p><div class="grid2" id="levels"></div>
+ </section>
+ <section class="card"><div class="head"><h2>Koşullu yön değerlendirmesi</h2><span id="signal" class="pill">BEKLE</span></div><div id="scenarios" class="grid2"></div><p class="muted" id="decisionNote"></p><div class="note">Fiyat hedefleri ATR tabanlıdır. Tarihsel ilk-temas yüzdeleri gelecekteki kazanma olasılığı değildir.</div></section>
+</div>
+<section class="card"><div class="head"><h2>Fiyat, süre ve bariyere ilk ulaşma istatistiği</h2><span class="pill">5 / 15 / 30 / 60 / 120 dk</span></div>
+<div class="tablebox"><table><thead><tr><th>Ufuk</th><th>↑ ilk %</th><th>↓ ilk %</th><th>Sürede yok %</th><th>Örnek</th><th>↑ hedef</th><th>↓ hedef</th><th>İlk temas medyanı</th><th>Durum</th></tr></thead><tbody id="hrows"></tbody></table></div>
+<p class="muted" id="horizonNote"></p></section>
+<section class="card" style="margin-top:10px"><div class="head"><h2>Veri güvenliği / doğruluk sınırları</h2><span class="pill" id="source">—</span></div><div id="quality"></div></section>
+</main>
+<footer>Veriler mevcut repo geçidinden gelir. Kapanmış mumlar kullanılır; XAUUSD spot ve XAUUSDT vadeli ayrı hesaplanır. Gerçek emir yok. İstatistikler örneklem içi betimseldir; ileri test / kalibrasyon tamamlanmamıştır.</footer>
+<script>
+(()=>{'use strict';
+const el=x=>document.getElementById(x),fmt=(x,d=2)=>typeof x==='number'&&Number.isFinite(x)?x.toLocaleString('tr-TR',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
+const esc=s=>String(s??'—').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&quot;'}[ch]));
+let busy=false,latest=null;
+function stat(label,value,kind=''){return '<div class="card metric"><span>'+esc(label)+'</span><b class="'+kind+'">'+esc(value)+'</b></div>'}
+function item(label,value){return '<div class="metric"><span>'+esc(label)+'</span><b>'+esc(value)+'</b></div>'}
+function graph(series,high,low){if(series.length<2||!(high>low))return '<p class="muted">Günlük grafik için yeterli veri yok.</p>';
+ const width=700,height=170,pad=15,scale=x=>height-pad-(x-low)/(high-low)*(height-2*pad);
+ const pts=series.map((b,i)=>[pad+i/(series.length-1)*(width-2*pad),scale(b.c)]);
+ const path=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+ const ih=series.findIndex(x=>x.h===high),il=series.findIndex(x=>x.l===low);
+ function point(i,v,color){if(i<0)return '';return '<circle cx="'+(pad+i/(series.length-1)*(width-2*pad)).toFixed(1)+'" cy="'+scale(v).toFixed(1)+'" r="5" fill="'+color+'"/>'}
+ return '<svg viewBox="0 0 '+width+' '+height+'" role="img" aria-label="30 günlük altın kapanış grafiği, dönem tepesi ve dibi"><line x1="15" y1="15" x2="685" y2="15" stroke="#2f455b" stroke-dasharray="4 6"/><line x1="15" y1="155" x2="685" y2="155" stroke="#2f455b" stroke-dasharray="4 6"/><path d="'+path+'" stroke="#61bcff" stroke-width="3" fill="none"/>'+point(ih,high,'#34d5aa')+point(il,low,'#ff7189')+'</svg>'}
+function render(d){latest=d;const w=d.window||{},h=d.horizons||[],q=d.data_quality||{};
+ el('content').hidden=false;el('source').textContent=d.source||'—';
+ const state=d.decision||'BEKLE';el('signal').textContent=state;el('signal').className='pill '+(state.startsWith('YUKARI')?'up':state.startsWith('AŞAĞI')?'down':'gold');
+ el('headline').innerHTML=stat('Kaynak doğrulanmış son fiyat',fmt(d.price)+' $',d.price_fresh?'up':'gold')+stat('30g TEPE',fmt(w.high)+' $','up')+stat('30g DİP',fmt(w.low)+' $','down')+stat('Aralık / günlük ATR',fmt(w.range_dollars)+' $ / '+fmt(w.atr14_daily)+' $','gold');
+ el('coverage').textContent=w.full_30d?'30 gün kapsanıyor':'30 gün eksik';
+ el('graph').innerHTML=graph(w.daily_series||[],w.high,w.low);
+ el('position').style.width=w.position_pct==null?'0%':Math.max(0,Math.min(100,w.position_pct))+'%';
+ el('rangeNote').textContent='Gözlenen '+(w.observed_daily_candles||0)+' kapanmış günlük mum · Konum '+fmt(w.position_pct,1)+'% · Günlük grafik kapanış fiyatlarını gösterir.';
+ const retr=w.retracements||{};
+ el('levels').innerHTML=item('30g orta çizgi',fmt(w.mid)+' $')+item('Fibo %38,2',fmt(retr['0.382'])+' $')+item('Fibo %61,8',fmt(retr['0.618'])+' $')+item('Onaylı günlük pivot',((w.confirmed_pivots||[]).slice(-1).map(x=>x.type+' '+fmt(x.price)+' $').join(''))||'—');
+ const at30=h.find(x=>x.horizon_minutes===30)||{};
+ el('scenarios').innerHTML=item('30 dk üst bariyer',fmt(at30.upper_barrier)+' $')+item('30 dk alt bariyer',fmt(at30.lower_barrier)+' $')+item('30 dk üstte ilk dokunma',fmt(at30.p_up_first,1)+' %')+item('30 dk altta ilk dokunma',fmt(at30.p_down_first,1)+' %')+item('30 dk kapanış %10',fmt(at30.price_q10)+' $')+item('30 dk kapanış %90',fmt(at30.price_q90)+' $');
+ el('decisionNote').textContent=d.decision_note||'';
+ el('hrows').innerHTML=h.map(x=>'<tr><td>'+x.horizon_minutes+' dk</td><td class="up">'+fmt(x.p_up_first,1)+'</td><td class="down">'+fmt(x.p_down_first,1)+'</td><td>'+fmt(x.p_timeout,1)+'</td><td>'+esc(x.valid_count??0)+'</td><td>'+fmt(x.upper_barrier)+'</td><td>'+fmt(x.lower_barrier)+'</td><td>'+fmt(x.median_first_touch_minutes,0)+' dk</td><td>'+esc(x.status)+'</td></tr>').join('');
+ el('horizonNote').textContent='Veri rejimi: 5 dk sütunu yalnız '+fmt((h.find(x=>x.horizon_minutes===5)||{}).observed_days,1)+' gün örnek kullanabilir; 15–120 dk sütunlarında 15m geçmişi bulunabildiği kadar kullanılır. Örnekler tam bağımsız kabul edilemez; % oranları tarihsel örnek frekansıdır.';
+ const errs=Object.entries(q.errors||{}).map(([k,v])=>esc(k+': '+v)).join(' · ');
+ el('quality').innerHTML='<p>15m geçmiş: <b>'+esc(q.recent_15m_bars)+'</b> mum · 5m: <b>'+esc(q.recent_5m_bars)+'</b> mum · 15m güncellik: <b>'+String(!!q.fifteen_current)+'</b> · 5m güncellik: <b>'+String(!!q.five_current)+'</b> · Canlı fiyat: <b>'+String(!!d.price_fresh)+'</b></p><p>Bitget 15m eski mum sayfaları: '+esc((q.history||{}).pages??0)+' · Veri kaynağı: '+esc((q.history||{}).provider)+'</p><p class="muted">'+esc((q.history||{}).warning||'')+' '+errs+'</p><div class="note">'+(d.limitations||[]).map(x=>'<div>• '+esc(x)+'</div>').join('')+'</div>';
+ const date=new Date(d.computed_at_utc).toLocaleString('tr-TR');
+ el('status').textContent='Hesaplandı: '+date+' · '+(d.price_fresh?'Canlı fiyat teyitli':'Canlı fiyat yok / gecikmeli')+' · '+(w.full_30d?'30 günlük seri var':'30 günlük seri eksik')+' · Gerçek emir yok.';
+}
+async function run(){if(busy)return;busy=true;el('refresh').disabled=true;el('status').textContent='Kapanmış mumlar okunuyor; kaynak doğrulaması yapılıyor…';
+ try{let controller=new AbortController(),t=setTimeout(()=>controller.abort(),55000);let res;
+ try{res=await fetch('/api/gold30?symbol='+encodeURIComponent(el('symbol').value),{cache:'no-store',signal:controller.signal})}finally{clearTimeout(t)}
+ if(!res.ok)throw Error('Sunucu HTTP '+res.status);
+ render(await res.json());
+ }catch(e){el('status').innerHTML='<div class="error">Veri alınamadı: '+esc(e.message)+'. Bitget / Render bağlantısını ve OANDA yapılandırmasını kontrol edin.</div>'}
+ finally{el('refresh').disabled=false;busy=false}}
+el('refresh').addEventListener('click',run);el('symbol').addEventListener('change',run);document.addEventListener('visibilitychange',()=>{if(!document.hidden&&latest)run()});setInterval(()=>{if(!document.hidden)run()},45000);run();
+})();
+</script></body></html>

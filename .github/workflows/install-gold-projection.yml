@@ -23,12 +23,28 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Check scripts
+      - name: Check scripts (ESM + CommonJS uyumlu)
+        shell: bash
         run: |
+          set -euo pipefail
           python -m py_compile install_gold_projection.py
           node --check gold_projection.js
-          node --test test_gold_projection.js
+          # Repo package.json type=module: Browser dosyasi .js kalir.
+          # Yalniz test icin gecici CommonJS kopyalari olusturulur.
+          cp gold_projection.js gold_projection.cjs
+          python - <<'PY'
+          from pathlib import Path
+          source = Path('test_gold_projection.js').read_text(encoding='utf-8')
+          old = "require('./gold_projection.js')"
+          if old not in source:
+              raise SystemExit('Test importu degismis; guvenli donusum iptal edildi.')
+          Path('test_gold_projection.cjs').write_text(
+              source.replace(old, "require('./gold_projection.cjs')"), encoding='utf-8'
+          )
+          PY
+          node --test test_gold_projection.cjs
           python -m unittest -v test_install_gold_projection.py
+          rm -f gold_projection.cjs test_gold_projection.cjs
 
       - name: Install projection tab and routes
         run: |

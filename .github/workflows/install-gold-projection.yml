@@ -1,0 +1,52 @@
+name: Install GOLD Price Projection
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-install:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check scripts
+        run: |
+          python -m py_compile install_gold_projection.py
+          node --check gold_projection.js
+          node --test test_gold_projection.js
+          python -m unittest -v test_install_gold_projection.py
+
+      - name: Install projection tab and routes
+        run: |
+          python install_gold_projection.py
+          python -m py_compile main.py
+          node --check gold_app.js
+
+      - name: Ensure repeatable install
+        run: python install_gold_projection.py
+
+      - name: Commit main app changes
+        run: |
+          if [[ -n "$(git status --porcelain main.py gold_app.js)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add main.py gold_app.js
+            git commit -m "Add read-only GOLD price projection tab"
+            git push
+          else
+            echo 'Projection already installed; no changes needed.'
+          fi

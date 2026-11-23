@@ -1,0 +1,38 @@
+name: Install GOLD 30G Quant
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  install-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies
+        run: python -m pip install 'fastapi>=0.115,<1'
+      - name: Compile and test
+        run: |
+          python -m py_compile gold30_quant.py install_gold30.py
+          python -m unittest discover -p 'test_gold30_quant.py' -v
+      - name: Inject minimal routes and menu
+        run: python install_gold30.py
+      - name: Verify idempotence
+        run: |
+          python install_gold30.py
+          python -m py_compile main.py
+      - name: Commit changes to repository
+        run: |
+          if [[ -n "$(git status --porcelain main.py gold_app.js)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add main.py gold_app.js
+            git commit -m "Add read-only GOLD 30G quant page and endpoint"
+            git push
+          else
+            echo 'GOLD 30G already installed; nothing to commit.'
+          fi

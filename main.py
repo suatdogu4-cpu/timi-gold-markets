@@ -1354,3 +1354,13 @@ async def quant_hub_analyze(payload:dict=Body(default={})):
 # GOLD 30G QUANT v1.0 — isolated research page and API.
 from gold30_quant import register as register_gold30
 register_gold30(app, M, closed_bars, quant_hub_daily_history)
+
+
+# GOLD PRICE PROJECTION v1.0 — read-only, separate research tab
+@app.get('/gold-projection', include_in_schema=False)
+async def gold_projection_page():
+    return FileResponse(ROOT / 'gold_projection.html', media_type='text/html')
+
+@app.get('/gold_projection.js', include_in_schema=False)
+async def gold_projection_js():
+    return FileResponse(ROOT / 'gold_projection.js', media_type='application/javascript')

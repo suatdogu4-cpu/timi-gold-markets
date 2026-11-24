@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-11-23T10:39:25.954863+00:00",
+  "generated_at_utc": "2026-11-24T12:22:13.115472+00:00",
   "market": "XAUUSDT",
   "no_orders": true,
   "sources": {
@@ -7,37 +7,37 @@
       "source_key": "binance",
       "source_id": "binance_usdm_futures_trade_1m",
       "symbol": "XAUUSDT",
-      "bars": 119520,
+      "bars": 120960,
       "first_utc": "2026-09-01T00:00:00+00:00",
-      "last_utc": "2026-11-22T23:59:00+00:00",
-      "sha256_gzip": "b0564cfb690428f3965d29f65fe73e544e5dcc8d4efe2baa53e9ab309eaa237d",
-      "bytes_gzip": 1754834,
-      "packages_seen": 24,
-      "verified": 24,
+      "last_utc": "2026-11-23T23:59:00+00:00",
+      "sha256_gzip": "1ce6e9cd7ab798d7d1ebe604ad49bb6554457bb9f385a3c05b4a46398217dede",
+      "bytes_gzip": 1779061,
+      "packages_seen": 25,
+      "verified": 25,
       "unpublished": 0,
       "errors": [],
       "status": "OK",
       "missing_minutes_between_extremes": 0,
       "first": "2026-09-01T00:00:00+00:00",
-      "last": "2026-11-22T23:59:00+00:00"
+      "last": "2026-11-23T23:59:00+00:00"
     },
     "bitget": {
       "source_key": "bitget",
       "source_id": "bitget_usdt_futures_trade_1m",
       "symbol": "XAUUSDT",
-      "bars": 82574,
+      "bars": 86182,
       "first_utc": "2026-09-24T10:39:00+00:00",
-      "last_utc": "2026-11-23T10:38:00+00:00",
-      "sha256_gzip": "d3d314d4265eb6364c5cd6c1c5798506d4d7b886135cdf1a37ce35e4b10113ff",
-      "bytes_gzip": 1069002,
+      "last_utc": "2026-11-24T12:21:00+00:00",
+      "sha256_gzip": "5d59925df9a48e06a3c5cf2f0aa7b1d0f4785fa3d747b8f96447044adb69d41e",
+      "bytes_gzip": 1118589,
       "status": "OK",
-      "pages": 346,
-      "added": 34574,
-      "mode": "backfill",
+      "pages": 52,
+      "added": 3608,
+      "mode": "refresh",
       "error": null,
-      "missing_minutes_between_extremes": 3826,
+      "missing_minutes_between_extremes": 1761,
       "first": "2026-09-24T10:39:00+00:00",
-      "last": "2026-11-23T10:38:00+00:00"
+      "last": "2026-11-24T12:21:00+00:00"
     }
   }
 }

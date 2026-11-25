@@ -1,6 +1,6 @@
 {
   "version": "6.0.0",
-  "generated_utc": "2026-11-24T12:22:51.716590+00:00",
+  "generated_utc": "2026-11-25T11:11:03.003729+00:00",
   "run_policy": "RESEARCH_ONLY_NO_LIVE_SIGNAL_NO_ORDERS",
   "commission_assumptions_bps": {
     "fee_bps_per_side": 4.0,
@@ -18,19 +18,19 @@
       "source_key": "bitget",
       "source_id": "bitget_usdt_futures_trade_1m",
       "source_type": "XAUUSDT futures OHLCV trade candles",
-      "one_minute_bars": 86182,
+      "one_minute_bars": 87558,
       "timeframes": {
         "1m": {
           "source": "bitget",
           "timeframe": "1m",
-          "bars": 86182,
+          "bars": 87558,
           "tested_configurations": 36,
           "status": "RESEARCH_ONLY_REJECTED",
           "best": {
             "configuration": {
               "family": "reversion",
               "vol_min": 1.45,
-              "session": "london",
+              "session": "newyork",
               "sensitivity": 1,
               "hold_bars": 7,
               "atr_stop": 1.3,
@@ -39,38 +39,38 @@
             },
             "validation_folds": [
               {
-                "trades": 28,
-                "expectancy_bps": -14.126,
-                "profit_factor": 0.0,
-                "win_pct": 0.0,
-                "net_bps": -395.54,
-                "max_drawdown_bps": 395.54
+                "trades": 37,
+                "expectancy_bps": -12.261,
+                "profit_factor": 0.011,
+                "win_pct": 2.7,
+                "net_bps": -453.66,
+                "max_drawdown_bps": 458.89
               },
               {
-                "trades": 64,
-                "expectancy_bps": -12.38,
-                "profit_factor": 0.034,
-                "win_pct": 9.38,
-                "net_bps": -792.32,
-                "max_drawdown_bps": 792.32
+                "trades": 52,
+                "expectancy_bps": -12.037,
+                "profit_factor": 0.063,
+                "win_pct": 11.54,
+                "net_bps": -625.95,
+                "max_drawdown_bps": 625.95
               },
               {
-                "trades": 56,
-                "expectancy_bps": -14.659,
-                "profit_factor": 0.031,
-                "win_pct": 7.14,
-                "net_bps": -820.91,
-                "max_drawdown_bps": 820.91
+                "trades": 69,
+                "expectancy_bps": -14.083,
+                "profit_factor": 0.027,
+                "win_pct": 7.25,
+                "net_bps": -971.71,
+                "max_drawdown_bps": 971.71
               }
             ],
-            "validation_weighted_expectancy_bps": -13.573,
+            "validation_weighted_expectancy_bps": -12.983,
             "holdout": {
-              "trades": 62,
-              "expectancy_bps": -15.106,
-              "profit_factor": 0.038,
-              "win_pct": 6.45,
-              "net_bps": -936.59,
-              "max_drawdown_bps": 936.59
+              "trades": 56,
+              "expectancy_bps": -14.72,
+              "profit_factor": 0.057,
+              "win_pct": 12.5,
+              "net_bps": -824.34,
+              "max_drawdown_bps": 824.34
             },
             "historical_gate_passed": false,
             "trade_decision": "BEKLE"
@@ -80,29 +80,29 @@
               "configuration": {
                 "family": "reversion",
                 "vol_min": 1.45,
-                "session": "london",
+                "session": "newyork",
                 "sensitivity": 1,
                 "hold_bars": 7,
                 "atr_stop": 1.3,
                 "atr_take": 2.0,
                 "tf_seconds": 60
               },
-              "validation_score": -41.964,
-              "validation_trades": 148
+              "validation_score": -41.693,
+              "validation_trades": 158
             },
             {
               "configuration": {
                 "family": "reversion",
                 "vol_min": 1.45,
-                "session": "newyork",
+                "session": "london",
                 "sensitivity": 1,
                 "hold_bars": 7,
                 "atr_stop": 1.3,
                 "atr_take": 2.0,
                 "tf_seconds": 60
               },
-              "validation_score": -42.312,
-              "validation_trades": 160
+              "validation_score": -42.543,
+              "validation_trades": 158
             },
             {
               "configuration": {
@@ -115,8 +115,8 @@
                 "atr_take": 2.0,
                 "tf_seconds": 60
               },
-              "validation_score": -46.559,
-              "validation_trades": 196
+              "validation_score": -45.745,
+              "validation_trades": 195
             },
             {
               "configuration": {
@@ -129,27 +129,27 @@
                 "atr_take": 2.0,
                 "tf_seconds": 60
               },
-              "validation_score": -46.739,
-              "validation_trades": 187
+              "validation_score": -47.346,
+              "validation_trades": 198
             },
             {
               "configuration": {
                 "family": "breakout",
                 "vol_min": 1.45,
-                "session": "london",
+                "session": "newyork",
                 "sensitivity": 1,
                 "hold_bars": 7,
                 "atr_stop": 1.3,
                 "atr_take": 2.0,
                 "tf_seconds": 60
               },
-              "validation_score": -52.679,
-              "validation_trades": 256
+              "validation_score": -53.003,
+              "validation_trades": 265
             }
           ],
           "live_signal": false,
           "eligible_configurations": 36,
-          "final_holdout_start_utc": "2026-11-11T19:25:00+00:00",
+          "final_holdout_start_utc": "2026-11-12T13:57:00+00:00",
           "ml": {
             "status": "RESEARCH_ONLY_REJECTED",
             "features": [
@@ -174,124 +174,124 @@
                 "status": "VALIDATED",
                 "walk_forward": [
                   {
-                    "samples": 701,
-                    "accuracy_pct": 54.35,
-                    "majority_pct": 51.5,
-                    "brier": 0.24723,
-                    "baseline_brier": 0.250934
+                    "samples": 662,
+                    "accuracy_pct": 55.14,
+                    "majority_pct": 55.29,
+                    "brier": 0.245301,
+                    "baseline_brier": 0.247355
                   },
                   {
-                    "samples": 894,
-                    "accuracy_pct": 53.47,
-                    "majority_pct": 55.48,
-                    "brier": 0.248264,
-                    "baseline_brier": 0.247182
+                    "samples": 844,
+                    "accuracy_pct": 50.71,
+                    "majority_pct": 53.91,
+                    "brier": 0.251587,
+                    "baseline_brier": 0.248497
                   },
                   {
-                    "samples": 1280,
-                    "accuracy_pct": 52.42,
-                    "majority_pct": 51.8,
-                    "brier": 0.251084,
-                    "baseline_brier": 0.250411
+                    "samples": 1208,
+                    "accuracy_pct": 53.73,
+                    "majority_pct": 52.73,
+                    "brier": 0.249738,
+                    "baseline_brier": 0.249488
                   }
                 ],
-                "mean_validation_brier": 0.248859,
+                "mean_validation_brier": 0.248875,
                 "final_holdout": {
-                  "samples": 1277,
-                  "accuracy_pct": 50.82,
-                  "majority_pct": 51.76,
-                  "brier": 0.253172,
-                  "baseline_brier": 0.250102
+                  "samples": 1205,
+                  "accuracy_pct": 49.46,
+                  "majority_pct": 50.95,
+                  "brier": 0.254083,
+                  "baseline_brier": 0.250779
                 }
               },
               "XGBoost": {
                 "status": "VALIDATED",
                 "walk_forward": [
                   {
-                    "samples": 701,
-                    "accuracy_pct": 54.78,
-                    "majority_pct": 51.5,
-                    "brier": 0.245179,
-                    "baseline_brier": 0.250934
+                    "samples": 662,
+                    "accuracy_pct": 53.93,
+                    "majority_pct": 55.29,
+                    "brier": 0.247921,
+                    "baseline_brier": 0.247355
                   },
                   {
-                    "samples": 894,
-                    "accuracy_pct": 50.89,
-                    "majority_pct": 55.48,
-                    "brier": 0.249404,
-                    "baseline_brier": 0.247182
+                    "samples": 844,
+                    "accuracy_pct": 52.96,
+                    "majority_pct": 53.91,
+                    "brier": 0.249878,
+                    "baseline_brier": 0.248497
                   },
                   {
-                    "samples": 1280,
-                    "accuracy_pct": 51.72,
-                    "majority_pct": 51.8,
-                    "brier": 0.250137,
-                    "baseline_brier": 0.250411
+                    "samples": 1208,
+                    "accuracy_pct": 52.57,
+                    "majority_pct": 52.73,
+                    "brier": 0.248642,
+                    "baseline_brier": 0.249488
                   }
                 ],
-                "mean_validation_brier": 0.24824,
+                "mean_validation_brier": 0.248814,
                 "final_holdout": {
-                  "samples": 1277,
-                  "accuracy_pct": 51.76,
-                  "majority_pct": 51.76,
-                  "brier": 0.250222,
-                  "baseline_brier": 0.250102
+                  "samples": 1205,
+                  "accuracy_pct": 52.2,
+                  "majority_pct": 50.95,
+                  "brier": 0.250152,
+                  "baseline_brier": 0.250779
                 }
               },
               "LightGBM": {
                 "status": "VALIDATED",
                 "walk_forward": [
                   {
-                    "samples": 701,
-                    "accuracy_pct": 53.35,
-                    "majority_pct": 51.5,
-                    "brier": 0.245126,
-                    "baseline_brier": 0.250934
+                    "samples": 662,
+                    "accuracy_pct": 54.23,
+                    "majority_pct": 55.29,
+                    "brier": 0.248267,
+                    "baseline_brier": 0.247355
                   },
                   {
-                    "samples": 894,
-                    "accuracy_pct": 51.34,
-                    "majority_pct": 55.48,
-                    "brier": 0.249609,
-                    "baseline_brier": 0.247182
+                    "samples": 844,
+                    "accuracy_pct": 52.84,
+                    "majority_pct": 53.91,
+                    "brier": 0.249549,
+                    "baseline_brier": 0.248497
                   },
                   {
-                    "samples": 1280,
-                    "accuracy_pct": 52.03,
-                    "majority_pct": 51.8,
-                    "brier": 0.250671,
-                    "baseline_brier": 0.250411
+                    "samples": 1208,
+                    "accuracy_pct": 52.07,
+                    "majority_pct": 52.73,
+                    "brier": 0.248281,
+                    "baseline_brier": 0.249488
                   }
                 ],
-                "mean_validation_brier": 0.248469,
+                "mean_validation_brier": 0.248699,
                 "final_holdout": {
-                  "samples": 1277,
-                  "accuracy_pct": 52.47,
-                  "majority_pct": 51.76,
-                  "brier": 0.250041,
-                  "baseline_brier": 0.250102
+                  "samples": 1205,
+                  "accuracy_pct": 51.04,
+                  "majority_pct": 50.95,
+                  "brier": 0.250067,
+                  "baseline_brier": 0.250779
                 }
               }
             },
             "approved": false,
-            "selected_by_validation": "XGBoost",
-            "training_samples": 6429,
-            "holdout_start_utc": "2026-11-11T20:26:00+00:00",
+            "selected_by_validation": "LightGBM",
+            "training_samples": 6070,
+            "holdout_start_utc": "2026-11-12T16:02:00+00:00",
             "no_live_signal": true
           },
-          "source_utc_last": "2026-11-24T12:22:00+00:00"
+          "source_utc_last": "2026-11-25T11:10:00+00:00"
         },
         "3m": {
           "source": "bitget",
           "timeframe": "3m",
-          "bars": 28158,
+          "bars": 28622,
           "tested_configurations": 36,
           "status": "RESEARCH_ONLY_REJECTED",
           "best": {
             "configuration": {
-              "family": "reversion",
+              "family": "breakout",
               "vol_min": 1.45,
-              "session": "london",
+              "session": "newyork",
               "sensitivity": 1,
               "hold_bars": 7,
               "atr_stop": 1.3,
@@ -300,99 +300,43 @@
             },
             "validation_folds": [
               {
-                "trades": 7,
-                "expectancy_bps": -11.889,
-                "profit_factor": 0.018,
-                "win_pct": 14.29,
-                "net_bps": -83.22,
-                "max_drawdown_bps": 83.22
+                "trades": 17,
+                "expectancy_bps": -16.142,
+                "profit_factor": 0.04,
+                "win_pct": 11.76,
+                "net_bps": -274.41,
+                "max_drawdown_bps": 274.41
               },
               {
-                "trades": 20,
-                "expectancy_bps": -17.049,
-                "profit_factor": 0.068,
+                "trades": 30,
+                "expectancy_bps": -12.237,
+                "profit_factor": 0.105,
                 "win_pct": 20.0,
-                "net_bps": -340.99,
-                "max_drawdown_bps": 340.99
+                "net_bps": -367.1,
+                "max_drawdown_bps": 367.1
               },
               {
-                "trades": 22,
-                "expectancy_bps": -10.818,
-                "profit_factor": 0.13,
-                "win_pct": 18.18,
-                "net_bps": -238.01,
-                "max_drawdown_bps": 238.01
+                "trades": 34,
+                "expectancy_bps": -11.841,
+                "profit_factor": 0.141,
+                "win_pct": 26.47,
+                "net_bps": -402.6,
+                "max_drawdown_bps": 422.39
               }
             ],
-            "validation_weighted_expectancy_bps": -13.514,
+            "validation_weighted_expectancy_bps": -12.89,
             "holdout": {
-              "trades": 20,
-              "expectancy_bps": -18.292,
-              "profit_factor": 0.12,
-              "win_pct": 25.0,
-              "net_bps": -365.84,
-              "max_drawdown_bps": 368.46
+              "trades": 31,
+              "expectancy_bps": -13.892,
+              "profit_factor": 0.215,
+              "win_pct": 25.81,
+              "net_bps": -430.65,
+              "max_drawdown_bps": 452.14
             },
             "historical_gate_passed": false,
             "trade_decision": "BEKLE"
           },
           "shortlist": [
-            {
-              "configuration": {
-                "family": "reversion",
-                "vol_min": 1.45,
-                "session": "london",
-                "sensitivity": 1,
-                "hold_bars": 7,
-                "atr_stop": 1.3,
-                "atr_take": 2.0,
-                "tf_seconds": 180
-              },
-              "validation_score": -32.929,
-              "validation_trades": 49
-            },
-            {
-              "configuration": {
-                "family": "reversion",
-                "vol_min": 1.0,
-                "session": "london",
-                "sensitivity": 1,
-                "hold_bars": 7,
-                "atr_stop": 1.3,
-                "atr_take": 2.0,
-                "tf_seconds": 180
-              },
-              "validation_score": -33.897,
-              "validation_trades": 56
-            },
-            {
-              "configuration": {
-                "family": "reversion",
-                "vol_min": 1.45,
-                "session": "newyork",
-                "sensitivity": 1,
-                "hold_bars": 7,
-                "atr_stop": 1.3,
-                "atr_take": 2.0,
-                "tf_seconds": 180
-              },
-              "validation_score": -33.957,
-              "validation_trades": 52
-            },
-            {
-              "configuration": {
-                "family": "reversion",
-                "vol_min": 1.0,
-                "session": "newyork",
-                "sensitivity": 1,
-                "hold_bars": 7,
-                "atr_stop": 1.3,
-                "atr_take": 2.0,
-                "tf_seconds": 180
-              },
-              "validation_score": -34.677,
-              "validation_trades": 58
-            },
             {
               "configuration": {
                 "family": "breakout",
@@ -404,13 +348,69 @@
                 "atr_take": 2.0,
                 "tf_seconds": 180
               },
-              "validation_score": -35.246,
+              "validation_score": -34.983,
               "validation_trades": 81
+            },
+            {
+              "configuration": {
+                "family": "reversion",
+                "vol_min": 1.45,
+                "session": "newyork",
+                "sensitivity": 1,
+                "hold_bars": 7,
+                "atr_stop": 1.3,
+                "atr_take": 2.0,
+                "tf_seconds": 180
+              },
+              "validation_score": -35.134,
+              "validation_trades": 54
+            },
+            {
+              "configuration": {
+                "family": "breakout",
+                "vol_min": 1.45,
+                "session": "london",
+                "sensitivity": 1,
+                "hold_bars": 7,
+                "atr_stop": 1.3,
+                "atr_take": 2.0,
+                "tf_seconds": 180
+              },
+              "validation_score": -35.213,
+              "validation_trades": 88
+            },
+            {
+              "configuration": {
+                "family": "reversion",
+                "vol_min": 1.45,
+                "session": "london",
+                "sensitivity": 1,
+                "hold_bars": 7,
+                "atr_stop": 1.3,
+                "atr_take": 2.0,
+                "tf_seconds": 180
+              },
+              "validation_score": -35.514,
+              "validation_trades": 56
+            },
+            {
+              "configuration": {
+                "family": "reversion",
+                "vol_min": 1.0,
+                "session": "newyork",
+                "sensitivity": 1,
+                "hold_bars": 7,
+                "atr_stop": 1.3,
+                "atr_take": 2.0,
+                "tf_seconds": 180
+              },
+              "validation_score": -36.206,
+              "validation_trades": 60
             }
           ],
           "live_signal": false,
           "eligible_configurations": 36,
-          "final_holdout_start_utc": "2026-11-11T20:03:00+00:00",
+          "final_holdout_start_utc": "2026-11-12T15:09:00+00:00",
           "ml": {
             "status": "RESEARCH_ONLY_REJECTED",
             "features": [
@@ -435,117 +435,117 @@
                 "status": "VALIDATED",
                 "walk_forward": [
                   {
-                    "samples": 720,
-                    "accuracy_pct": 54.72,
-                    "majority_pct": 54.86,
-                    "brier": 0.247543,
-                    "baseline_brier": 0.248338
+                    "samples": 733,
+                    "accuracy_pct": 53.62,
+                    "majority_pct": 53.89,
+                    "brier": 0.247893,
+                    "baseline_brier": 0.248727
                   },
                   {
-                    "samples": 918,
-                    "accuracy_pct": 49.24,
-                    "majority_pct": 51.53,
-                    "brier": 0.251465,
-                    "baseline_brier": 0.249949
+                    "samples": 935,
+                    "accuracy_pct": 49.2,
+                    "majority_pct": 51.87,
+                    "brier": 0.251622,
+                    "baseline_brier": 0.249731
                   },
                   {
-                    "samples": 1314,
-                    "accuracy_pct": 50.84,
-                    "majority_pct": 51.83,
-                    "brier": 0.253811,
-                    "baseline_brier": 0.249723
+                    "samples": 1338,
+                    "accuracy_pct": 52.09,
+                    "majority_pct": 52.39,
+                    "brier": 0.252889,
+                    "baseline_brier": 0.24943
                   }
                 ],
-                "mean_validation_brier": 0.25094,
+                "mean_validation_brier": 0.250801,
                 "final_holdout": {
-                  "samples": 1312,
-                  "accuracy_pct": 53.73,
-                  "majority_pct": 53.43,
-                  "brier": 0.249155,
-                  "baseline_brier": 0.248926
+                  "samples": 1336,
+                  "accuracy_pct": 51.57,
+                  "majority_pct": 52.17,
+                  "brier": 0.250305,
+                  "baseline_brier": 0.249539
                 }
               },
               "XGBoost": {
                 "status": "VALIDATED",
                 "walk_forward": [
                   {
-                    "samples": 720,
-                    "accuracy_pct": 52.64,
-                    "majority_pct": 54.86,
-                    "brier": 0.249194,
-                    "baseline_brier": 0.248338
+                    "samples": 733,
+                    "accuracy_pct": 52.66,
+                    "majority_pct": 53.89,
+                    "brier": 0.249149,
+                    "baseline_brier": 0.248727
                   },
                   {
-                    "samples": 918,
-                    "accuracy_pct": 50.65,
-                    "majority_pct": 51.53,
-                    "brier": 0.250464,
-                    "baseline_brier": 0.249949
+                    "samples": 935,
+                    "accuracy_pct": 50.59,
+                    "majority_pct": 51.87,
+                    "brier": 0.25066,
+                    "baseline_brier": 0.249731
                   },
                   {
-                    "samples": 1314,
-                    "accuracy_pct": 50.76,
-                    "majority_pct": 51.83,
-                    "brier": 0.250633,
-                    "baseline_brier": 0.249723
+                    "samples": 1338,
+                    "accuracy_pct": 51.49,
+                    "majority_pct": 52.39,
+                    "brier": 0.250308,
+                    "baseline_brier": 0.24943
                   }
                 ],
-                "mean_validation_brier": 0.250097,
+                "mean_validation_brier": 0.250039,
                 "final_holdout": {
-                  "samples": 1312,
-                  "accuracy_pct": 52.97,
-                  "majority_pct": 53.43,
-                  "brier": 0.249077,
-                  "baseline_brier": 0.248926
+                  "samples": 1336,
+                  "accuracy_pct": 51.35,
+                  "majority_pct": 52.17,
+                  "brier": 0.249827,
+                  "baseline_brier": 0.249539
                 }
               },
               "LightGBM": {
                 "status": "VALIDATED",
                 "walk_forward": [
                   {
-                    "samples": 720,
-                    "accuracy_pct": 53.06,
-                    "majority_pct": 54.86,
-                    "brier": 0.249128,
-                    "baseline_brier": 0.248338
+                    "samples": 733,
+                    "accuracy_pct": 53.07,
+                    "majority_pct": 53.89,
+                    "brier": 0.249304,
+                    "baseline_brier": 0.248727
                   },
                   {
-                    "samples": 918,
-                    "accuracy_pct": 50.98,
-                    "majority_pct": 51.53,
-                    "brier": 0.250734,
-                    "baseline_brier": 0.249949
+                    "samples": 935,
+                    "accuracy_pct": 48.34,
+                    "majority_pct": 51.87,
+                    "brier": 0.251723,
+                    "baseline_brier": 0.249731
                   },
                   {
-                    "samples": 1314,
-                    "accuracy_pct": 50.53,
-                    "majority_pct": 51.83,
-                    "brier": 0.251802,
-                    "baseline_brier": 0.249723
+                    "samples": 1338,
+                    "accuracy_pct": 50.9,
+                    "majority_pct": 52.39,
+                    "brier": 0.250785,
+                    "baseline_brier": 0.24943
                   }
                 ],
-                "mean_validation_brier": 0.250555,
+                "mean_validation_brier": 0.250604,
                 "final_holdout": {
-                  "samples": 1312,
-                  "accuracy_pct": 52.36,
-                  "majority_pct": 53.43,
-                  "brier": 0.250089,
-                  "baseline_brier": 0.248926
+                  "samples": 1336,
+                  "accuracy_pct": 50.22,
+                  "majority_pct": 52.17,
+                  "brier": 0.250212,
+                  "baseline_brier": 0.249539
                 }
               }
             },
             "approved": false,
             "selected_by_validation": "XGBoost",
-            "training_samples": 6601,
-            "holdout_start_utc": "2026-11-11T21:06:00+00:00",
+            "training_samples": 6721,
+            "holdout_start_utc": "2026-11-12T18:15:00+00:00",
             "no_live_signal": true
           },
-          "source_utc_last": "2026-11-24T12:21:00+00:00"
+          "source_utc_last": "2026-11-25T11:09:00+00:00"
         },
         "5m": {
           "source": "bitget",
           "timeframe": "5m",
-          "bars": 16554,
+          "bars": 16836,
           "tested_configurations": 36,
           "status": "RESEARCH_ONLY_REJECTED",
           "best": {
@@ -561,38 +561,38 @@
             },
             "validation_folds": [
               {
-                "trades": 8,
-                "expectancy_bps": -10.248,
-                "profit_factor": 0.219,
+                "trades": 10,
+                "expectancy_bps": -10.109,
+                "profit_factor": 0.208,
                 "win_pct": 50.0,
-                "net_bps": -81.98,
-                "max_drawdown_bps": 100.95
+                "net_bps": -101.09,
+                "max_drawdown_bps": 102.74
               },
               {
-                "trades": 19,
-                "expectancy_bps": -14.215,
-                "profit_factor": 0.205,
-                "win_pct": 31.58,
-                "net_bps": -270.09,
-                "max_drawdown_bps": 273.7
+                "trades": 17,
+                "expectancy_bps": -14.764,
+                "profit_factor": 0.209,
+                "win_pct": 29.41,
+                "net_bps": -250.98,
+                "max_drawdown_bps": 250.98
               },
               {
-                "trades": 19,
-                "expectancy_bps": -12.054,
-                "profit_factor": 0.217,
-                "win_pct": 42.11,
-                "net_bps": -229.03,
+                "trades": 24,
+                "expectancy_bps": -6.011,
+                "profit_factor": 0.507,
+                "win_pct": 54.17,
+                "net_bps": -144.27,
                 "max_drawdown_bps": 246.27
               }
             ],
-            "validation_weighted_expectancy_bps": -12.633,
+            "validation_weighted_expectancy_bps": -9.732,
             "holdout": {
-              "trades": 23,
-              "expectancy_bps": -8.27,
-              "profit_factor": 0.502,
-              "win_pct": 47.83,
-              "net_bps": -190.21,
-              "max_drawdown_bps": 274.96
+              "trades": 22,
+              "expectancy_bps": -14.654,
+              "profit_factor": 0.303,
+              "win_pct": 36.36,
+              "net_bps": -322.38,
+              "max_drawdown_bps": 355.73
             },
             "historical_gate_passed": false,
             "trade_decision": "BEKLE"
@@ -609,8 +609,8 @@
                 "atr_take": 2.0,
                 "tf_seconds": 300
               },
-              "validation_score": -31.772,
-              "validation_trades": 46
+              "validation_score": -28.732,
+              "validation_trades": 51
             },
             {
               "configuration": {
@@ -623,8 +623,8 @@
                 "atr_take": 2.0,
                 "tf_seconds": 300
               },
-              "validation_score": -32.249,
-              "validation_trades": 44
+              "validation_score": -29.683,
+              "validation_trades": 46
             },
             {
               "configuration": {
@@ -637,8 +637,8 @@
                 "atr_take": 2.0,
                 "tf_seconds": 300
               },
-              "validation_score": -32.601,
-              "validation_trades": 64
+              "validation_score": -30.461,
+              "validation_trades": 69
             },
             {
               "configuration": {
@@ -651,27 +651,27 @@
                 "atr_take": 2.0,
                 "tf_seconds": 300
               },
-              "validation_score": -32.872,
-              "validation_trades": 57
+              "validation_score": -30.923,
+              "validation_trades": 59
             },
             {
               "configuration": {
-                "family": "reversion",
-                "vol_min": 1.0,
-                "session": "newyork",
-                "sensitivity": 1,
-                "hold_bars": 7,
+                "family": "breakout",
+                "vol_min": 1.45,
+                "session": "london",
+                "sensitivity": 0,
+                "hold_bars": 4,
                 "atr_stop": 1.3,
                 "atr_take": 2.0,
                 "tf_seconds": 300
               },
-              "validation_score": -33.328,
-              "validation_trades": 38
+              "validation_score": -31.114,
+              "validation_trades": 65
             }
           ],
           "live_signal": false,
           "eligible_configurations": 36,
-          "final_holdout_start_utc": "2026-11-11T20:25:00+00:00",
+          "final_holdout_start_utc": "2026-11-12T16:10:00+00:00",
           "ml": {
             "status": "RESEARCH_ONLY_REJECTED",
             "features": [
@@ -696,117 +696,117 @@
                 "status": "VALIDATED",
                 "walk_forward": [
                   {
-                    "samples": 808,
-                    "accuracy_pct": 50.0,
-                    "majority_pct": 53.84,
-                    "brier": 0.250643,
-                    "baseline_brier": 0.248983
+                    "samples": 825,
+                    "accuracy_pct": 51.15,
+                    "majority_pct": 53.58,
+                    "brier": 0.25038,
+                    "baseline_brier": 0.249057
                   },
                   {
-                    "samples": 1030,
-                    "accuracy_pct": 50.19,
-                    "majority_pct": 52.62,
-                    "brier": 0.251665,
-                    "baseline_brier": 0.249335
+                    "samples": 1051,
+                    "accuracy_pct": 49.86,
+                    "majority_pct": 52.05,
+                    "brier": 0.252026,
+                    "baseline_brier": 0.249584
                   },
                   {
-                    "samples": 1474,
-                    "accuracy_pct": 50.68,
-                    "majority_pct": 50.61,
-                    "brier": 0.251111,
-                    "baseline_brier": 0.250219
+                    "samples": 1504,
+                    "accuracy_pct": 51.4,
+                    "majority_pct": 51.0,
+                    "brier": 0.250284,
+                    "baseline_brier": 0.250042
                   }
                 ],
-                "mean_validation_brier": 0.25114,
+                "mean_validation_brier": 0.250897,
                 "final_holdout": {
-                  "samples": 1472,
-                  "accuracy_pct": 54.01,
-                  "majority_pct": 53.19,
-                  "brier": 0.24901,
-                  "baseline_brier": 0.249161
+                  "samples": 1501,
+                  "accuracy_pct": 52.9,
+                  "majority_pct": 53.36,
+                  "brier": 0.249763,
+                  "baseline_brier": 0.249088
                 }
               },
               "XGBoost": {
                 "status": "VALIDATED",
                 "walk_forward": [
                   {
-                    "samples": 808,
-                    "accuracy_pct": 51.36,
-                    "majority_pct": 53.84,
-                    "brier": 0.249461,
-                    "baseline_brier": 0.248983
+                    "samples": 825,
+                    "accuracy_pct": 50.91,
+                    "majority_pct": 53.58,
+                    "brier": 0.249151,
+                    "baseline_brier": 0.249057
                   },
                   {
-                    "samples": 1030,
-                    "accuracy_pct": 51.17,
-                    "majority_pct": 52.62,
-                    "brier": 0.250459,
-                    "baseline_brier": 0.249335
+                    "samples": 1051,
+                    "accuracy_pct": 51.76,
+                    "majority_pct": 52.05,
+                    "brier": 0.251063,
+                    "baseline_brier": 0.249584
                   },
                   {
-                    "samples": 1474,
-                    "accuracy_pct": 48.24,
-                    "majority_pct": 50.61,
-                    "brier": 0.252442,
-                    "baseline_brier": 0.250219
+                    "samples": 1504,
+                    "accuracy_pct": 50.6,
+                    "majority_pct": 51.0,
+                    "brier": 0.251531,
+                    "baseline_brier": 0.250042
                   }
                 ],
-                "mean_validation_brier": 0.250787,
+                "mean_validation_brier": 0.250582,
                 "final_holdout": {
-                  "samples": 1472,
-                  "accuracy_pct": 52.11,
-                  "majority_pct": 53.19,
-                  "brier": 0.249125,
-                  "baseline_brier": 0.249161
+                  "samples": 1501,
+                  "accuracy_pct": 52.03,
+                  "majority_pct": 53.36,
+                  "brier": 0.248918,
+                  "baseline_brier": 0.249088
                 }
               },
               "LightGBM": {
                 "status": "VALIDATED",
                 "walk_forward": [
                   {
-                    "samples": 808,
-                    "accuracy_pct": 51.49,
-                    "majority_pct": 53.84,
-                    "brier": 0.251087,
-                    "baseline_brier": 0.248983
+                    "samples": 825,
+                    "accuracy_pct": 50.55,
+                    "majority_pct": 53.58,
+                    "brier": 0.250998,
+                    "baseline_brier": 0.249057
                   },
                   {
-                    "samples": 1030,
-                    "accuracy_pct": 51.75,
-                    "majority_pct": 52.62,
-                    "brier": 0.25062,
-                    "baseline_brier": 0.249335
+                    "samples": 1051,
+                    "accuracy_pct": 51.0,
+                    "majority_pct": 52.05,
+                    "brier": 0.251532,
+                    "baseline_brier": 0.249584
                   },
                   {
-                    "samples": 1474,
-                    "accuracy_pct": 49.86,
-                    "majority_pct": 50.61,
-                    "brier": 0.252746,
-                    "baseline_brier": 0.250219
+                    "samples": 1504,
+                    "accuracy_pct": 50.93,
+                    "majority_pct": 51.0,
+                    "brier": 0.251937,
+                    "baseline_brier": 0.250042
                   }
                 ],
-                "mean_validation_brier": 0.251484,
+                "mean_validation_brier": 0.251489,
                 "final_holdout": {
-                  "samples": 1472,
-                  "accuracy_pct": 51.97,
-                  "majority_pct": 53.19,
-                  "brier": 0.249332,
-                  "baseline_brier": 0.249161
+                  "samples": 1501,
+                  "accuracy_pct": 51.57,
+                  "majority_pct": 53.36,
+                  "brier": 0.249206,
+                  "baseline_brier": 0.249088
                 }
               }
             },
             "approved": false,
             "selected_by_validation": "XGBoost",
-            "training_samples": 7401,
-            "holdout_start_utc": "2026-11-11T22:20:00+00:00",
+            "training_samples": 7550,
+            "holdout_start_utc": "2026-11-12T21:50:00+00:00",
             "no_live_signal": true
           },
-          "source_utc_last": "2026-11-24T12:20:00+00:00"
+          "source_utc_last": "2026-11-25T11:10:00+00:00"
         },
         "15m": {
           "source": "bitget",
           "timeframe": "15m",
-          "bars": 4948,
+          "bars": 5047,
           "tested_configurations": 36,
           "status": "RESEARCH_ONLY_REJECTED",
           "best": {
@@ -838,22 +838,22 @@
                 "max_drawdown_bps": 59.56
               },
               {
-                "trades": 8,
-                "expectancy_bps": 16.83,
-                "profit_factor": 5.289,
-                "win_pct": 87.5,
-                "net_bps": 134.64,
+                "trades": 11,
+                "expectancy_bps": 17.981,
+                "profit_factor": 7.301,
+                "win_pct": 90.91,
+                "net_bps": 197.79,
                 "max_drawdown_bps": 31.39
               }
             ],
-            "validation_weighted_expectancy_bps": -2.32,
+            "validation_weighted_expectancy_bps": 0.601,
             "holdout": {
-              "trades": 17,
-              "expectancy_bps": -27.497,
-              "profit_factor": 0.255,
-              "win_pct": 29.41,
-              "net_bps": -467.45,
-              "max_drawdown_bps": 530.6
+              "trades": 16,
+              "expectancy_bps": -20.935,
+              "profit_factor": 0.407,
+              "win_pct": 31.25,
+              "net_bps": -334.96,
+              "max_drawdown_bps": 424.11
             },
             "historical_gate_passed": false,
             "trade_decision": "BEKLE"
@@ -870,8 +870,22 @@
                 "atr_take": 2.0,
                 "tf_seconds": 900
               },
-              "validation_score": -9.207,
-              "validation_trades": 21
+              "validation_score": -6.285,
+              "validation_trades": 24
+            },
+            {
+              "configuration": {
+                "family": "trend",
+                "vol_min": 1.45,
+                "session": "london",
+                "sensitivity": 0,
+                "hold_bars": 4,
+                "atr_stop": 1.3,
+                "atr_take": 2.0,
+                "tf_seconds": 900
+              },
+              "validation_score": -13.044,
+              "validation_trades": 24
             },
             {
               "configuration": {
@@ -884,8 +898,8 @@
                 "atr_take": 2.0,
                 "tf_seconds": 900
               },
-              "validation_score": -18.96,
-              "validation_trades": 23
+              "validation_score": -14.527,
+              "validation_trades": 24
             },
             {
               "configuration": {
@@ -898,8 +912,8 @@
                 "atr_take": 2.0,
                 "tf_seconds": 900
               },
-              "validation_score": -18.991,
-              "validation_trades": 20
+              "validation_score": -15.65,
+              "validation_trades": 24
             },
             {
               "configuration": {
@@ -912,27 +926,13 @@
                 "atr_take": 2.0,
                 "tf_seconds": 900
               },
-              "validation_score": -19.651,
-              "validation_trades": 25
-            },
-            {
-              "configuration": {
-                "family": "breakout",
-                "vol_min": 1.0,
-                "session": "london",
-                "sensitivity": 0,
-                "hold_bars": 4,
-                "atr_stop": 1.3,
-                "atr_take": 2.0,
-                "tf_seconds": 900
-              },
-              "validation_score": -21.156,
-              "validation_trades": 20
+              "validation_score": -16.748,
+              "validation_trades": 27
             }
           ],
           "live_signal": false,
           "eligible_configurations": 26,
-          "final_holdout_start_utc": "2026-11-11T21:45:00+00:00",
+          "final_holdout_start_utc": "2026-11-12T21:00:00+00:00",
           "ml": {
             "status": "RESEARCH_ONLY_REJECTED",
             "features": [
@@ -957,112 +957,112 @@
                 "status": "VALIDATED",
                 "walk_forward": [
                   {
-                    "samples": 440,
-                    "accuracy_pct": 52.95,
-                    "majority_pct": 52.95,
-                    "brier": 0.2486,
-                    "baseline_brier": 0.249251
+                    "samples": 451,
+                    "accuracy_pct": 52.33,
+                    "majority_pct": 51.88,
+                    "brier": 0.247996,
+                    "baseline_brier": 0.249645
                   },
                   {
-                    "samples": 561,
-                    "accuracy_pct": 48.84,
-                    "majority_pct": 50.45,
-                    "brier": 0.252912,
-                    "baseline_brier": 0.250254
-                  },
-                  {
-                    "samples": 805,
-                    "accuracy_pct": 51.8,
+                    "samples": 577,
+                    "accuracy_pct": 49.22,
                     "majority_pct": 50.43,
-                    "brier": 0.251217,
-                    "baseline_brier": 0.250155
+                    "brier": 0.252946,
+                    "baseline_brier": 0.250267
+                  },
+                  {
+                    "samples": 826,
+                    "accuracy_pct": 52.3,
+                    "majority_pct": 51.09,
+                    "brier": 0.251127,
+                    "baseline_brier": 0.249912
                   }
                 ],
-                "mean_validation_brier": 0.25091,
+                "mean_validation_brier": 0.25069,
                 "final_holdout": {
-                  "samples": 802,
-                  "accuracy_pct": 51.87,
-                  "majority_pct": 51.62,
-                  "brier": 0.250712,
-                  "baseline_brier": 0.249742
+                  "samples": 823,
+                  "accuracy_pct": 53.1,
+                  "majority_pct": 51.15,
+                  "brier": 0.250621,
+                  "baseline_brier": 0.249882
                 }
               },
               "XGBoost": {
                 "status": "VALIDATED",
                 "walk_forward": [
                   {
-                    "samples": 440,
-                    "accuracy_pct": 54.09,
-                    "majority_pct": 52.95,
-                    "brier": 0.248614,
-                    "baseline_brier": 0.249251
+                    "samples": 451,
+                    "accuracy_pct": 54.32,
+                    "majority_pct": 51.88,
+                    "brier": 0.248321,
+                    "baseline_brier": 0.249645
                   },
                   {
-                    "samples": 561,
-                    "accuracy_pct": 49.73,
-                    "majority_pct": 50.45,
-                    "brier": 0.252267,
-                    "baseline_brier": 0.250254
-                  },
-                  {
-                    "samples": 805,
-                    "accuracy_pct": 50.93,
+                    "samples": 577,
+                    "accuracy_pct": 48.7,
                     "majority_pct": 50.43,
-                    "brier": 0.251828,
-                    "baseline_brier": 0.250155
+                    "brier": 0.253108,
+                    "baseline_brier": 0.250267
+                  },
+                  {
+                    "samples": 826,
+                    "accuracy_pct": 51.94,
+                    "majority_pct": 51.09,
+                    "brier": 0.251278,
+                    "baseline_brier": 0.249912
                   }
                 ],
-                "mean_validation_brier": 0.250903,
+                "mean_validation_brier": 0.250902,
                 "final_holdout": {
-                  "samples": 802,
-                  "accuracy_pct": 53.12,
-                  "majority_pct": 51.62,
-                  "brier": 0.24827,
-                  "baseline_brier": 0.249742
+                  "samples": 823,
+                  "accuracy_pct": 53.34,
+                  "majority_pct": 51.15,
+                  "brier": 0.249056,
+                  "baseline_brier": 0.249882
                 }
               },
               "LightGBM": {
                 "status": "VALIDATED",
                 "walk_forward": [
                   {
-                    "samples": 440,
-                    "accuracy_pct": 52.05,
-                    "majority_pct": 52.95,
-                    "brier": 0.248225,
-                    "baseline_brier": 0.249251
+                    "samples": 451,
+                    "accuracy_pct": 52.55,
+                    "majority_pct": 51.88,
+                    "brier": 0.247926,
+                    "baseline_brier": 0.249645
                   },
                   {
-                    "samples": 561,
-                    "accuracy_pct": 48.66,
-                    "majority_pct": 50.45,
-                    "brier": 0.253523,
-                    "baseline_brier": 0.250254
-                  },
-                  {
-                    "samples": 805,
-                    "accuracy_pct": 50.81,
+                    "samples": 577,
+                    "accuracy_pct": 49.57,
                     "majority_pct": 50.43,
-                    "brier": 0.251547,
-                    "baseline_brier": 0.250155
+                    "brier": 0.253355,
+                    "baseline_brier": 0.250267
+                  },
+                  {
+                    "samples": 826,
+                    "accuracy_pct": 49.52,
+                    "majority_pct": 51.09,
+                    "brier": 0.251902,
+                    "baseline_brier": 0.249912
                   }
                 ],
-                "mean_validation_brier": 0.251098,
+                "mean_validation_brier": 0.251061,
                 "final_holdout": {
-                  "samples": 802,
-                  "accuracy_pct": 53.24,
-                  "majority_pct": 51.62,
-                  "brier": 0.249284,
-                  "baseline_brier": 0.249742
+                  "samples": 823,
+                  "accuracy_pct": 53.46,
+                  "majority_pct": 51.15,
+                  "brier": 0.248652,
+                  "baseline_brier": 0.249882
                 }
               }
             },
             "approved": false,
-            "selected_by_validation": "XGBoost",
-            "training_samples": 4053,
-            "holdout_start_utc": "2026-11-12T03:15:00+00:00",
+            "selected_by_validation": "LogisticRegression",
+            "training_samples": 4160,
+            "holdout_start_utc": "2026-11-13T09:45:00+00:00",
             "no_live_signal": true
           },
-          "source_utc_last": "2026-11-24T12:15:00+00:00"
+          "source_utc_last": "2026-11-25T11:00:00+00:00"
         }
       },
       "independent_source": true
@@ -1071,12 +1071,12 @@
       "source_key": "binance",
       "source_id": "binance_usdm_futures_trade_1m",
       "source_type": "XAUUSDT futures OHLCV trade candles",
-      "one_minute_bars": 120960,
+      "one_minute_bars": 122400,
       "timeframes": {
         "1m": {
           "source": "binance",
           "timeframe": "1m",
-          "bars": 120960,
+          "bars": 122400,
           "tested_configurations": 36,
           "status": "RESEARCH_ONLY_REJECTED",
           "best": {
@@ -1092,38 +1092,38 @@
             },
             "validation_folds": [
               {
-                "trades": 61,
-                "expectancy_bps": -12.95,
-                "profit_factor": 0.012,
-                "win_pct": 8.2,
-                "net_bps": -789.94,
-                "max_drawdown_bps": 789.94
+                "trades": 59,
+                "expectancy_bps": -13.668,
+                "profit_factor": 0.004,
+                "win_pct": 5.08,
+                "net_bps": -806.41,
+                "max_drawdown_bps": 806.41
               },
               {
-                "trades": 54,
-                "expectancy_bps": -13.403,
-                "profit_factor": 0.012,
-                "win_pct": 1.85,
-                "net_bps": -723.76,
-                "max_drawdown_bps": 723.76
+                "trades": 63,
+                "expectancy_bps": -13.819,
+                "profit_factor": 0.01,
+                "win_pct": 1.59,
+                "net_bps": -870.57,
+                "max_drawdown_bps": 870.57
               },
               {
-                "trades": 119,
-                "expectancy_bps": -14.773,
-                "profit_factor": 0.033,
-                "win_pct": 6.72,
-                "net_bps": -1758.01,
-                "max_drawdown_bps": 1758.01
+                "trades": 105,
+                "expectancy_bps": -14.711,
+                "profit_factor": 0.037,
+                "win_pct": 7.62,
+                "net_bps": -1544.61,
+                "max_drawdown_bps": 1544.61
               }
             ],
-            "validation_weighted_expectancy_bps": -13.982,
+            "validation_weighted_expectancy_bps": -14.192,
             "holdout": {
-              "trades": 95,
-              "expectancy_bps": -14.13,
-              "profit_factor": 0.043,
-              "win_pct": 11.58,
-              "net_bps": -1342.32,
-              "max_drawdown_bps": 1342.32
+              "trades": 102,
+              "expectancy_bps": -14.355,
+              "profit_factor": 0.04,
+              "win_pct": 10.78,
+              "net_bps": -1464.19,
+              "max_drawdown_bps": 1464.19
             },
             "historical_gate_passed": false,
             "trade_decision": "BEKLE"
@@ -1140,8 +1140,8 @@
                 "atr_take": 2.0,
                 "tf_seconds": 60
               },
-              "validation_score": -50.793,
-              "validation_trades": 234
+              "validation_score": -50.67,
+              "validation_trades": 227
             },
             {
               "configuration": {
@@ -1154,8 +1154,8 @@
                 "atr_take": 2.0,
                 "tf_seconds": 60
               },
-              "validation_score": -54.154,
-              "validation_trades": 260
+              "validation_score": -53.868,
+              "validation_trades": 253
             },
             {
               "configuration": {
@@ -1168,8 +1168,8 @@
                 "atr_take": 2.0,
                 "tf_seconds": 60
               },
-              "validation_score": -55.166,
-              "validation_trades": 282
+              "validation_score": -54.486,
+              "validation_trades": 273
             },
             {
               "configuration": {
@@ -1182,8 +1182,8 @@
                 "atr_take": 2.0,
                 "tf_seconds": 60
               },
-              "validation_score": -57.646,
-              "validation_trades": 303
+              "validation_score": -57.178,
+              "validation_trades": 295
             },
             {
               "configuration": {
@@ -1196,13 +1196,13 @@
                 "atr_take": 2.0,
                 "tf_seconds": 60
               },
-              "validation_score": -67.829,
-              "validation_trades": 416
+              "validation_score": -66.96,
+              "validation_trades": 408
             }
           ],
           "live_signal": false,
           "eligible_configurations": 36,
-          "final_holdout_start_utc": "2026-11-07T05:00:00+00:00",
+          "final_holdout_start_utc": "2026-11-08T00:12:00+00:00",
           "ml": {
             "status": "RESEARCH_ONLY_REJECTED",
             "features": [
@@ -1227,117 +1227,117 @@
                 "status": "VALIDATED",
                 "walk_forward": [
                   {
-                    "samples": 659,
-                    "accuracy_pct": 52.96,
-                    "majority_pct": 54.48,
-                    "brier": 0.247935,
-                    "baseline_brier": 0.248005
+                    "samples": 667,
+                    "accuracy_pct": 53.82,
+                    "majority_pct": 54.72,
+                    "brier": 0.247517,
+                    "baseline_brier": 0.247785
                   },
                   {
-                    "samples": 840,
-                    "accuracy_pct": 54.88,
-                    "majority_pct": 55.6,
-                    "brier": 0.247044,
-                    "baseline_brier": 0.247009
+                    "samples": 850,
+                    "accuracy_pct": 54.59,
+                    "majority_pct": 55.18,
+                    "brier": 0.247103,
+                    "baseline_brier": 0.24739
                   },
                   {
-                    "samples": 1203,
-                    "accuracy_pct": 55.11,
-                    "majority_pct": 53.78,
-                    "brier": 0.247538,
-                    "baseline_brier": 0.248636
+                    "samples": 1218,
+                    "accuracy_pct": 55.34,
+                    "majority_pct": 54.35,
+                    "brier": 0.246957,
+                    "baseline_brier": 0.248111
                   }
                 ],
-                "mean_validation_brier": 0.247506,
+                "mean_validation_brier": 0.247192,
                 "final_holdout": {
-                  "samples": 1201,
-                  "accuracy_pct": 56.37,
-                  "majority_pct": 56.79,
-                  "brier": 0.245069,
-                  "baseline_brier": 0.245966
+                  "samples": 1215,
+                  "accuracy_pct": 55.06,
+                  "majority_pct": 55.39,
+                  "brier": 0.246688,
+                  "baseline_brier": 0.247161
                 }
               },
               "XGBoost": {
                 "status": "VALIDATED",
                 "walk_forward": [
                   {
-                    "samples": 659,
-                    "accuracy_pct": 54.32,
-                    "majority_pct": 54.48,
-                    "brier": 0.244958,
-                    "baseline_brier": 0.248005
+                    "samples": 667,
+                    "accuracy_pct": 55.47,
+                    "majority_pct": 54.72,
+                    "brier": 0.243793,
+                    "baseline_brier": 0.247785
                   },
                   {
-                    "samples": 840,
-                    "accuracy_pct": 54.88,
-                    "majority_pct": 55.6,
-                    "brier": 0.243134,
-                    "baseline_brier": 0.247009
+                    "samples": 850,
+                    "accuracy_pct": 55.53,
+                    "majority_pct": 55.18,
+                    "brier": 0.243081,
+                    "baseline_brier": 0.24739
                   },
                   {
-                    "samples": 1203,
-                    "accuracy_pct": 53.03,
-                    "majority_pct": 53.78,
-                    "brier": 0.247803,
-                    "baseline_brier": 0.248636
+                    "samples": 1218,
+                    "accuracy_pct": 53.61,
+                    "majority_pct": 54.35,
+                    "brier": 0.246013,
+                    "baseline_brier": 0.248111
                   }
                 ],
-                "mean_validation_brier": 0.245298,
+                "mean_validation_brier": 0.244296,
                 "final_holdout": {
-                  "samples": 1201,
-                  "accuracy_pct": 55.95,
-                  "majority_pct": 56.79,
-                  "brier": 0.244428,
-                  "baseline_brier": 0.245966
+                  "samples": 1215,
+                  "accuracy_pct": 53.66,
+                  "majority_pct": 55.39,
+                  "brier": 0.247058,
+                  "baseline_brier": 0.247161
                 }
               },
               "LightGBM": {
                 "status": "VALIDATED",
                 "walk_forward": [
                   {
-                    "samples": 659,
-                    "accuracy_pct": 54.17,
-                    "majority_pct": 54.48,
-                    "brier": 0.243448,
-                    "baseline_brier": 0.248005
+                    "samples": 667,
+                    "accuracy_pct": 54.12,
+                    "majority_pct": 54.72,
+                    "brier": 0.2434,
+                    "baseline_brier": 0.247785
                   },
                   {
-                    "samples": 840,
-                    "accuracy_pct": 55.0,
-                    "majority_pct": 55.6,
-                    "brier": 0.243628,
-                    "baseline_brier": 0.247009
+                    "samples": 850,
+                    "accuracy_pct": 53.88,
+                    "majority_pct": 55.18,
+                    "brier": 0.2445,
+                    "baseline_brier": 0.24739
                   },
                   {
-                    "samples": 1203,
-                    "accuracy_pct": 53.03,
-                    "majority_pct": 53.78,
-                    "brier": 0.24768,
-                    "baseline_brier": 0.248636
+                    "samples": 1218,
+                    "accuracy_pct": 52.38,
+                    "majority_pct": 54.35,
+                    "brier": 0.246214,
+                    "baseline_brier": 0.248111
                   }
                 ],
-                "mean_validation_brier": 0.244919,
+                "mean_validation_brier": 0.244705,
                 "final_holdout": {
-                  "samples": 1201,
-                  "accuracy_pct": 56.2,
-                  "majority_pct": 56.79,
-                  "brier": 0.244356,
-                  "baseline_brier": 0.245966
+                  "samples": 1215,
+                  "accuracy_pct": 53.58,
+                  "majority_pct": 55.39,
+                  "brier": 0.247447,
+                  "baseline_brier": 0.247161
                 }
               }
             },
             "approved": false,
-            "selected_by_validation": "LightGBM",
-            "training_samples": 6046,
-            "holdout_start_utc": "2026-11-07T05:49:00+00:00",
+            "selected_by_validation": "XGBoost",
+            "training_samples": 6118,
+            "holdout_start_utc": "2026-11-08T01:09:00+00:00",
             "no_live_signal": true
           },
-          "source_utc_last": "2026-11-24T00:00:00+00:00"
+          "source_utc_last": "2026-11-25T00:00:00+00:00"
         },
         "3m": {
           "source": "binance",
           "timeframe": "3m",
-          "bars": 40320,
+          "bars": 40800,
           "tested_configurations": 36,
           "status": "RESEARCH_ONLY_REJECTED",
           "best": {
@@ -1353,38 +1353,38 @@
             },
             "validation_folds": [
               {
-                "trades": 21,
-                "expectancy_bps": -13.221,
-                "profit_factor": 0.1,
-                "win_pct": 23.81,
-                "net_bps": -277.63,
-                "max_drawdown_bps": 279.17
+                "trades": 20,
+                "expectancy_bps": -13.014,
+                "profit_factor": 0.106,
+                "win_pct": 25.0,
+                "net_bps": -260.28,
+                "max_drawdown_bps": 260.28
               },
               {
-                "trades": 21,
-                "expectancy_bps": -9.945,
-                "profit_factor": 0.03,
-                "win_pct": 14.29,
-                "net_bps": -208.85,
-                "max_drawdown_bps": 208.85
+                "trades": 23,
+                "expectancy_bps": -10.698,
+                "profit_factor": 0.036,
+                "win_pct": 17.39,
+                "net_bps": -246.06,
+                "max_drawdown_bps": 248.62
               },
               {
-                "trades": 40,
-                "expectancy_bps": -15.907,
+                "trades": 37,
+                "expectancy_bps": -16.104,
                 "profit_factor": 0.064,
-                "win_pct": 15.0,
-                "net_bps": -636.27,
-                "max_drawdown_bps": 636.27
+                "win_pct": 13.51,
+                "net_bps": -595.85,
+                "max_drawdown_bps": 595.85
               }
             ],
-            "validation_weighted_expectancy_bps": -13.692,
+            "validation_weighted_expectancy_bps": -13.777,
             "holdout": {
-              "trades": 31,
-              "expectancy_bps": -15.925,
-              "profit_factor": 0.171,
-              "win_pct": 22.58,
-              "net_bps": -493.66,
-              "max_drawdown_bps": 495.99
+              "trades": 32,
+              "expectancy_bps": -15.643,
+              "profit_factor": 0.169,
+              "win_pct": 21.88,
+              "net_bps": -500.59,
+              "max_drawdown_bps": 502.91
             },
             "historical_gate_passed": false,
             "trade_decision": "BEKLE"
@@ -1401,8 +1401,8 @@
                 "atr_take": 2.0,
                 "tf_seconds": 180
               },
-              "validation_score": -36.188,
-              "validation_trades": 82
+              "validation_score": -36.142,
+              "validation_trades": 80
             },
             {
               "configuration": {
@@ -1415,8 +1415,8 @@
                 "atr_take": 2.0,
                 "tf_seconds": 180
               },
-              "validation_score": -36.559,
-              "validation_trades": 92
+              "validation_score": -36.881,
+              "validation_trades": 88
             },
             {
               "configuration": {
@@ -1429,8 +1429,8 @@
                 "atr_take": 2.0,
                 "tf_seconds": 180
               },
-              "validation_score": -38.299,
-              "validation_trades": 97
+              "validation_score": -38.554,
+              "validation_trades": 94
             },
             {
               "configuration": {
@@ -1443,8 +1443,8 @@
                 "atr_take": 2.0,
                 "tf_seconds": 180
               },
-              "validation_score": -38.609,
-              "validation_trades": 83
+              "validation_score": -38.711,
+              "validation_trades": 80
             },
             {
               "configuration": {
@@ -1457,13 +1457,13 @@
                 "atr_take": 2.0,
                 "tf_seconds": 180
               },
-              "validation_score": -39.931,
-              "validation_trades": 119
+              "validation_score": -39.097,
+              "validation_trades": 116
             }
           ],
           "live_signal": false,
           "eligible_configurations": 36,
-          "final_holdout_start_utc": "2026-11-07T05:24:00+00:00",
+          "final_holdout_start_utc": "2026-11-08T00:36:00+00:00",
           "ml": {
             "status": "RESEARCH_ONLY_REJECTED",
             "features": [
@@ -1488,117 +1488,117 @@
                 "status": "VALIDATED",
                 "walk_forward": [
                   {
-                    "samples": 732,
-                    "accuracy_pct": 53.42,
-                    "majority_pct": 51.64,
-                    "brier": 0.249311,
-                    "baseline_brier": 0.249865
+                    "samples": 741,
+                    "accuracy_pct": 53.04,
+                    "majority_pct": 51.15,
+                    "brier": 0.249278,
+                    "baseline_brier": 0.250172
                   },
                   {
-                    "samples": 934,
-                    "accuracy_pct": 53.21,
-                    "majority_pct": 52.46,
-                    "brier": 0.251231,
-                    "baseline_brier": 0.249394
+                    "samples": 945,
+                    "accuracy_pct": 52.91,
+                    "majority_pct": 52.06,
+                    "brier": 0.251166,
+                    "baseline_brier": 0.249591
                   },
                   {
-                    "samples": 1336,
-                    "accuracy_pct": 49.55,
-                    "majority_pct": 50.22,
-                    "brier": 0.251457,
-                    "baseline_brier": 0.25071
+                    "samples": 1352,
+                    "accuracy_pct": 49.63,
+                    "majority_pct": 50.37,
+                    "brier": 0.251326,
+                    "baseline_brier": 0.250377
                   }
                 ],
-                "mean_validation_brier": 0.250666,
+                "mean_validation_brier": 0.25059,
                 "final_holdout": {
-                  "samples": 1334,
-                  "accuracy_pct": 50.15,
-                  "majority_pct": 50.52,
-                  "brier": 0.251399,
-                  "baseline_brier": 0.250474
+                  "samples": 1350,
+                  "accuracy_pct": 49.19,
+                  "majority_pct": 50.81,
+                  "brier": 0.252263,
+                  "baseline_brier": 0.25063
                 }
               },
               "XGBoost": {
                 "status": "VALIDATED",
                 "walk_forward": [
                   {
-                    "samples": 732,
-                    "accuracy_pct": 51.09,
-                    "majority_pct": 51.64,
-                    "brier": 0.249945,
-                    "baseline_brier": 0.249865
+                    "samples": 741,
+                    "accuracy_pct": 50.47,
+                    "majority_pct": 51.15,
+                    "brier": 0.249988,
+                    "baseline_brier": 0.250172
                   },
                   {
-                    "samples": 934,
-                    "accuracy_pct": 52.57,
-                    "majority_pct": 52.46,
-                    "brier": 0.249154,
-                    "baseline_brier": 0.249394
+                    "samples": 945,
+                    "accuracy_pct": 52.8,
+                    "majority_pct": 52.06,
+                    "brier": 0.248369,
+                    "baseline_brier": 0.249591
                   },
                   {
-                    "samples": 1336,
-                    "accuracy_pct": 53.29,
-                    "majority_pct": 50.22,
-                    "brier": 0.249058,
-                    "baseline_brier": 0.25071
+                    "samples": 1352,
+                    "accuracy_pct": 52.59,
+                    "majority_pct": 50.37,
+                    "brier": 0.248816,
+                    "baseline_brier": 0.250377
                   }
                 ],
-                "mean_validation_brier": 0.249386,
+                "mean_validation_brier": 0.249058,
                 "final_holdout": {
-                  "samples": 1334,
-                  "accuracy_pct": 51.12,
-                  "majority_pct": 50.52,
-                  "brier": 0.249771,
-                  "baseline_brier": 0.250474
+                  "samples": 1350,
+                  "accuracy_pct": 49.48,
+                  "majority_pct": 50.81,
+                  "brier": 0.250571,
+                  "baseline_brier": 0.25063
                 }
               },
               "LightGBM": {
                 "status": "VALIDATED",
                 "walk_forward": [
                   {
-                    "samples": 732,
-                    "accuracy_pct": 49.59,
-                    "majority_pct": 51.64,
-                    "brier": 0.250846,
-                    "baseline_brier": 0.249865
+                    "samples": 741,
+                    "accuracy_pct": 51.15,
+                    "majority_pct": 51.15,
+                    "brier": 0.250838,
+                    "baseline_brier": 0.250172
                   },
                   {
-                    "samples": 934,
-                    "accuracy_pct": 52.57,
-                    "majority_pct": 52.46,
-                    "brier": 0.249671,
-                    "baseline_brier": 0.249394
+                    "samples": 945,
+                    "accuracy_pct": 51.53,
+                    "majority_pct": 52.06,
+                    "brier": 0.249338,
+                    "baseline_brier": 0.249591
                   },
                   {
-                    "samples": 1336,
-                    "accuracy_pct": 52.92,
-                    "majority_pct": 50.22,
-                    "brier": 0.248716,
-                    "baseline_brier": 0.25071
+                    "samples": 1352,
+                    "accuracy_pct": 53.25,
+                    "majority_pct": 50.37,
+                    "brier": 0.248515,
+                    "baseline_brier": 0.250377
                   }
                 ],
-                "mean_validation_brier": 0.249744,
+                "mean_validation_brier": 0.249564,
                 "final_holdout": {
-                  "samples": 1334,
-                  "accuracy_pct": 51.12,
-                  "majority_pct": 50.52,
-                  "brier": 0.250154,
-                  "baseline_brier": 0.250474
+                  "samples": 1350,
+                  "accuracy_pct": 50.67,
+                  "majority_pct": 50.81,
+                  "brier": 0.250478,
+                  "baseline_brier": 0.25063
                 }
               }
             },
             "approved": false,
             "selected_by_validation": "XGBoost",
-            "training_samples": 6712,
-            "holdout_start_utc": "2026-11-07T06:03:00+00:00",
+            "training_samples": 6792,
+            "holdout_start_utc": "2026-11-08T01:15:00+00:00",
             "no_live_signal": true
           },
-          "source_utc_last": "2026-11-24T00:00:00+00:00"
+          "source_utc_last": "2026-11-25T00:00:00+00:00"
         },
         "5m": {
           "source": "binance",
           "timeframe": "5m",
-          "bars": 24192,
+          "bars": 24480,
           "tested_configurations": 36,
           "status": "RESEARCH_ONLY_REJECTED",
           "best": {
@@ -1614,38 +1614,38 @@
             },
             "validation_folds": [
               {
-                "trades": 10,
-                "expectancy_bps": -1.065,
-                "profit_factor": 0.843,
-                "win_pct": 70.0,
-                "net_bps": -10.65,
+                "trades": 9,
+                "expectancy_bps": -1.684,
+                "profit_factor": 0.777,
+                "win_pct": 66.67,
+                "net_bps": -15.16,
                 "max_drawdown_bps": 66.96
               },
               {
-                "trades": 11,
-                "expectancy_bps": -3.969,
-                "profit_factor": 0.635,
-                "win_pct": 54.55,
-                "net_bps": -43.66,
-                "max_drawdown_bps": 70.4
+                "trades": 13,
+                "expectancy_bps": -4.75,
+                "profit_factor": 0.574,
+                "win_pct": 53.85,
+                "net_bps": -61.75,
+                "max_drawdown_bps": 77.66
               },
               {
-                "trades": 27,
-                "expectancy_bps": -18.504,
-                "profit_factor": 0.155,
-                "win_pct": 25.93,
-                "net_bps": -499.61,
-                "max_drawdown_bps": 513.66
+                "trades": 25,
+                "expectancy_bps": -19.261,
+                "profit_factor": 0.149,
+                "win_pct": 24.0,
+                "net_bps": -481.52,
+                "max_drawdown_bps": 505.02
               }
             ],
-            "validation_weighted_expectancy_bps": -11.54,
+            "validation_weighted_expectancy_bps": -11.882,
             "holdout": {
-              "trades": 23,
-              "expectancy_bps": -13.492,
-              "profit_factor": 0.356,
-              "win_pct": 30.43,
-              "net_bps": -310.31,
-              "max_drawdown_bps": 351.43
+              "trades": 24,
+              "expectancy_bps": -14.773,
+              "profit_factor": 0.326,
+              "win_pct": 29.17,
+              "net_bps": -354.56,
+              "max_drawdown_bps": 354.56
             },
             "historical_gate_passed": false,
             "trade_decision": "BEKLE"
@@ -1662,8 +1662,8 @@
                 "atr_take": 2.0,
                 "tf_seconds": 300
               },
-              "validation_score": -30.88,
-              "validation_trades": 48
+              "validation_score": -31.212,
+              "validation_trades": 47
             },
             {
               "configuration": {
@@ -1676,8 +1676,8 @@
                 "atr_take": 2.0,
                 "tf_seconds": 300
               },
-              "validation_score": -32.917,
-              "validation_trades": 61
+              "validation_score": -33.109,
+              "validation_trades": 60
             },
             {
               "configuration": {
@@ -1690,22 +1690,8 @@
                 "atr_take": 2.0,
                 "tf_seconds": 300
               },
-              "validation_score": -33.434,
-              "validation_trades": 56
-            },
-            {
-              "configuration": {
-                "family": "reversion",
-                "vol_min": 1.0,
-                "session": "london",
-                "sensitivity": 1,
-                "hold_bars": 7,
-                "atr_stop": 1.3,
-                "atr_take": 2.0,
-                "tf_seconds": 300
-              },
-              "validation_score": -34.039,
-              "validation_trades": 66
+              "validation_score": -33.742,
+              "validation_trades": 55
             },
             {
               "configuration": {
@@ -1718,13 +1704,27 @@
                 "atr_take": 2.0,
                 "tf_seconds": 300
               },
-              "validation_score": -34.767,
-              "validation_trades": 69
+              "validation_score": -33.999,
+              "validation_trades": 67
+            },
+            {
+              "configuration": {
+                "family": "reversion",
+                "vol_min": 1.0,
+                "session": "london",
+                "sensitivity": 1,
+                "hold_bars": 7,
+                "atr_stop": 1.3,
+                "atr_take": 2.0,
+                "tf_seconds": 300
+              },
+              "validation_score": -34.218,
+              "validation_trades": 65
             }
           ],
           "live_signal": false,
           "eligible_configurations": 36,
-          "final_holdout_start_utc": "2026-11-07T05:45:00+00:00",
+          "final_holdout_start_utc": "2026-11-08T01:00:00+00:00",
           "ml": {
             "status": "RESEARCH_ONLY_REJECTED",
             "features": [
@@ -1749,124 +1749,124 @@
                 "status": "VALIDATED",
                 "walk_forward": [
                   {
-                    "samples": 658,
-                    "accuracy_pct": 50.46,
-                    "majority_pct": 50.3,
-                    "brier": 0.252088,
-                    "baseline_brier": 0.251342
+                    "samples": 666,
+                    "accuracy_pct": 51.8,
+                    "majority_pct": 50.0,
+                    "brier": 0.251093,
+                    "baseline_brier": 0.251222
                   },
                   {
-                    "samples": 839,
-                    "accuracy_pct": 53.04,
-                    "majority_pct": 52.44,
-                    "brier": 0.247849,
-                    "baseline_brier": 0.249403
+                    "samples": 849,
+                    "accuracy_pct": 52.41,
+                    "majority_pct": 51.94,
+                    "brier": 0.248453,
+                    "baseline_brier": 0.249664
                   },
                   {
-                    "samples": 1201,
-                    "accuracy_pct": 50.29,
-                    "majority_pct": 51.71,
-                    "brier": 0.251924,
-                    "baseline_brier": 0.249772
+                    "samples": 1216,
+                    "accuracy_pct": 51.15,
+                    "majority_pct": 52.71,
+                    "brier": 0.250842,
+                    "baseline_brier": 0.24927
                   }
                 ],
-                "mean_validation_brier": 0.25062,
+                "mean_validation_brier": 0.250129,
                 "final_holdout": {
-                  "samples": 1199,
-                  "accuracy_pct": 55.46,
-                  "majority_pct": 54.38,
-                  "brier": 0.248099,
-                  "baseline_brier": 0.24851
+                  "samples": 1213,
+                  "accuracy_pct": 54.49,
+                  "majority_pct": 52.84,
+                  "brier": 0.249146,
+                  "baseline_brier": 0.249202
                 }
               },
               "XGBoost": {
                 "status": "VALIDATED",
                 "walk_forward": [
                   {
-                    "samples": 658,
-                    "accuracy_pct": 49.09,
-                    "majority_pct": 50.3,
-                    "brier": 0.250725,
-                    "baseline_brier": 0.251342
+                    "samples": 666,
+                    "accuracy_pct": 50.9,
+                    "majority_pct": 50.0,
+                    "brier": 0.24965,
+                    "baseline_brier": 0.251222
                   },
                   {
-                    "samples": 839,
-                    "accuracy_pct": 51.49,
-                    "majority_pct": 52.44,
-                    "brier": 0.249924,
-                    "baseline_brier": 0.249403
+                    "samples": 849,
+                    "accuracy_pct": 50.88,
+                    "majority_pct": 51.94,
+                    "brier": 0.250118,
+                    "baseline_brier": 0.249664
                   },
                   {
-                    "samples": 1201,
-                    "accuracy_pct": 52.04,
-                    "majority_pct": 51.71,
-                    "brier": 0.250199,
-                    "baseline_brier": 0.249772
+                    "samples": 1216,
+                    "accuracy_pct": 53.12,
+                    "majority_pct": 52.71,
+                    "brier": 0.249491,
+                    "baseline_brier": 0.24927
                   }
                 ],
-                "mean_validation_brier": 0.250283,
+                "mean_validation_brier": 0.249753,
                 "final_holdout": {
-                  "samples": 1199,
-                  "accuracy_pct": 54.13,
-                  "majority_pct": 54.38,
-                  "brier": 0.248409,
-                  "baseline_brier": 0.24851
+                  "samples": 1213,
+                  "accuracy_pct": 53.01,
+                  "majority_pct": 52.84,
+                  "brier": 0.249199,
+                  "baseline_brier": 0.249202
                 }
               },
               "LightGBM": {
                 "status": "VALIDATED",
                 "walk_forward": [
                   {
-                    "samples": 658,
-                    "accuracy_pct": 51.06,
-                    "majority_pct": 50.3,
-                    "brier": 0.250206,
-                    "baseline_brier": 0.251342
+                    "samples": 666,
+                    "accuracy_pct": 51.05,
+                    "majority_pct": 50.0,
+                    "brier": 0.249917,
+                    "baseline_brier": 0.251222
                   },
                   {
-                    "samples": 839,
-                    "accuracy_pct": 52.09,
-                    "majority_pct": 52.44,
-                    "brier": 0.249855,
-                    "baseline_brier": 0.249403
+                    "samples": 849,
+                    "accuracy_pct": 51.94,
+                    "majority_pct": 51.94,
+                    "brier": 0.250965,
+                    "baseline_brier": 0.249664
                   },
                   {
-                    "samples": 1201,
-                    "accuracy_pct": 51.21,
-                    "majority_pct": 51.71,
-                    "brier": 0.250525,
-                    "baseline_brier": 0.249772
+                    "samples": 1216,
+                    "accuracy_pct": 52.8,
+                    "majority_pct": 52.71,
+                    "brier": 0.24923,
+                    "baseline_brier": 0.24927
                   }
                 ],
-                "mean_validation_brier": 0.250195,
+                "mean_validation_brier": 0.250037,
                 "final_holdout": {
-                  "samples": 1199,
-                  "accuracy_pct": 53.71,
-                  "majority_pct": 54.38,
-                  "brier": 0.249095,
-                  "baseline_brier": 0.24851
+                  "samples": 1213,
+                  "accuracy_pct": 53.59,
+                  "majority_pct": 52.84,
+                  "brier": 0.2499,
+                  "baseline_brier": 0.249202
                 }
               }
             },
             "approved": false,
-            "selected_by_validation": "LightGBM",
-            "training_samples": 6036,
-            "holdout_start_utc": "2026-11-07T06:25:00+00:00",
+            "selected_by_validation": "XGBoost",
+            "training_samples": 6108,
+            "holdout_start_utc": "2026-11-08T01:45:00+00:00",
             "no_live_signal": true
           },
-          "source_utc_last": "2026-11-24T00:00:00+00:00"
+          "source_utc_last": "2026-11-25T00:00:00+00:00"
         },
         "15m": {
           "source": "binance",
           "timeframe": "15m",
-          "bars": 8064,
+          "bars": 8160,
           "tested_configurations": 36,
           "status": "RESEARCH_ONLY_REJECTED",
           "best": {
             "configuration": {
               "family": "reversion",
               "vol_min": 1.45,
-              "session": "newyork",
+              "session": "london",
               "sensitivity": 1,
               "hold_bars": 7,
               "atr_stop": 1.3,
@@ -1875,12 +1875,12 @@
             },
             "validation_folds": [
               {
-                "trades": 4,
-                "expectancy_bps": 0.231,
-                "profit_factor": 1.016,
-                "win_pct": 50.0,
-                "net_bps": 0.93,
-                "max_drawdown_bps": 38.75
+                "trades": 5,
+                "expectancy_bps": -8.358,
+                "profit_factor": 0.515,
+                "win_pct": 40.0,
+                "net_bps": -41.79,
+                "max_drawdown_bps": 75.02
               },
               {
                 "trades": 3,
@@ -1891,22 +1891,22 @@
                 "max_drawdown_bps": 67.21
               },
               {
-                "trades": 14,
-                "expectancy_bps": -13.918,
-                "profit_factor": 0.441,
-                "win_pct": 35.71,
-                "net_bps": -194.86,
-                "max_drawdown_bps": 348.79
+                "trades": 15,
+                "expectancy_bps": -11.837,
+                "profit_factor": 0.491,
+                "win_pct": 40.0,
+                "net_bps": -177.56,
+                "max_drawdown_bps": 331.49
               }
             ],
-            "validation_weighted_expectancy_bps": -10.971,
+            "validation_weighted_expectancy_bps": -11.122,
             "holdout": {
-              "trades": 12,
-              "expectancy_bps": -31.917,
-              "profit_factor": 0.124,
-              "win_pct": 8.33,
-              "net_bps": -383.0,
-              "max_drawdown_bps": 383.0
+              "trades": 14,
+              "expectancy_bps": -31.298,
+              "profit_factor": 0.16,
+              "win_pct": 14.29,
+              "net_bps": -438.17,
+              "max_drawdown_bps": 438.17
             },
             "historical_gate_passed": false,
             "trade_decision": "BEKLE"
@@ -1916,20 +1916,6 @@
               "configuration": {
                 "family": "reversion",
                 "vol_min": 1.45,
-                "session": "newyork",
-                "sensitivity": 1,
-                "hold_bars": 7,
-                "atr_stop": 1.3,
-                "atr_take": 2.0,
-                "tf_seconds": 900
-              },
-              "validation_score": -24.002,
-              "validation_trades": 21
-            },
-            {
-              "configuration": {
-                "family": "reversion",
-                "vol_min": 1.45,
                 "session": "london",
                 "sensitivity": 1,
                 "hold_bars": 7,
@@ -1937,36 +1923,22 @@
                 "atr_take": 2.0,
                 "tf_seconds": 900
               },
-              "validation_score": -27.798,
-              "validation_trades": 24
-            },
-            {
-              "configuration": {
-                "family": "reversion",
-                "vol_min": 1.0,
-                "session": "newyork",
-                "sensitivity": 1,
-                "hold_bars": 7,
-                "atr_stop": 1.3,
-                "atr_take": 2.0,
-                "tf_seconds": 900
-              },
-              "validation_score": -28.284,
+              "validation_score": -29.28,
               "validation_trades": 23
             },
             {
               "configuration": {
                 "family": "reversion",
                 "vol_min": 1.0,
-                "session": "london",
+                "session": "newyork",
                 "sensitivity": 1,
                 "hold_bars": 7,
                 "atr_stop": 1.3,
                 "atr_take": 2.0,
                 "tf_seconds": 900
               },
-              "validation_score": -30.828,
-              "validation_trades": 26
+              "validation_score": -29.564,
+              "validation_trades": 21
             },
             {
               "configuration": {
@@ -1979,13 +1951,41 @@
                 "atr_take": 2.0,
                 "tf_seconds": 900
               },
-              "validation_score": -31.483,
-              "validation_trades": 29
+              "validation_score": -30.524,
+              "validation_trades": 28
+            },
+            {
+              "configuration": {
+                "family": "breakout",
+                "vol_min": 1.45,
+                "session": "newyork",
+                "sensitivity": 1,
+                "hold_bars": 7,
+                "atr_stop": 1.3,
+                "atr_take": 2.0,
+                "tf_seconds": 900
+              },
+              "validation_score": -30.728,
+              "validation_trades": 24
+            },
+            {
+              "configuration": {
+                "family": "breakout",
+                "vol_min": 1.0,
+                "session": "london",
+                "sensitivity": 1,
+                "hold_bars": 7,
+                "atr_stop": 1.3,
+                "atr_take": 2.0,
+                "tf_seconds": 900
+              },
+              "validation_score": -31.351,
+              "validation_trades": 34
             }
           ],
           "live_signal": false,
-          "eligible_configurations": 36,
-          "final_holdout_start_utc": "2026-11-07T05:45:00+00:00",
+          "eligible_configurations": 35,
+          "final_holdout_start_utc": "2026-11-08T01:00:00+00:00",
           "ml": {
             "status": "RESEARCH_ONLY_REJECTED",
             "features": [
@@ -2010,112 +2010,112 @@
                 "status": "VALIDATED",
                 "walk_forward": [
                   {
-                    "samples": 876,
-                    "accuracy_pct": 51.6,
-                    "majority_pct": 50.8,
-                    "brier": 0.248804,
-                    "baseline_brier": 0.249945
+                    "samples": 886,
+                    "accuracy_pct": 51.69,
+                    "majority_pct": 51.47,
+                    "brier": 0.248955,
+                    "baseline_brier": 0.249879
                   },
                   {
-                    "samples": 1116,
-                    "accuracy_pct": 52.78,
-                    "majority_pct": 53.23,
-                    "brier": 0.248528,
-                    "baseline_brier": 0.249664
+                    "samples": 1130,
+                    "accuracy_pct": 52.12,
+                    "majority_pct": 53.1,
+                    "brier": 0.249116,
+                    "baseline_brier": 0.249629
                   },
                   {
-                    "samples": 1597,
-                    "accuracy_pct": 48.78,
-                    "majority_pct": 50.03,
-                    "brier": 0.252143,
-                    "baseline_brier": 0.250138
+                    "samples": 1616,
+                    "accuracy_pct": 49.32,
+                    "majority_pct": 50.56,
+                    "brier": 0.251279,
+                    "baseline_brier": 0.250009
                   }
                 ],
-                "mean_validation_brier": 0.249825,
+                "mean_validation_brier": 0.249783,
                 "final_holdout": {
-                  "samples": 1593,
-                  "accuracy_pct": 53.42,
-                  "majority_pct": 53.55,
-                  "brier": 0.250361,
-                  "baseline_brier": 0.249452
+                  "samples": 1612,
+                  "accuracy_pct": 52.73,
+                  "majority_pct": 53.04,
+                  "brier": 0.250742,
+                  "baseline_brier": 0.249479
                 }
               },
               "XGBoost": {
                 "status": "VALIDATED",
                 "walk_forward": [
                   {
-                    "samples": 876,
-                    "accuracy_pct": 52.05,
-                    "majority_pct": 50.8,
-                    "brier": 0.249834,
-                    "baseline_brier": 0.249945
+                    "samples": 886,
+                    "accuracy_pct": 50.56,
+                    "majority_pct": 51.47,
+                    "brier": 0.249331,
+                    "baseline_brier": 0.249879
                   },
                   {
-                    "samples": 1116,
-                    "accuracy_pct": 55.11,
-                    "majority_pct": 53.23,
-                    "brier": 0.247351,
-                    "baseline_brier": 0.249664
+                    "samples": 1130,
+                    "accuracy_pct": 53.27,
+                    "majority_pct": 53.1,
+                    "brier": 0.247497,
+                    "baseline_brier": 0.249629
                   },
                   {
-                    "samples": 1597,
-                    "accuracy_pct": 50.66,
-                    "majority_pct": 50.03,
-                    "brier": 0.250206,
-                    "baseline_brier": 0.250138
+                    "samples": 1616,
+                    "accuracy_pct": 51.49,
+                    "majority_pct": 50.56,
+                    "brier": 0.249603,
+                    "baseline_brier": 0.250009
                   }
                 ],
-                "mean_validation_brier": 0.24913,
+                "mean_validation_brier": 0.24881,
                 "final_holdout": {
-                  "samples": 1593,
-                  "accuracy_pct": 51.85,
-                  "majority_pct": 53.55,
-                  "brier": 0.250044,
-                  "baseline_brier": 0.249452
+                  "samples": 1612,
+                  "accuracy_pct": 51.8,
+                  "majority_pct": 53.04,
+                  "brier": 0.250504,
+                  "baseline_brier": 0.249479
                 }
               },
               "LightGBM": {
                 "status": "VALIDATED",
                 "walk_forward": [
                   {
-                    "samples": 876,
-                    "accuracy_pct": 51.48,
-                    "majority_pct": 50.8,
-                    "brier": 0.250183,
-                    "baseline_brier": 0.249945
+                    "samples": 886,
+                    "accuracy_pct": 52.37,
+                    "majority_pct": 51.47,
+                    "brier": 0.250077,
+                    "baseline_brier": 0.249879
                   },
                   {
-                    "samples": 1116,
-                    "accuracy_pct": 56.09,
-                    "majority_pct": 53.23,
-                    "brier": 0.247084,
-                    "baseline_brier": 0.249664
+                    "samples": 1130,
+                    "accuracy_pct": 53.98,
+                    "majority_pct": 53.1,
+                    "brier": 0.24714,
+                    "baseline_brier": 0.249629
                   },
                   {
-                    "samples": 1597,
-                    "accuracy_pct": 50.34,
-                    "majority_pct": 50.03,
-                    "brier": 0.250239,
-                    "baseline_brier": 0.250138
+                    "samples": 1616,
+                    "accuracy_pct": 51.24,
+                    "majority_pct": 50.56,
+                    "brier": 0.249851,
+                    "baseline_brier": 0.250009
                   }
                 ],
-                "mean_validation_brier": 0.249169,
+                "mean_validation_brier": 0.249023,
                 "final_holdout": {
-                  "samples": 1593,
-                  "accuracy_pct": 52.1,
-                  "majority_pct": 53.55,
-                  "brier": 0.250105,
-                  "baseline_brier": 0.249452
+                  "samples": 1612,
+                  "accuracy_pct": 52.85,
+                  "majority_pct": 53.04,
+                  "brier": 0.250355,
+                  "baseline_brier": 0.249479
                 }
               }
             },
             "approved": false,
             "selected_by_validation": "XGBoost",
-            "training_samples": 8014,
-            "holdout_start_utc": "2026-11-07T08:00:00+00:00",
+            "training_samples": 8110,
+            "holdout_start_utc": "2026-11-08T03:15:00+00:00",
             "no_live_signal": true
           },
-          "source_utc_last": "2026-11-24T00:00:00+00:00"
+          "source_utc_last": "2026-11-25T00:00:00+00:00"
         }
       },
       "independent_source": true

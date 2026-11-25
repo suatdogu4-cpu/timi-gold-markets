@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-11-24T12:22:13.115472+00:00",
+  "generated_at_utc": "2026-11-25T11:10:20.638406+00:00",
   "market": "XAUUSDT",
   "no_orders": true,
   "sources": {
@@ -7,37 +7,37 @@
       "source_key": "binance",
       "source_id": "binance_usdm_futures_trade_1m",
       "symbol": "XAUUSDT",
-      "bars": 120960,
+      "bars": 122400,
       "first_utc": "2026-09-01T00:00:00+00:00",
-      "last_utc": "2026-11-23T23:59:00+00:00",
-      "sha256_gzip": "1ce6e9cd7ab798d7d1ebe604ad49bb6554457bb9f385a3c05b4a46398217dede",
-      "bytes_gzip": 1779061,
-      "packages_seen": 25,
-      "verified": 25,
+      "last_utc": "2026-11-24T23:59:00+00:00",
+      "sha256_gzip": "8fbcd665bf1b3feb5ea8d5d484007685cef99b9e284cf2c9cc1453495d30951e",
+      "bytes_gzip": 1802947,
+      "packages_seen": 26,
+      "verified": 26,
       "unpublished": 0,
       "errors": [],
       "status": "OK",
       "missing_minutes_between_extremes": 0,
       "first": "2026-09-01T00:00:00+00:00",
-      "last": "2026-11-23T23:59:00+00:00"
+      "last": "2026-11-24T23:59:00+00:00"
     },
     "bitget": {
       "source_key": "bitget",
       "source_id": "bitget_usdt_futures_trade_1m",
       "symbol": "XAUUSDT",
-      "bars": 86182,
+      "bars": 87558,
       "first_utc": "2026-09-24T10:39:00+00:00",
-      "last_utc": "2026-11-24T12:21:00+00:00",
-      "sha256_gzip": "5d59925df9a48e06a3c5cf2f0aa7b1d0f4785fa3d747b8f96447044adb69d41e",
-      "bytes_gzip": 1118589,
+      "last_utc": "2026-11-25T11:09:00+00:00",
+      "sha256_gzip": "01f6d52d5151a3ad6cc85c3107a21f67c9ff5a0ce47a1faf0dc8482616b0c2e5",
+      "bytes_gzip": 1139381,
       "status": "OK",
-      "pages": 52,
-      "added": 3608,
+      "pages": 51,
+      "added": 1376,
       "mode": "refresh",
       "error": null,
-      "missing_minutes_between_extremes": 1761,
+      "missing_minutes_between_extremes": 1753,
       "first": "2026-09-24T10:39:00+00:00",
-      "last": "2026-11-24T12:21:00+00:00"
+      "last": "2026-11-25T11:09:00+00:00"
     }
   }
 }

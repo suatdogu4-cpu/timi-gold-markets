@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-11-26T10:44:40.695900+00:00",
+  "generated_at_utc": "2026-11-27T10:46:00.800485+00:00",
   "market": "XAUUSDT",
   "no_orders": true,
   "sources": {
@@ -7,37 +7,37 @@
       "source_key": "binance",
       "source_id": "binance_usdm_futures_trade_1m",
       "symbol": "XAUUSDT",
-      "bars": 123840,
+      "bars": 125280,
       "first_utc": "2026-09-01T00:00:00+00:00",
-      "last_utc": "2026-11-25T23:59:00+00:00",
-      "sha256_gzip": "47bf45094981a310288b5c3756c3fbe1a92cf9f6f0a23fd626e055eb82e80983",
-      "bytes_gzip": 1828115,
-      "packages_seen": 27,
-      "verified": 27,
+      "last_utc": "2026-11-26T23:59:00+00:00",
+      "sha256_gzip": "71a8d1a2d0796f47954e3ce402e76661f1d147f42ec275be8278e8f4913a473b",
+      "bytes_gzip": 1850640,
+      "packages_seen": 28,
+      "verified": 28,
       "unpublished": 0,
       "errors": [],
       "status": "OK",
       "missing_minutes_between_extremes": 0,
       "first": "2026-09-01T00:00:00+00:00",
-      "last": "2026-11-25T23:59:00+00:00"
+      "last": "2026-11-26T23:59:00+00:00"
     },
     "bitget": {
       "source_key": "bitget",
       "source_id": "bitget_usdt_futures_trade_1m",
       "symbol": "XAUUSDT",
-      "bars": 88958,
+      "bars": 90413,
       "first_utc": "2026-09-24T10:39:00+00:00",
-      "last_utc": "2026-11-26T10:43:00+00:00",
-      "sha256_gzip": "ed9290d149463cb83d783ddc58543d276d59e3f1e1c94946088858b36cb613ce",
-      "bytes_gzip": 1161504,
+      "last_utc": "2026-11-27T10:45:00+00:00",
+      "sha256_gzip": "e56313426815fa0d8fdfc80d285182dba539c5fe03a8765a0df21c149449f214",
+      "bytes_gzip": 1182156,
       "status": "OK",
       "pages": 51,
-      "added": 1400,
+      "added": 1455,
       "mode": "refresh",
       "error": null,
-      "missing_minutes_between_extremes": 1767,
+      "missing_minutes_between_extremes": 1754,
       "first": "2026-09-24T10:39:00+00:00",
-      "last": "2026-11-26T10:43:00+00:00"
+      "last": "2026-11-27T10:45:00+00:00"
     }
   }
 }
